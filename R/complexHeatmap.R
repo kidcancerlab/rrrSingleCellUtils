@@ -67,6 +67,7 @@ plot_complex_heatmap <- function(fl_object,
     ggplot2::guides(fill = ggplot2::guide_legend(order = 1),
                     size = ggplot2::guide_legend(order = 2),
                     shape = ggplot2::guide_legend(order = 3)) +
+    ggplot2::theme_bw() +
     ggplot2::theme(axis.text.x =
                      ggplot2::element_text(angle = 90,
                                            hjust = 0.9,
