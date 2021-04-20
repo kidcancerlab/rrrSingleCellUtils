@@ -4,14 +4,34 @@
 \alias{plot_complex_heatmap}
 \title{Make a complex heatmap showing nichenet output from FindLigands()}
 \usage{
-plot_complex_heatmap(fl_object)
+plot_complex_heatmap(
+  fl_object,
+  grid_color_low = "gray95",
+  grid_color_high = "midnightblue",
+  point_color_low = "white",
+  point_color_high = "darkred"
+)
 }
 \arguments{
 \item{fl_object}{An object returned by the FindLigands() function}
+
+\item{grid_color_low}{Color for low values in the grid}
+
+\item{grid_color_high}{Color for high values in the grid}
+
+\item{point_color_low}{Color for low values in the points}
+
+\item{point_color_high}{Color for high values in the points}
 }
 \value{
 a ggplot object
 }
 \description{
 Make a complex heatmap showing nichenet output from FindLigands()
+}
+\examples{
+\dontrun{
+data_obj <- findLigands(other_data)
+plot_complex_heatmap(data_obj)
+}
 }
