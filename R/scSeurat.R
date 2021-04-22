@@ -1,42 +1,30 @@
 #' Load 10X data
 #'
-#' @param path10x Path to the 10X data to load
-#' @param species Species data to analyze - see details
-#' @param min_cells Passed to CreateSeuratObject : Include features detected in at least this many cells. Will subset the counts matrix as well. To reintroduce excluded features, create a new object with a lower cutoff.
-#' @param min_features Passed to CreateSeuratObject : Include cells where at least this many features are detected.
-#'
-#' @details
-#' For species:
-#'    human - use for an alignment made to a human genome
-#'    mouse - use for an alignment made to a murine genome
-#'    mixHuman - use for an alignment made to a mixed genome, return human dataset
-#'    mixMouse - use for an alignment made to a mixed genome, return murine dataset
+#' @param path_10x Path to 10X RNAseq data "filtered_feature_bc_matrix" folder
+#' @param min_cells Passed to CreateSeuratObject: Include features detected in
+#'     at least this many cells. Will subset the counts matrix as well. To
+#'     reintroduce excluded features, create a new object with a lower cutoff.
+#' @param min_features Passed to CreateSeuratObject: Include cells where at
+#'     least this many features are detected.
+#' @param mt_pattern Pattern used to identify mitochondrial reads
+#' @param species_pattern Pattern used to select only reads from a single
+#'     species
 #'
 #' @return A \code{\link{Seurat}}
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' seurat_obj <- tenXLoadQC("path/to/10X/data/", species = "human")
+#' seurat_obj <- tenXLoadQC("path/to/10X/data/", species_pattern = "^mm9")
 #' }
-tenXLoadQC <- function(path10x, species, min_cells = 5, min_features = 800) {
-  raw.data <- Seurat::Read10X(path10x)
+tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
+                         mt_pattern = "^mt-|^MT-", species_pattern = "^hg19") {
+  raw_data <- Seurat::Read10X(path_10x)
+  raw_data <- raw_data[grep(pattern = species_pattern,
+                            raw_data@Dimnames[[1]]), ]
+  raw_data@Dimnames[[1]] <- substring(raw_data@Dimnames[[1]], 6)
 
-  if (species == "human") {
-    mt_pattern <- "^MT-"
-  } else if (species == "mouse") {
-    mt_pattern <- "^mt-"
-  } else if (species == "mixHuman") {
-    mt_pattern <- "MT-"
-    raw.data <- raw.data[grep(pattern = "^hg19", raw.data@Dimnames[[1]]), ]
-    raw.data@Dimnames[[1]] <- substring(raw.data@Dimnames[[1]], 6)
-  } else if (species == "mixMouse") {
-    mt_pattern <- "^mt-"
-    raw.data <- raw.data[grep(pattern = "^mm10", raw.data@Dimnames[[1]]), ]
-    raw.data@Dimnames[[1]] <- substring(raw.data@Dimnames[[1]], 6)
-  }
-
-  seurat <- Seurat::CreateSeuratObject(raw.data,
+  seurat <- Seurat::CreateSeuratObject(raw_data,
                                min.cells = min_cells,
                                min.features = min_features)
   seurat <- Seurat::PercentageFeatureSet(seurat,
@@ -47,5 +35,5 @@ tenXLoadQC <- function(path10x, species, min_cells = 5, min_features = 800) {
                    features = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
                    ncol = 3))
 
-    return(seurat)
+  return(seurat)
 }

@@ -2,5 +2,5 @@
 
 export("%>%")
 export(plot_complex_heatmap)
-export(tenXLoadQC)
+export(tenx_load_qc)
 importFrom(magrittr,"%>%")

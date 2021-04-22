@@ -19,6 +19,8 @@ plot_complex_heatmap <- function(fl_object,
                                  grid_color_high = "midnightblue",
                                  point_color_low = "white",
                                  point_color_high = "darkred") {
+  ## Get data from plot objects
+  #### I should see if I can just use the raw data directly
   mp_data <- fl_object[[4]]$data %>%
     dplyr::mutate(x = factor(x, ordered = FALSE),
                   y = factor(y, ordered = FALSE))
@@ -32,12 +34,17 @@ plot_complex_heatmap <- function(fl_object,
     dplyr::rename(x = features.plot,
                   y = id)
 
+  ## Making an empty tibble here. The purpose is to insert a " " factor between
+  ## the factors for the x and y axes to force a space between "sub-plots"
   buffer_data <- tibble::tibble(x = factor(" "),
                                 y = factor(" "))
 
-  ##### Bind rows instead
   ###### put in a column for x-axis label colors above here and use
   ### axis.text.y = element_text(colour = c[[col]]) to plot
+
+  ## Combine the data from each plot together so legends are normalized
+  ## Then reorder the levels in the x and y factors to force alignment in
+  ## "sub-plots"
   combined <- dplyr::bind_rows(mp_data, rp_data) %>%
     dplyr::bind_rows(., bp_data) %>%
     dplyr::bind_rows(buffer_data) %>%
@@ -50,6 +57,7 @@ plot_complex_heatmap <- function(fl_object,
                                              levels(buffer_data$y),
                                              levels(bp_data$y))))
 
+  ## Make up plot made of "sub-plots" all together
   complex_plot <- ggplot2::ggplot(combined, ggplot2::aes(x = x, y = y)) +
     ggplot2::geom_tile(ggplot2::aes(fill = score), width = 0.9, height = 0.9) +
     ggplot2::scale_fill_gradient(low = grid_color_low,
