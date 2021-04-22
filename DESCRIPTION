@@ -16,4 +16,5 @@ Imports:
     dplyr,
     tibble,
     forcats,
-    Seurat
+    Seurat,
+    readr
