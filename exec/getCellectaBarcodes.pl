@@ -7,7 +7,7 @@ use Pod::Usage;
 ##############################
 # By Matt Cannon
 # Date: 4/22/21
-# Last modified: 
+# Last modified:
 # Title: getCellectaBarcodes.pl
 # Purpose: Pull Cellecta barcode information out of bam files
 ##############################
@@ -39,7 +39,7 @@ pod2usage(1) && exit if ($help);
 ##############################
 my $lineCounter = 0;
 my $foundCounter = 0;
-my @printArray = ("cid\tlt"); # put header in array to begin
+my @printArray = ("cid\tlt_14\tlt_30"); # put header in array to begin
 
 ##############################
 # Code
@@ -62,19 +62,23 @@ $sam =~ s/(.*\.bam)\s*$/samtools view < $1|/;
 open my $samFH, "$sam" or die "Could not open sam input\n";
 while (my $input = <$samFH>){
     chomp $input;
-    if ($input =~ /CGCA([ACGT]{14}TGGT[ACGT]{30}TGGT).+(CB:Z:([ATGC]{16}))/) {
-        my $lt = $1;
-        my $cid = $2;
+    # Skip headers
+    if($input !~ /^@/) {
+      if ($input =~ /CGCA([ACGT]{14})TGGT([ACGT]{30})TGGT.+(CB:Z:([ATGC]{16}))/) {
+          my $lt_14 = $1;
+          my $lt_30 = $2;
+          my $cid = $3;
 
-        printOut($lt, $cid);
+          printOut($cid, $lt_14, $lt_30);
 
-        $foundCounter++;
-    }
-    if($verbose) {
-        $lineCounter++;
-        if($lineCounter % 1000000 == 0) {
-            print STDERR commify($lineCounter), " sam entries processed. ", commify($foundCounter), " barcodes found                                  \r"
-        }
+          $foundCounter++;
+      }
+      if($verbose) {
+          $lineCounter++;
+          if($lineCounter % 1000000 == 0) {
+              print STDERR commify($lineCounter), " sam entries processed. ", commify($foundCounter), " barcodes found                                  \r"
+          }
+      }
     }
 }
 
@@ -88,10 +92,11 @@ if(scalar(@printArray) > 0) {
 ### Subfunctions
 
 sub printOut {
-    my $lt = $_[0];
-    my $cid = $_[1];
+    my $cid = $_[0];
+    my $lt_14 = $_[1];
+    my $lt_30 = $_[2];
 
-    push @printArray, $cid . "\t". $lt;
+    push @printArray, $cid . "\t". $lt_14 . "\t" . $lt_30;
 
     if(scalar(@printArray) >= $printBuffer) {
         print join("\n", @printArray), "\n";
@@ -110,16 +115,16 @@ sub commify { # function stolen from web
 ##############################
 
 #=pod
-    
+
 =head SYNOPSIS
 
-Summary:    
-    
-    getCellectaBarcodes.pl - pull out and print 
-    
+Summary:
+
+    getCellectaBarcodes.pl - pull out and print
+
 Usage:
 
-    perl xxxxxx.pl [options] 
+    perl xxxxxx.pl [options]
 
 
 =head OPTIONS

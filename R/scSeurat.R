@@ -38,137 +38,138 @@ tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
   return(seurat)
 }
 
-# The following procedure will generate the matching lineage tracing and cell ID tables:
-#   In Linux bash, navigate to the scRNA Counts directory containing the cellranger output .bam
-#   Load samtools with > module load samtools-1.7
-#   Extract all lines containing a read that matches the flanking sequences for the LT barcode
-#     > samtools view possorted_genome_bam.bam | egrep "CGCA[ACGT]{14}TGGT[ACGT]{30}TGGT" > match.lt.sam
-#     (You might want to make sure this is actually running when you submit the command, as
-#       I've been burned before.  It takes forever even when it's working on a big file.  Open
-#       a separate Putty window, SSH into the node that should be running samtools and egrep,
-#       then run top.  You should see one process for each of these programs running.)
-#   Remove any lines that do not have a high-confidence cell ID assigned:
-#     > egrep "CB:Z:[ACGT]{16}" match.lt.sam > match.both.sam
-#   Extract the lineage tracing barcode and flanking sequences
-#     > egrep -o "CBCA[ACGT]{14}TGGT[ACGT]{30}TGGT" match.both.sam > lt.fq
-#   Extract the matching cell identity barcodes
-#     > egrep -o "CB:Z:[ACGT]{16}" match.both.sam > pre-cid.fq
-#   Clean up the cell identity barcodes (get rid of the prefix)
-#     > grep -o "[ACGT]{16}$" pre-cid.fq > cid.fq
-#   Input lt.fq and cid.fq into the lt.loc and cid.loc variables in the function below
 
-# For processLTBC (lineage tracing barcodes), the following values should be set:
-#    sobject - the name of the Seurat object that contains the cell barcodes (cids) that will be matched and integrated
-#    lt.loc - the file location of the lineage tracing barcodes (extracted from the fastq files)
-#    cid.loc - the file location of the cell id barcodes (extracted from the fastq files)
-#    histogram - TRUE will trigger the function to generate and output a histogram plot of the top 40 most frequent lineage tracing barcodes
-#    col.fill - the color that you would like to use for the barchart on the histogram
-#    ymax - if set, this will define the upper limit of the y axis (ie, for creating side-by-side comparisons)
-#    relative - TRUE will normalize cell counts to total number of cells containing barcodes
-#    title - verbiage for the title of the histogram, if triggered
-#    ret.list - TRUE will trigger the function to return the list of barcode frequencies, rather than the seurat object
+#' Extract cellecta barcode information from a sam or bam file
+#'
+#' @param file Input sam or bam file
+#' @param verbose Optional updates during parsing
+#' @param output File to write out
+#' @param samtools_module For slurm, which modules to load
+#'
+#' @return A tibble of the cell ids and lineage tracing barcodes
+#' @export
+#'
+#' @details For some reason, this function does not cancel when ordered. Either
+#' kill the R session or kill the process directly on the server
+#'
+#' @examples
+#' \dontrun{
+#' cid_lt <- gen_cellecta_bc_data(file = "path/to/file.bam",
+#'                                verbose = TRUE,
+#'                                samtools_module = "GCC/9.3.0 SAMtools/1.10")
+#'
+#' cid_lt <- gen_cellecta_bc_data(file = "/home/gdrobertslab/lab/Counts/S0027/outs/S0016-S0027-bc2.sam", verbose = TRUE, samtools_module = "GCC/9.3.0 SAMtools/1.10")
+#' }
+gen_cellecta_bc_data <- function(file, verbose = FALSE, output = tempfile(),
+                                 samtools_module = FALSE) {
 
-#' Title
+  package_dir <- find.package("rrrSingleCellUtils")
+
+  system_cmd <- paste(package_dir,
+                      "/exec/getCellectaBarcodes.pl --sam ",
+                      file,
+                      " > ", output,
+                      sep = "")
+
+  if (verbose) {
+    system_cmd <- paste(system_cmd, "-v")
+  }
+
+  if (samtools_module != FALSE) {
+    system_cmd <- paste("ml load ", samtools_module, "; ",
+                       system_cmd, "; ",
+                       "ml unload ", samtools_module,
+                       sep = "")
+  }
+
+  system(system_cmd)
+
+  results <- readr::read_delim(output, delim = "\t", col_names = TRUE)
+
+  return(results)
+}
+
+#' Process Lineage Tracing Barcodes
 #'
-#' @param file_loc
-#' @param verbose
-#' @param output
-#' @param samtools_module
+#' @param sobject Name of the Seurat object that contains the cell barcodes
+#'     (cids) that will be matched and integrated
+#' @param lt.loc File location of the lineage tracing barcodes (extracted from
+#'     the fastq files)
+#' @param cid.loc File location of the cell id barcodes (extracted from the
+#'     fastq files)
+#' @param histogram Will trigger the function to generate and output a
+#'     histogram plot of the top 40 most frequent lineage tracing barcodes
+#' @param col.fill Color that you would like to use for the barchart on the
+#'     histogram
+#' @param ymax Upper limit of the y axis (ie, for creating side-by-side
+#'     comparisons)
+#' @param relative This will normalize cell counts to total number of cells
+#'     containing barcodes
+#' @param title Title of the histogram, if triggered
+#' @param ret.list This will trigger the function to return the list of barcode
+#'     frequencies, rather than the seurat object
 #'
-#' @return
+#' @return either a \code{\link{Seurat}} object or a data frame of barcode
+#'     frequences
 #' @export
 #'
 #' @examples
-gen_cellecta_bc_data <- function(file_loc, verbose = FALSE, output = "",
-                                 samtools_module = 'GCC/9.3.0 SAMtools/1.10') {
+process_ltbc <- function(sobject, cid_lt, histogram = FALSE,
+                         col_fill = "#4DBBD5FF", ymax = NA, relative = FALSE,
+                         title = "LT Barcode Frequency", ret_list = FALSE) {
 
-  system_cmd <- paste("perl getCellectaBarcodes.pl --sam ", file_loc, sep = "")
-
-  if(samtools_module != FALSE) {
-    system_cmd = paste(samtools_module, "; ", system_cmd)
-  }
-
-  if (output != "") {
-    system_cmd = paste(system_cmd, ">", output)
-  }
-
-  if(verbose) {
-    system_cmd = paste(system_cmd, "-v")
-  }
-
-  results <- system(system_cmd, intern = TRUE)
-
-  if(output != "") {
-    results <- readr::read_delim(output, delim = "\t", col_names = TRUE)
-  }
-}
-
-process_ltbc <- function(sobject, lt.loc, cid.loc, histogram = F,
-                        col.fill = "#4DBBD5FF", ymax = NA, relative = F,
-                        title = "LT Barcode Frequency", ret.list = F) {
-
-  # Read in the master Cellecta barcode tables for QC purposes
-  bc14 <- read.table("C:/Users/rxr014/Dropbox (NCH)/BIScratch/Cellecta-bc14s.txt")
-  bc30 <- read.table("C:/Users/rxr014/Dropbox (NCH)/BIScratch/Cellecta-bc30s.txt")
-  names(bc14) <- c("label", "forward", "reverse")
-  names(bc30) <- c("label", "forward", "reverse")
   bc14f <- setNames(bc14$label, bc14$forward)
   bc30f <- setNames(bc30$label, bc30$forward)
 
-  # Import the lineage tracing and matching cell ID tables extracted from the fastqs
-  lt.bc <- read.table(lt.loc)
-  cid.bc <- read.table(cid.loc)
-  bc <- data.frame(cid.bc, lt.bc)
-  colnames(bc) <- c("cid", "lt")
-
   # Deduplicate redundant reads
-  bc <- dplyr::distinct(bc)
-
-  # Extract the bc14 and the bc30 reads from the lineage tracing sequences (identified by flanking regions)
-  bc$bc14 <- substring(bc$lt, 5, 18)
-  bc$bc30 <- substring(bc$lt, 23, 52)
+  cid_lt <- cid_lt %>%
+    dplyr::distinct() %>%
 
   # Match extracted barcode reads against the Cellecta barcode tables
-  bc$label14 <- bc14f[bc$bc14]
-  bc$label30 <- bc30f[bc$bc30]
-  bc$label14 <- substring(bc$label14, 6)
-  bc$label30 <- substring(bc$label30, 6)
+    dplyr::mutate(label14 = bc14f[lt_14],
+                  label30 = bc30f[lt_30]) %>%
+    dplyr::mutate(label14 = stringr::str_remove(label14, ".+-"),
+                  label30 = stringr::str_remove(label30, ".+-")) %>%
 
   # Eliminate barcodes that don't match the Cellecta barcode tables
-  bc <- na.omit(bc, cols = c(label14, label30))
+    na.omit() %>%
 
   # Concatenate the two barcodes into a single compound column
-  bc$label <- paste(bc$label14, bc$label30, sep = "-")
+    dplyr::mutate(label = paste(label14, label30, sep = "-")) %>%
+    dplyr::pull(label, cid) %>%
+    sort()
 
   # Integrate the lineage tracing barcode into the Seurat object metadata
-  bc <- setNames(as.character(bc$label), bc$cid)
-  bc <- sort(bc)
-  sobject$lt <- bc[sobject@assays$RNA@counts@Dimnames[[2]]]
+  sobject$lt <- cid_lt[sobject@assays$RNA@counts@Dimnames[[2]]]
 
   # Generate the frequency tables
-  ylabel = "Number of Cells"
-  bc.freq <- as.data.frame(table(sobject$lt))
-  bc.freq <- bc.freq[order(-bc.freq$Freq),]
-  if(isTRUE(relative)) {
-    bc.freq$Freq = bc.freq$Freq/length(bc)*100
-    ylabel = "Percentage of Cells"
-  }
-  bc.plot.data <- head(bc.freq, n=40)
+  ylabel <- "Number of Cells"
+  bc_freq <- as.data.frame(table(sobject$lt)) %>%
+    dplyr::rename(freq = Freq) %>%
+    dplyr::arrange(-freq)
 
-  # Create histogram graphs if desired (default using blue color from npg from ggsci)
-  if(isTRUE(histogram)) {
-    p <- ggplot(bc.plot.data, aes(x = reorder(Var1, -Freq), y = Freq)) +
-      geom_bar(fill = col.fill, stat = "identity") +
-      ggtitle(title) +
-      ylab(ylabel) +
-      xlab("Lineage Barcode") +
-      theme(axis.text.x = element_text(angle = 90, hjust = 1))
-    print(p + ylim(0, ymax))
+  if (isTRUE(relative)) {
+    bc_freq$freq <- bc_freq$freq / sum(bc_freq$freq) * 100
+    ylabel <- "Percentage of Cells"
   }
-  if (isTRUE(ret.list)) {
-    return(bc.freq)
+  bc_plot_data <- head(bc_freq, n = 40)
+
+  # Create histogram graphs (default using blue color from npg from ggsci)
+  if (isTRUE(histogram)) {
+    print(ggplot2::ggplot(bc_plot_data, ggplot2::aes(x = reorder(Var1, -freq),
+                                                     y = freq)) +
+            ggplot2::geom_bar(fill = col.fill, stat = "identity") +
+            ggplot2::ggtitle(title) +
+            ggplot2::ylab(ylabel) +
+            ggplot2::xlab("Lineage Barcode") +
+            ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90,
+                                                               hjust = 1)) +
+            ggplot2::ylim(0, ymax))
+  }
+
+  if (isTRUE(ret_list)) {
+    return(bc_freq)
   } else {
     return(sobject)
   }
 }
-
