@@ -17,4 +17,9 @@ Imports:
     tibble,
     forcats,
     Seurat,
-    readr
+    readr,
+    stringr,
+    utils,
+    stats
+Depends: 
+    R (>= 2.10)
