@@ -22,7 +22,11 @@
 #'
 #' @examples
 #' \dontrun{
-#' targets <- find_tar_genes(seurat_obj, id1 = 2, id2 = c(0, 1, 3), logfc = 1)
+#' targets <- find_tar_genes(seurat_obj,
+#'                           id1 = "d14",
+#'                           id2 = "d35",
+#'                           logfc = 0.25,
+#'                           spec = "human")
 #' }
 
 find_tar_genes <- function(sobject, id1, id2, pval = 0.05, logfc = 0.25,
@@ -41,7 +45,7 @@ find_tar_genes <- function(sobject, id1, id2, pval = 0.05, logfc = 0.25,
     tibble::rownames_to_column("gene") %>%
     dplyr::filter(p_val_adj <= pval & abs(avg_log2FC) >= logfc) %>%
     dplyr::pull(gene) %>%
-    dplyr::intersect(targets, ligand_list)
+    dplyr::intersect(ligand_list)
 
   return(targets)
 }
