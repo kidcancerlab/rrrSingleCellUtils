@@ -25,8 +25,8 @@
 ---
 
 ## Errors
-> If you run into any errors, please run the following commands and sent the
-> output to me.
+> If you run into any errors, please run the following commands and send the
+> output to me along with the error messages produced.
 > 
 > ```
 > traceback()
