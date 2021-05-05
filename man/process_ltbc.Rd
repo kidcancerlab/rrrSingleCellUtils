@@ -19,8 +19,13 @@ process_ltbc(
 \item{sobject}{Name of the Seurat object that contains the cell barcodes
 (cids) that will be matched and integrated}
 
+\item{cid_lt}{Table of cellecta cell id and lineage tracing barcodes.
+Returned by gen_cellecta_bc_data()}
+
 \item{histogram}{Will trigger the function to generate and output a
 histogram plot of the top 40 most frequent lineage tracing barcodes}
+
+\item{col_fill}{Fill color}
 
 \item{ymax}{Upper limit of the y axis (ie, for creating side-by-side
 comparisons)}
@@ -28,19 +33,10 @@ comparisons)}
 \item{relative}{This will normalize cell counts to total number of cells
 containing barcodes}
 
-\item{title}{Title of the histogram, if triggered}
+\item{title}{Title of the histogram, if generated}
 
-\item{lt.loc}{File location of the lineage tracing barcodes (extracted from
-the fastq files)}
-
-\item{cid.loc}{File location of the cell id barcodes (extracted from the
-fastq files)}
-
-\item{col.fill}{Color that you would like to use for the barchart on the
-histogram}
-
-\item{ret.list}{This will trigger the function to return the list of barcode
-frequencies, rather than the seurat object}
+\item{ret_list}{If TRUE, return a list of barcode frequencies instead of a
+Seurat object}
 }
 \value{
 either a \code{\link{Seurat}} object or a data frame of barcode
@@ -48,4 +44,12 @@ either a \code{\link{Seurat}} object or a data frame of barcode
 }
 \description{
 Process Lineage Tracing Barcodes
+}
+\examples{
+\dontrun{
+cid_lt <- gen_cellecta_bc_data(file = "path/to/file.bam",
+                               verbose = TRUE,
+                               samtools_module = "GCC/9.3.0 SAMtools/1.10")
+output <- process_ltbc(sobject, cid_lt = cid_lt, histogram = TRUE)
+}
 }
