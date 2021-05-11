@@ -346,3 +346,86 @@ find_ligands <- function(sobject, gset, receiver, senders, gset_spec = "human",
                       vis_ligand_receptor_network)
 
 }
+
+gen_lig_receptor_ref <- function(
+  lig_tar_matrix =
+    "https://zenodo.org/record/3260758/files/ligand_target_matrix.rds",
+  lig_rec_network =
+    "https://zenodo.org/record/3260758/files/lr_network.rds",
+  weighted_network =
+    "https://zenodo.org/record/3260758/files/weighted_networks.rds"
+  ) {
+
+  package_dir <- find.package("rrrSingleCellUtils")
+
+  # Get raw data
+  ligand_target_matrix <- readRDS(url(lig_tar_matrix))
+
+  lr_network <- readRDS(url(lig_rec_network))
+
+  ligands <- lr_network %>%
+    pull(from) %>%
+    unique()
+
+  receptors <- lr_network %>%
+    pull(to) %>%
+    unique()
+
+  lr_network_strict <- lr_network %>%
+    filter(database != "ppi_prediction_go" & database != "ppi_prediction")
+
+  ligands_bona_fide = lr_network_strict %>%
+    pull(from) %>%
+    unique()
+
+  receptors_bona_fide = lr_network_strict %>%
+    pull(to) %>%
+    unique()
+
+  weighted_networks = readRDS(url(weighted_network))
+
+  weighted_networks_lr = weighted_networks$lr_sig %>%
+    inner_join(lr_network %>%
+                 distinct(from, to), by = c("from", "to"))
+
+  save(ligands, ligands_bona_fide, receptors, receptors_bona_fide,
+       ligand_target_matrix, lr_network, lr_network_strict, weighted_networks,
+       weighted_networks_lr,
+       file = paste(package_dir, "/data/LRT_Reference.RData", sep = ""))
+
+  m.ligand_target_matrix <- ligand_target_matrix
+  rownames(m.ligand_target_matrix) <- convert_human_to_mouse_symbols(rownames(m.ligand_target_matrix))
+  colnames(m.ligand_target_matrix) <- convert_human_to_mouse_symbols(colnames(m.ligand_target_matrix))
+  m.ligand_target_matrix <- m.ligand_target_matrix[!is.na(rownames(m.ligand_target_matrix)), !is.na(colnames(m.ligand_target_matrix))]
+
+  m.lr_network <- lr_network
+  m.lr_network$from <- convert_human_to_mouse_symbols(m.lr_network$from)
+  m.lr_network$to <- convert_human_to_mouse_symbols(m.lr_network$to)
+  m.lr_network <- na.omit(m.lr_network)
+
+  m.ligands <- convert_human_to_mouse_symbols(ligands) %>% na.omit() %>% as.character()
+  m.receptors <- convert_human_to_mouse_symbols(receptors) %>% na.omit() %>% as.character()
+  m.ligands_bona_fide <- convert_human_to_mouse_symbols(ligands_bona_fide) %>% na.omit() %>% as.character()
+  m.receptors_bona_fide <- convert_human_to_mouse_symbols(receptors_bona_fide) %>% na.omit() %>% as.character()
+
+  m.lr_network_strict <- lr_network_strict
+  m.lr_network_strict$from <- convert_human_to_mouse_symbols(m.lr_network_strict$from)
+  m.lr_network_strict$to <- convert_human_to_mouse_symbols(m.lr_network_strict$to)
+  m.lr_network_strict <- na.omit(m.lr_network_strict)
+
+  m.weighted_networks <- weighted_networks
+  m.weighted_networks$lr_sig$from <- convert_human_to_mouse_symbols(m.weighted_networks$lr_sig$from)
+  m.weighted_networks$gr$from <- convert_human_to_mouse_symbols(m.weighted_networks$gr$from)
+  m.weighted_networks$lr_sig$to <- convert_human_to_mouse_symbols(m.weighted_networks$lr_sig$to)
+  m.weighted_networks$gr$to <- convert_human_to_mouse_symbols(m.weighted_networks$gr$to)
+  m.weighted_networks$lr_sig <- na.omit(m.weighted_networks$lr_sig)
+  m.weighted_networks$gr <- na.omit(m.weighted_networks$gr)
+
+  m.weighted_networks_lr <- m.weighted_networks$lr_sig %>% inner_join(m.lr_network %>% distinct(from,to), by = c("from","to"))
+
+  save(m.ligands, m.ligands_bona_fide, m.receptors, m.receptors_bona_fide, m.ligand_target_matrix, m.lr_network, m.lr_network_strict,
+       m.weighted_networks, m.weighted_networks_lr, file = "C:/Users/rxr014/Dropbox (NCH)/BIScratch/m.LRT_Reference.RData")
+
+}
+
+
