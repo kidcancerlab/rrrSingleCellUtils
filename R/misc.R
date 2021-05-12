@@ -2,4 +2,8 @@ utils::globalVariables(c(".", "avg.exp.scaled", "features.plot", "id",
                          "pct.exp", "score", "x", "y", "p_val_adj",
                          "avg_log2FC", "gene", "Freq", "Var1", "cid",
                          "col.fill", "freq", "label", "label14", "label30",
-                         "lt_14", "lt_30"))
+                         "lt_14", "lt_30", "database", "from", "to", "pearson",
+                         "test_ligand", "ligand_target_matrix", "ligands",
+                         "ligands_bona_fide", "lr_network", "lr_network_strict",
+                         "receptors", "receptors_bona_fide", "weighted_networks",
+                         "weighted_networks_lr"))

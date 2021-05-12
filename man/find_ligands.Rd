@@ -15,14 +15,50 @@ find_ligands(
   send_pct = 0.1,
   send_spec = "human",
   stringency = "loose",
-  dPlot = TRUE,
-  LTVis = TRUE,
-  LRVis = TRUE,
-  nBest = 20
+  d_plot = TRUE,
+  lt_vis = TRUE,
+  lr_vis = TRUE,
+  n_best = 20
 )
 }
 \arguments{
-\item{nBest}{}
+\item{sobject}{A Seurat object containing all of the cells for analysis}
+
+\item{gset}{A character vector of gene symbols that represent genes altered
+in the target condition within the receiver cells, can come from findTarGenes
+function}
+
+\item{receiver}{The identity of the (single) cluster being stimulated by some
+ligand}
+
+\item{senders}{The identities of the cluster(s) producing the ligands}
+
+\item{gset_spec}{The species of the target gene set}
+
+\item{rec_pct}{A fraction between 0 and 1, the threshold for inclusion,
+receptors must be expressed in this fraction of receiver cells}
+
+\item{rec_spec}{The species of the receiver cells, "human" or "mouse"}
+
+\item{send_pct}{A fraction between 0 and 1, the threshold for inclusion,
+ligands must be expressed in this fraction of sender cells}
+
+\item{send_spec}{The species of the sender cells, "human" or "mouse"}
+
+\item{stringency}{Determine whether the ligand-receptor interactions are
+interpreted strictly (based on bona-fide interactions from the literature) or
+loosely (including predicted and inferred interaction) (must be either
+"strict" or "loose")}
+
+\item{d_plot}{Logical, to trigger output of a dotplot of ligands}
+
+\item{lt_vis}{Logical, to trigger output of a ligand-target visualization
+graph}
+
+\item{lr_vis}{Logical, to trigger output of a ligand-receptor visualization
+graph, weighted by downstream changes in gene expression}
+
+\item{n_best}{An integer, the number of top ligands to include on the graphs}
 }
 \value{
 A list containing the following objects: dotplots for
@@ -46,7 +82,7 @@ Note that this function will translate all murine genesets into their human
  be vetted and evaluated for legitimacy.
 }
 \examples{
-\donrun{
+\dontrun{
 output <- find_ligands(combo, gset = targets_2,receiver = "Anchors",
                        senders = c("M1-like",
                                    "M2-like",

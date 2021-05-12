@@ -21,6 +21,11 @@ Imports:
     stringr,
     utils,
     stats,
-    nichenetr
+    nichenetr,
+    tidyr,
+    purrr
 Depends: 
     R (>= 2.10)
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
