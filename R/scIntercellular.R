@@ -267,10 +267,7 @@ find_ligands <- function(sobject, gset, receiver, senders, gset_spec = "human",
                                      legend_position = "top",
                                      x_axis_position = "top",
                                      legend_title = "Regulatory potential") +
-      ggplot2::theme(axis.text.x = ggplot2::element_text(face = "italic")) +
-      ggplot2::scale_fill_gradient2(low = "steelblue",
-                                    high = "steelblue4",
-                                    breaks = c(0, 0.006, 0.012))
+      ggplot2::theme(axis.text.x = ggplot2::element_text(face = "italic"))
     print(ltv)
   } else {
     ltv <- NULL
@@ -356,8 +353,8 @@ find_ligands <- function(sobject, gset, receiver, senders, gset_spec = "human",
       nichenetr::make_heatmap_ggplot("Ligands",
                           "Receptors",
                           x_axis_position = "top",
-                          legend_title = "Prior interaction potential") +
-      ggplot2::scale_fill_gradient(low = "white", high = "darkseagreen4")
+                          legend_title = "Prior interaction potential",
+			  color = "darkseagreen3")
     print(lrv)
   } else {
     lrv <- NULL
