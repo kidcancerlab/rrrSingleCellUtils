@@ -17,7 +17,12 @@
     * Extract cellecta barcode information from a sam or bam file
   * plot_complex_heatmap()
     * Make a complex heatmap showing nichenet output from FindLigands()
-  
+  * find_ligands()
+    * Formerly findLigands()
+    * Run nichenetr to find ligands potentially inducing receptor-driven gene expression changes
+  * find_tar_genes()
+    * Formerly findTarGenes()
+    * Create a gene list containing putative targets of ligand activity
   
 ### Still in testing
 
