@@ -1,0 +1,7 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+data-raw/*
+inst/ltbc_example.bam
+LRT_Reference.RData
+testData/*
