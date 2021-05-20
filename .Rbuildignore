@@ -4,3 +4,4 @@
 data-raw/*
 inst/ltbc_example.bam
 LRT_Reference.RData
+testData/*
