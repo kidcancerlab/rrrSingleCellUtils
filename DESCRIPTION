@@ -22,10 +22,10 @@ Imports:
     utils,
     stats,
     tidyr,
-    purrr,
-    nichenetr
+    purrr
 Depends: 
     R (>= 2.10),
+    nichenetr
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
