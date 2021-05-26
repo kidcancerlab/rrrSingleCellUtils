@@ -80,6 +80,9 @@ gen_cellecta_bc_data <- function(file, verbose = FALSE, output = tempfile(),
                        system_cmd, "; ",
                        "ml unload ", samtools_module,
                        sep = "")
+  } else if (Sys.which("samtools") == "") {
+    stop("\"samtools\" command not found in $PATH, do you need to provide module
+            info for slurm?")
   }
 
   system(system_cmd)
@@ -93,33 +96,33 @@ gen_cellecta_bc_data <- function(file, verbose = FALSE, output = tempfile(),
 #'
 #' @param sobject Name of the Seurat object that contains the cell barcodes
 #'     (cids) that will be matched and integrated
-#' @param lt.loc File location of the lineage tracing barcodes (extracted from
-#'     the fastq files)
-#' @param cid.loc File location of the cell id barcodes (extracted from the
-#'     fastq files)
 #' @param histogram Will trigger the function to generate and output a
 #'     histogram plot of the top 40 most frequent lineage tracing barcodes
-#' @param col.fill Color that you would like to use for the barchart on the
-#'     histogram
 #' @param ymax Upper limit of the y axis (ie, for creating side-by-side
 #'     comparisons)
 #' @param relative This will normalize cell counts to total number of cells
 #'     containing barcodes
-#' @param title Title of the histogram, if triggered
-#' @param ret.list This will trigger the function to return the list of barcode
-#'     frequencies, rather than the seurat object
+#' @param cid_lt Table of cellecta cell id and lineage tracing barcodes.
+#'     Returned by gen_cellecta_bc_data()
+#' @param col_fill Fill color
+#' @param ret_list If TRUE, return a list of barcode frequencies instead of a
+#'     Seurat object
+#' @param title Title of the histogram, if generated
 #'
 #' @return either a \code{\link{Seurat}} object or a data frame of barcode
 #'     frequences
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' cid_lt <- gen_cellecta_bc_data(file = "path/to/file.bam",
+#'                                verbose = TRUE,
+#'                                samtools_module = "GCC/9.3.0 SAMtools/1.10")
+#' output <- process_ltbc(sobject, cid_lt = cid_lt, histogram = TRUE)
+#' }
 process_ltbc <- function(sobject, cid_lt, histogram = FALSE,
                          col_fill = "#4DBBD5FF", ymax = NA, relative = FALSE,
                          title = "LT Barcode Frequency", ret_list = FALSE) {
-
-  bc14f <- setNames(bc14$label, bc14$forward)
-  bc30f <- setNames(bc30$label, bc30$forward)
 
   # Deduplicate redundant reads
   cid_lt <- cid_lt %>%
@@ -132,7 +135,7 @@ process_ltbc <- function(sobject, cid_lt, histogram = FALSE,
                   label30 = stringr::str_remove(label30, ".+-")) %>%
 
   # Eliminate barcodes that don't match the Cellecta barcode tables
-    na.omit() %>%
+    stats::na.omit() %>%
 
   # Concatenate the two barcodes into a single compound column
     dplyr::mutate(label = paste(label14, label30, sep = "-")) %>%
@@ -152,11 +155,13 @@ process_ltbc <- function(sobject, cid_lt, histogram = FALSE,
     bc_freq$freq <- bc_freq$freq / sum(bc_freq$freq) * 100
     ylabel <- "Percentage of Cells"
   }
-  bc_plot_data <- head(bc_freq, n = 40)
+
+  bc_plot_data <- utils::head(bc_freq, n = 40)
 
   # Create histogram graphs (default using blue color from npg from ggsci)
   if (isTRUE(histogram)) {
-    print(ggplot2::ggplot(bc_plot_data, ggplot2::aes(x = reorder(Var1, -freq),
+    print(ggplot2::ggplot(bc_plot_data, ggplot2::aes(x = stats::reorder(Var1,
+                                                                        -freq),
                                                      y = freq)) +
             ggplot2::geom_bar(fill = col.fill, stat = "identity") +
             ggplot2::ggtitle(title) +
