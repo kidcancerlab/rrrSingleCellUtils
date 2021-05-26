@@ -39,6 +39,10 @@ This gene list is needed as one of the inputs for the
 }
 \examples{
 \dontrun{
-targets <- find_tar_genes(seurat_obj, id1 = 2, id2 = c(0, 1, 3), logfc = 1)
+targets <- find_tar_genes(seurat_obj,
+                          id1 = "d14",
+                          id2 = "d35",
+                          logfc = 0.25,
+                          spec = "human")
 }
 }

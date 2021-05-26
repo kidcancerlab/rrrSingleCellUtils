@@ -36,6 +36,9 @@ cid_lt <- gen_cellecta_bc_data(file = "path/to/file.bam",
                                verbose = TRUE,
                                samtools_module = "GCC/9.3.0 SAMtools/1.10")
 
-cid_lt <- gen_cellecta_bc_data(file = "/home/gdrobertslab/lab/Counts/S0027/outs/S0016-S0027-bc2.sam", verbose = TRUE, samtools_module = "GCC/9.3.0 SAMtools/1.10")
+cid_lt <- gen_cellecta_bc_data(
+   file = "/home/gdrobertslab/lab/Counts/S0027/outs/S0016-S0027-bc2.sam",
+   verbose = TRUE,
+   samtools_module = "GCC/9.3.0 SAMtools/1.10")
 }
 }

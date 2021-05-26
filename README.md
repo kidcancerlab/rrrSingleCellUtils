@@ -1,6 +1,7 @@
 # Ryan Roberts R Single Cell Analysis Utility functions
 
-> These are utility functions for use by the Roberts lab to analyze single cell sequencing data.
+> These are utility functions for use by the Roberts lab to analyze single cell
+> sequencing data.
 
 ---
 
@@ -16,7 +17,12 @@
     * Extract cellecta barcode information from a sam or bam file
   * plot_complex_heatmap()
     * Make a complex heatmap showing nichenet output from FindLigands()
-  
+  * find_ligands()
+    * Formerly findLigands()
+    * Run nichenetr to find ligands potentially inducing receptor-driven gene expression changes
+  * find_tar_genes()
+    * Formerly findTarGenes()
+    * Create a gene list containing putative targets of ligand activity
   
 ### Still in testing
 
@@ -25,8 +31,8 @@
 ---
 
 ## Errors
-> If you run into any errors, please run the following commands and sent the
-> output to me.
+> If you run into any errors, please run the following commands and send the
+> output to me along with the error messages produced.
 > 
 > ```
 > traceback()

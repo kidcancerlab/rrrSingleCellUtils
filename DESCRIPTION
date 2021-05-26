@@ -20,6 +20,12 @@ Imports:
     readr,
     stringr,
     utils,
-    stats
+    stats,
+    tidyr,
+    purrr
 Depends: 
-    R (>= 2.10)
+    R (>= 2.10),
+    nichenetr
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3

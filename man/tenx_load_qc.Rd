@@ -9,7 +9,8 @@ tenx_load_qc(
   min_cells = 5,
   min_features = 800,
   mt_pattern = "^mt-|^MT-",
-  species_pattern = "^hg19"
+  species_pattern = "^hg19",
+  violin_plot = TRUE
 )
 }
 \arguments{
@@ -26,6 +27,8 @@ least this many features are detected.}
 
 \item{species_pattern}{Pattern used to select only reads from a single
 species}
+
+\item{violin_plot}{If TRUE, produces a violin plot}
 }
 \value{
 A \code{\link{Seurat}}
