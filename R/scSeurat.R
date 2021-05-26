@@ -9,6 +9,7 @@
 #' @param mt_pattern Pattern used to identify mitochondrial reads
 #' @param species_pattern Pattern used to select only reads from a single
 #'     species (eg, "^mm10" or "^hg19")
+#' @param violin_plot If TRUE, produces a violin plot
 #'
 #' @return A \code{\link{Seurat}}
 #' @export
@@ -18,7 +19,8 @@
 #' seurat_obj <- tenXLoadQC("path/to/10X/data/", species_pattern = "^mm9")
 #' }
 tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
-                         mt_pattern = "^mt-|^MT-", species_pattern = "") {
+                         mt_pattern = "^mt-|^MT-", species_pattern = "",
+                         violin_plot = TRUE) {
   raw_data <- Seurat::Read10X(path_10x)
   
   if(species_pattern != "") {
@@ -34,9 +36,19 @@ tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
                                  pattern = mt_pattern,
                                  col.name = "percent.mt")
 
+<<<<<<< HEAD
   print(Seurat::VlnPlot(seurat,
                       features = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
                       ncol = 3))
+=======
+  if (violin_plot == TRUE) {
+    print(Seurat::VlnPlot(seurat,
+                          features = c("nFeature_RNA",
+                                       "nCount_RNA",
+                                       "percent.mt"),
+                          ncol = 3))
+  }
+>>>>>>> cca38398f1c8eb9bc4f11a355dcf2a6226b103ea
 
   return(seurat)
 }
@@ -61,7 +73,10 @@ tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
 #'                                verbose = TRUE,
 #'                                samtools_module = "GCC/9.3.0 SAMtools/1.10")
 #'
-#' cid_lt <- gen_cellecta_bc_data(file = "/home/gdrobertslab/lab/Counts/S0027/outs/S0016-S0027-bc2.sam", verbose = TRUE, samtools_module = "GCC/9.3.0 SAMtools/1.10")
+#' cid_lt <- gen_cellecta_bc_data(
+#'    file = "/home/gdrobertslab/lab/Counts/S0027/outs/S0016-S0027-bc2.sam",
+#'    verbose = TRUE,
+#'    samtools_module = "GCC/9.3.0 SAMtools/1.10")
 #' }
 gen_cellecta_bc_data <- function(file, verbose = FALSE, output = tempfile(),
                                  samtools_module = FALSE) {
