@@ -36,11 +36,6 @@ tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
                                  pattern = mt_pattern,
                                  col.name = "percent.mt")
 
-<<<<<<< HEAD
-  print(Seurat::VlnPlot(seurat,
-                      features = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
-                      ncol = 3))
-=======
   if (violin_plot == TRUE) {
     print(Seurat::VlnPlot(seurat,
                           features = c("nFeature_RNA",
@@ -48,7 +43,6 @@ tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
                                        "percent.mt"),
                           ncol = 3))
   }
->>>>>>> cca38398f1c8eb9bc4f11a355dcf2a6226b103ea
 
   return(seurat)
 }
