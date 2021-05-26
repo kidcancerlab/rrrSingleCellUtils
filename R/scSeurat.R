@@ -22,9 +22,12 @@ tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
                          mt_pattern = "^mt-|^MT-", species_pattern = "",
                          violin_plot = TRUE) {
   raw_data <- Seurat::Read10X(path_10x)
-  raw_data <- raw_data[grep(pattern = species_pattern,
+  
+  if(species_pattern != "") {
+      raw_data <- raw_data[grep(pattern = species_pattern,
                             raw_data@Dimnames[[1]]), ]
-  raw_data@Dimnames[[1]] <- substring(raw_data@Dimnames[[1]], 6)
+      raw_data@Dimnames[[1]] <- substring(raw_data@Dimnames[[1]], 6)
+  }
 
   seurat <- Seurat::CreateSeuratObject(raw_data,
                                min.cells = min_cells,
@@ -33,6 +36,11 @@ tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
                                  pattern = mt_pattern,
                                  col.name = "percent.mt")
 
+<<<<<<< HEAD
+  print(Seurat::VlnPlot(seurat,
+                      features = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
+                      ncol = 3))
+=======
   if (violin_plot == TRUE) {
     print(Seurat::VlnPlot(seurat,
                           features = c("nFeature_RNA",
@@ -40,6 +48,7 @@ tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
                                        "percent.mt"),
                           ncol = 3))
   }
+>>>>>>> cca38398f1c8eb9bc4f11a355dcf2a6226b103ea
 
   return(seurat)
 }
