@@ -9,7 +9,7 @@ tenx_load_qc(
   min_cells = 5,
   min_features = 800,
   mt_pattern = "^mt-|^MT-",
-  species_pattern = "^hg19",
+  species_pattern = "",
   violin_plot = TRUE
 )
 }
@@ -26,7 +26,7 @@ least this many features are detected.}
 \item{mt_pattern}{Pattern used to identify mitochondrial reads}
 
 \item{species_pattern}{Pattern used to select only reads from a single
-species}
+species (eg, "^mm10" or "^hg19")}
 
 \item{violin_plot}{If TRUE, produces a violin plot}
 }

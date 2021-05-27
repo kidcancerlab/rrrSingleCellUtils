@@ -22,8 +22,8 @@ tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
                          mt_pattern = "^mt-|^MT-", species_pattern = "",
                          violin_plot = TRUE) {
   raw_data <- Seurat::Read10X(path_10x)
-  
-  if(species_pattern != "") {
+
+  if (species_pattern != "") {
       raw_data <- raw_data[grep(pattern = species_pattern,
                             raw_data@Dimnames[[1]]), ]
       raw_data@Dimnames[[1]] <- substring(raw_data@Dimnames[[1]], 6)
@@ -189,4 +189,96 @@ process_ltbc <- function(sobject, cid_lt, histogram = FALSE,
   } else {
     return(sobject)
   }
+}
+
+#' Regress out cell cycle effects
+#'
+#' @param sobject Seurat object to be processed
+#' @param cc_regress If set to Y, the process with run without user input and
+#'     will automatically proceed to cell cycle regression
+#' @param find_pcs Number of principal components to generate in the re-do PCA
+#'     post-CC regression
+#' @param use_pcs Number of principal components to use in the post-regression
+#'     dimensional reduction
+#' @param use_res Resolution to input to FindClusters
+#' @param method Type of dimensional reduction to use, currently supports either
+#'     umap or tsne
+#'
+#' @return A Seurat object
+#' @export
+#'
+#' @details
+#' The kill_cc function will identify cell cycle components within a dataset.
+#' After an initial scoring using the Seurat CellCycleScoring function, the user
+#' will be shown a dimensional reduction plot with cells labeled by cell cycle.
+#' If indicated, the user can then trigger a process to regress out the effects
+#' of cell cycle within the dataset.  The function will then proceed to re-do
+#' the PCA and jackstraw if needed, then show a dimensional reduction plot
+#' post-regression and retun the corrected Seurat object.
+#' Input must be a Seurat object that already has PCA and dimensional reduction
+#' data (umap or tsne) attached.
+#'
+#'
+#' @examples
+#' \dontrun{
+#' load("~/analyses/roberts/dev/rrrSingleCellUtils/testData/test_cc.RData")
+#' test <- kill_cc(os, use_pcs = 5, cc_regress = "Y")
+#' }
+kill_cc <- function(sobject, cc_regress = "N", find_pcs = 20, use_pcs = 3,
+                    use_res = 0.5, method = "umap") {
+  sobject <- Seurat::CellCycleScoring(sobject,
+                                      s.features = Seurat::cc.genes$s.genes,
+                                      g2m.features = Seurat::cc.genes$g2m.genes,
+                                      set.ident = TRUE)
+
+  if (method != "umap" & method != "tsne") {
+    print("You need to set a method supported by this function")
+  }
+
+  plot_cc <- Seurat::DimPlot(sobject,
+                             reduction = method,
+                             label = TRUE,
+                             pt.size = 1)
+
+  print(plot_cc)
+
+  if (cc_regress != "Y") {
+    cc_regress <-
+      readline(prompt =
+                 "Proceed with regression of cell cycle-dependent genes (Y/N)?")
+  }
+
+  if (cc_regress == "Y") {
+    sobject <- Seurat::ScaleData(sobject,
+                                 vars.to.regress = c("S.Score", "G2M.Score"),
+                                 features = rownames(x = sobject))
+    sobject <- Seurat::RunPCA(sobject, npcs = find_pcs)
+
+    if (method == "tsne") {
+      sobject <- Seurat::RunTSNE(sobject, reduction = "pca", dims = 1:use_pcs)
+    } else if (method == "umap") {
+      sobject <- Seurat::RunUMAP(sobject, reduction = "pca", dims = 1:use_pcs)
+    }
+
+    sobject <- Seurat::FindNeighbors(sobject,
+                                     reduction = "pca",
+                                     dims = 1:use_pcs)
+
+    sobject <- Seurat::FindClusters(sobject, resolution = use_res)
+
+    print(Seurat::DimPlot(sobject,
+                          reduction = method,
+                          label = TRUE,
+                          pt.size = 1,
+                          group.by = "Phase"))
+
+    print(Seurat::DimPlot(sobject,
+                          reduction = method,
+                          label = TRUE,
+                          pt.size = 1))
+
+  } else {
+    print("No CC regression performed.")
+  }
+  return(sobject)
 }
