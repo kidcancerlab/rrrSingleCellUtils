@@ -216,7 +216,12 @@ find_ligands <- function(sobject, gset, receiver, senders, gset_spec = "human",
            geneset = gset,
            ligand_target_matrix = rrr_env$ligand_target_matrix,
            n = 200) %>%
-    dplyr::bind_rows()
+    dplyr::bind_rows() %>%
+    dplyr::filter(!is.na(weight))
+
+  if (nrow(active_ligand_target_links_df) == 0) {
+    stop("No ligand:receptor matches found")
+  }
 
   active_ligand_target_links <-
     nichenetr::prepare_ligand_target_visualization(
@@ -242,21 +247,23 @@ find_ligands <- function(sobject, gset, receiver, senders, gset_spec = "human",
     colnames(active_ligand_target_links) %>%
     make.names() # make.names() for heatmap visualization of genes like H2-T23
 
-  vis_ligand_target <- active_ligand_target_links[order_targets,
-                                                 order_ligands] %>%
-    t()
+  vis_ligand_target <- t(active_ligand_target_links[order_targets,
+                                                    order_ligands])
 
   if (gset_spec == "mouse") {
     colnames(vis_ligand_target) <-
-      nichenetr::convert_human_to_mouse_symbols(colnames(vis_ligand_target))
+      nichenetr::convert_human_to_mouse_symbols(order_targets)
   }
   if (send_spec == "mouse") {
     rownames(vis_ligand_target) <-
-      nichenetr::convert_human_to_mouse_symbols(rownames(vis_ligand_target))
+      nichenetr::convert_human_to_mouse_symbols(order_ligands)
   }
 
-  vis_ligand_target <- vis_ligand_target[!is.na(rownames(vis_ligand_target)),
-                                         !is.na(colnames(vis_ligand_target))]
+  # by checking first we can avoid messing up a 1 x 1 matrix
+  if (NA %in% c(rownames(vis_ligand_target), colnames(vis_ligand_target))) {
+    vis_ligand_target <- vis_ligand_target[!is.na(rownames(vis_ligand_target)),
+                                           !is.na(colnames(vis_ligand_target))]
+  }
 
   # If requested, create a ligand-target visualization graph
   if (lt_vis == TRUE) {
@@ -354,7 +361,7 @@ find_ligands <- function(sobject, gset, receiver, senders, gset_spec = "human",
                           "Receptors",
                           x_axis_position = "top",
                           legend_title = "Prior interaction potential",
-			  color = "darkseagreen3")
+                          color = "darkseagreen3")
     print(lrv)
   } else {
     lrv <- NULL
@@ -473,68 +480,68 @@ gen_lig_receptor_ref <- function(
   # Mouse data - #### Not currently used? ####
                  #### Seems like we convert mouse input to human genes ####
   # m_ligand_target_matrix <- ligand_target_matrix
-  # 
+  #
   # rownames(m_ligand_target_matrix) <-
   #   nichenetr::convert_human_to_mouse_symbols(rownames(m_ligand_target_matrix))
   # colnames(m_ligand_target_matrix) <-
   #   nichenetr::convert_human_to_mouse_symbols(colnames(m_ligand_target_matrix))
-  # 
+  #
   # m_ligand_target_matrix <-
   #   m_ligand_target_matrix[!is.na(rownames(m_ligand_target_matrix)),
   #                          !is.na(colnames(m_ligand_target_matrix))]
-  # 
+  #
   # m_lr_network <- lr_network
   # m_lr_network$from <-
   #   nichenetr::convert_human_to_mouse_symbols(m_lr_network$from)
   # m_lr_network$to <-
   #   nichenetr::convert_human_to_mouse_symbols(m_lr_network$to)
   # m_lr_network <- stats::na.omit(m_lr_network)
-  # 
+  #
   # m_ligands <- nichenetr::convert_human_to_mouse_symbols(ligands) %>%
   #   stats::na.omit() %>%
   #   as.character()
-  # 
+  #
   # m_receptors <- nichenetr::convert_human_to_mouse_symbols(receptors) %>%
   #   stats::na.omit() %>%
   #   as.character()
-  # 
+  #
   # m_ligands_bona_fide <-
   #   nichenetr::convert_human_to_mouse_symbols(ligands_bona_fide) %>%
   #   stats::na.omit() %>%
   #   as.character()
-  # 
+  #
   # m_receptors_bona_fide <-
   #   nichenetr::convert_human_to_mouse_symbols(receptors_bona_fide) %>%
   #   stats::na.omit() %>%
   #   as.character()
-  # 
+  #
   # m_lr_network_strict <- lr_network_strict
-  # 
+  #
   # m_lr_network_strict$from <-
   #   nichenetr::convert_human_to_mouse_symbols(m_lr_network_strict$from)
   # m_lr_network_strict$to <-
   #   nichenetr::convert_human_to_mouse_symbols(m_lr_network_strict$to)
   # m_lr_network_strict <- stats::na.omit(m_lr_network_strict)
-  # 
+  #
   # m_weighted_networks <- weighted_networks
-  # 
+  #
   # m_weighted_networks$lr_sig$from <-
   #   nichenetr::convert_human_to_mouse_symbols(m_weighted_networks$lr_sig$from)
   # m_weighted_networks$lr_sig$to <-
   #   nichenetr::convert_human_to_mouse_symbols(m_weighted_networks$lr_sig$to)
   # m_weighted_networks$lr_sig <- stats::na.omit(m_weighted_networks$lr_sig)
-  # 
+  #
   # m_weighted_networks$gr$from <-
   #   nichenetr::convert_human_to_mouse_symbols(m_weighted_networks$gr$from)
   # m_weighted_networks$gr$to <-
   #   nichenetr::convert_human_to_mouse_symbols(m_weighted_networks$gr$to)
   # m_weighted_networks$gr <- stats::na.omit(m_weighted_networks$gr)
-  # 
+  #
   # m_weighted_networks_lr <- m_weighted_networks$lr_sig %>%
   #   dplyr::inner_join(m_lr_network %>%
   #                       dplyr::distinct(from, to),
   #                     by = c("from", "to"))
-  # 
+  #
   # save(m_ligands, m_ligands_bona_fide, m_receptors, m_receptors_bona_fide,
   #      m_ligand_target_matrix, m_lr_network, m_lr_network_strict,
   #      m_weighted_networks, m_weighted_networks_lr,
