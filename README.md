@@ -23,6 +23,11 @@
   * find_tar_genes()
     * Formerly findTarGenes()
     * Create a gene list containing putative targets of ligand activity
+  * kill_cc()
+    * Formerly killCC()
+    * Regress out cell cycle effects 
+  * plot_cc()
+    * Plot the proportion of cells in each cell cycle stage
   
 ### Still in testing
 

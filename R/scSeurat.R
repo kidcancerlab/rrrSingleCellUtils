@@ -24,17 +24,17 @@ tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
   raw_data <- Seurat::Read10X(path_10x)
 
   if (species_pattern != "") {
-      raw_data <- raw_data[grep(pattern = species_pattern,
-                            raw_data@Dimnames[[1]]), ]
-      raw_data@Dimnames[[1]] <- substring(raw_data@Dimnames[[1]], 6)
+    raw_data <- raw_data[grep(pattern = species_pattern,
+                              raw_data@Dimnames[[1]]), ]
+    raw_data@Dimnames[[1]] <- substring(raw_data@Dimnames[[1]], 6)
   }
 
   seurat <- Seurat::CreateSeuratObject(raw_data,
-                               min.cells = min_cells,
-                               min.features = min_features)
+                                       min.cells = min_cells,
+                                       min.features = min_features)
   seurat <- Seurat::PercentageFeatureSet(seurat,
-                                 pattern = mt_pattern,
-                                 col.name = "percent.mt")
+                                         pattern = mt_pattern,
+                                         col.name = "percent.mt")
 
   if (violin_plot == TRUE) {
     print(Seurat::VlnPlot(seurat,
@@ -89,9 +89,9 @@ gen_cellecta_bc_data <- function(file, verbose = FALSE, output = tempfile(),
 
   if (samtools_module != FALSE) {
     system_cmd <- paste("ml load ", samtools_module, "; ",
-                       system_cmd, "; ",
-                       "ml unload ", samtools_module,
-                       sep = "")
+                        system_cmd, "; ",
+                        "ml unload ", samtools_module,
+                        sep = "")
   } else if (Sys.which("samtools") == "") {
     stop("\"samtools\" command not found in $PATH, do you need to provide module
             info for slurm?")
@@ -140,16 +140,16 @@ process_ltbc <- function(sobject, cid_lt, histogram = FALSE,
   cid_lt <- cid_lt %>%
     dplyr::distinct() %>%
 
-  # Match extracted barcode reads against the Cellecta barcode tables
+    # Match extracted barcode reads against the Cellecta barcode tables
     dplyr::mutate(label14 = bc14f[lt_14],
                   label30 = bc30f[lt_30]) %>%
     dplyr::mutate(label14 = stringr::str_remove(label14, ".+-"),
                   label30 = stringr::str_remove(label30, ".+-")) %>%
 
-  # Eliminate barcodes that don't match the Cellecta barcode tables
+    # Eliminate barcodes that don't match the Cellecta barcode tables
     stats::na.omit() %>%
 
-  # Concatenate the two barcodes into a single compound column
+    # Concatenate the two barcodes into a single compound column
     dplyr::mutate(label = paste(label14, label30, sep = "-")) %>%
     dplyr::pull(label, cid) %>%
     sort()
@@ -281,4 +281,59 @@ kill_cc <- function(sobject, cc_regress = "N", find_pcs = 20, use_pcs = 3,
     print("No CC regression performed.")
   }
   return(sobject)
+}
+
+#' Plot Cell Cycle Distribution
+#'
+#' @param sobject A Seurat object
+#' @param plot_type Type of plot to output, one of "bar" or "pie"
+#'
+#' @return a ggplot object
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' plot_cc(marrow)
+#'
+#' plot_cc(marrow) + facet_wrap(~ Cluster, nrow = 1)
+#' }
+plot_cc <- function(sobject, plot_type = "bar") {
+  if (!"Phase" %in% names(sobject@meta.data)) {
+    stop("Phase info not available in this object.
+         Run Seurat::CellCycleScoring() to estimate cell cycle phases")
+  }
+
+  cid2 <- tibble::tibble(Cluster = sobject$seurat_clusters,
+                         CellId = names(sobject$seurat_clusters)) %>%
+    dplyr::full_join(tibble::tibble(Phase = sobject$Phase,
+                                    CellId = names(sobject$Phase)),
+                     by = "CellId") %>%
+    dplyr::group_by(Phase, Cluster) %>%
+    dplyr::summarize(Freq = length(Phase), .groups = "drop") %>%
+    dplyr::ungroup() %>%
+    dplyr::group_by(Cluster) %>%
+    dplyr::mutate(Proportion = Freq / sum(Freq)) %>%
+    dplyr::ungroup()
+
+  plot_obj <- ggplot2::ggplot(cid2,
+                              ggplot2::aes(x = Cluster,
+                                           y = Proportion,
+                                           fill = Phase)) +
+    ggplot2::geom_bar(width = 1, stat = "identity", color = "white") +
+    ggplot2::scale_fill_brewer(palette = "Blues") +
+    ggplot2::theme_minimal()
+
+  if (plot_type == "pie") {
+    plot_obj <- ggplot2::ggplot(cid2,
+                                ggplot2::aes(x = "",
+                                             y = Proportion,
+                                             fill = Phase)) +
+      ggplot2::geom_bar(stat = "identity", color = "white") +
+      ggplot2::coord_polar("y", start = 0) +
+      ggplot2::scale_fill_brewer(palette = "Blues") +
+      ggplot2::theme_minimal() +
+      Seurat::NoAxes() +
+      ggplot2::facet_wrap(~ Cluster)
+  }
+  return(plot_obj)
 }
