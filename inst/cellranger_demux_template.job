@@ -1,0 +1,42 @@
+#!/bin/bash
+
+#SBATCH --job-name=R0037
+#SBATCH --output=R0037-%j.out
+#SBATCH --time=120:00:00
+#SBATCH --cpus-per-task=30
+#SBATCH --mail-user=ryan.roberts@nationwidechildrens.org
+#SBATCH --mail-type=ALL
+
+
+## set variables
+CommonFolderName="R0037"
+RunName="R0037"
+BCLFolderName="210527_A01088_0204_BH23MJDMXY_Roberts"
+
+FolderRoot="/gpfs0/home2/gdrobertslab/lab/"
+BCLFolder="BCLs/"
+FASTQFolder="FASTQs/"
+CountsFolder="Counts/"
+
+## set path info
+export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-dna-1.1.0:$PATH
+ml load bcl2fastq/2.20.2
+cd $TMPDIR
+
+## demultiplex bcl and create fasta files
+cellranger-dna mkfastq \
+  --samplesheet=$FolderRoot$BCLFolder$CommonFolderName/$BCLFolderName/SampleSheet.csv \
+  --run=$FolderRoot$BCLFolder$CommonFolderName/$BCLFolderName/ \
+  --ignore-dual-index \
+  --qc \
+  --output-dir $TMPDIR
+
+## copy the files over from the temporary directory
+mkdir $FolderRoot$FASTQFolder$CommonFolderName
+cp -R $TMPDIR/* $FolderRoot$FASTQFolder$CommonFolderName/
+
+## launch the alignment scripts
+cd ~/lab/FASTQs
+sbatch R0037_mvc.job
+
+sleep 30m
