@@ -1,22 +1,21 @@
 #!/bin/bash
-
-#SBATCH --job-name=R0037
-#SBATCH --output=R0037-%j.out
+#SBATCH --job-name=placeholder_run_name
+#SBATCH --output=placeholder_slurm_out
+#SBATCH --error=placeholder_slurm_out
 #SBATCH --time=120:00:00
 #SBATCH --cpus-per-task=30
-#SBATCH --mail-user=ryan.roberts@nationwidechildrens.org
-#SBATCH --mail-type=ALL
-
+#SBATCH --array=0-placeholder_array_max
+#SBATCH --wait
+placeholder_email
 
 ## set variables
-CommonFolderName="R0037"
-RunName="R0037"
-BCLFolderName="210527_A01088_0204_BH23MJDMXY_Roberts"
+CommonFolderName=placeholder_run_name
+RunName=placeholder_run_name
+BCLFolderNameArray=(placeholder_bcl_folder_array)
+BCLFolderName=${BCLFolderNameArray[${SLURM_ARRAY_TASK_ID}]}
 
-FolderRoot="/gpfs0/home2/gdrobertslab/lab/"
-BCLFolder="BCLs/"
-FASTQFolder="FASTQs/"
-CountsFolder="Counts/"
+BCLFolder=placeholder_bcl_folder
+FASTQFolder=placeholder_fastq_folder
 
 ## set path info
 export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-dna-1.1.0:$PATH
@@ -25,18 +24,14 @@ cd $TMPDIR
 
 ## demultiplex bcl and create fasta files
 cellranger-dna mkfastq \
-  --samplesheet=$FolderRoot$BCLFolder$CommonFolderName/$BCLFolderName/SampleSheet.csv \
-  --run=$FolderRoot$BCLFolder$CommonFolderName/$BCLFolderName/ \
+  --samplesheet=${BCLFolder}/${CommonFolderName}/${BCLFolderName}/SampleSheet.csv \
+  --run=${BCLFolder}/${CommonFolderName}/${BCLFolderName}/ \
   --ignore-dual-index \
   --qc \
   --output-dir $TMPDIR
 
 ## copy the files over from the temporary directory
-mkdir $FolderRoot$FASTQFolder$CommonFolderName
-cp -R $TMPDIR/* $FolderRoot$FASTQFolder$CommonFolderName/
-
-## launch the alignment scripts
-cd ~/lab/FASTQs
-sbatch R0037_mvc.job
+mkdir ${FASTQFolder}/${CommonFolderName}
+cp -R ${TMPDIR}/* ${FASTQFolder}/${CommonFolderName}/
 
 sleep 30m

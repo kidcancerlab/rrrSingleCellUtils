@@ -4,11 +4,28 @@
 \alias{cellranger_count}
 \title{Run cellranger count on 10X data}
 \usage{
-cellranger_count(sample_info)
+cellranger_count(
+  sample_info,
+  email = "",
+  counts_folder = "/home/gdrobertslab/lab/Counts",
+  fastq_folder = "/home/gdrobertslab/lab/FASTQs",
+  ref_folder = "/home/gdrobertslab/lab/GenRef",
+  slurm_out = paste(getwd(), "/slurmOut-\%j.out", sep = "")
+)
 }
 \arguments{
 \item{sample_info}{File with sample information Required columns:
 Sample_Project, Sample_ID, Reference, Cell_Num}
+
+\item{email}{Email for Slurm notifications}
+
+\item{counts_folder}{Folder for cellranger counts output}
+
+\item{fastq_folder}{Path to write fastq files}
+
+\item{ref_folder}{Genomic reference base folder}
+
+\item{slurm_out}{Location to write out slurm out files}
 }
 \description{
 Run cellranger count on 10X data

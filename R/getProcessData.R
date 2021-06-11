@@ -24,7 +24,13 @@ process_raw_data <- function(sample_info,
                              fastq_folder = "/home/gdrobertslab/lab/FASTQs",
                              counts_folder = "/home/gdrobertslab/lab/Counts") {
 
-  #project, from sample_info file?
+  sample_data <- readr::read_delim(sample_info,
+                                   delim = "\t",
+                                   col_names = TRUE,
+                                   trim_ws = TRUE)
+
+  project <- sample_data$Sample_Project[1]
+
   dest_folder <- paste(bcl_folder, "/",
                        project,
                        sep = "")
@@ -132,8 +138,8 @@ check_tar_md5 <- function(folder) {
 
   for (md5 in md5_files) {
     md5_true <- readr::read_table2(md5,
-                           col_names = c("md5", "file"),
-                           col_types = "cc")
+                                   col_names = c("md5", "file"),
+                                   col_types = "cc")
 
     if (md5_true$md5 != calc_md5[[md5_true$file]]) {
       stop("md5 checksum check failed for file md5_true$file.")
@@ -153,20 +159,108 @@ check_tar_md5 <- function(folder) {
 fix_sample_sheet <- function(sample_sheet, sample_info_sheet) {
   package_dir <- find.package("rrrSingleCellUtils")
 
-  system_cmd <- paste(package_dir,
+  temp_file <- tempfile(fileext = ".csv")
+
+  system_cmd <- paste("perl ",
+                      package_dir,
                       "/exec/fixSampleSheet.pl ",
-                      "--sampleInfo ", sample_info_sheet,
-                      "--sampleSheet ", sample_sheet,
-                      " > ", sample_sheet,
+                      "--sampleInfo ", sample_info_sheet, " ",
+                      "--sampleSheet ", sample_sheet, " ",
+                      "> ", temp_file, "; ",
+                      "mv ", temp_file, " ", sample_sheet,
                       sep = "")
 
-  system(system_cmd)
+  return(system(system_cmd))
+}
+
+#' Run cellranger mkfastq
+#'
+#' @param sample_info File containing sample info (see details)
+#' @param bcl_folder Path to write BCL files
+#' @param fastq_folder Path to write fastq files
+#' @param email Email for Slurm notifications
+#' @param slurm_out Location to write out slurm out files
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' need example
+#' }
+cellranger_mkfastq <- function(sample_info,
+                               email = "",
+                               bcl_folder = "/home/gdrobertslab/lab/BCLs",
+                               fastq_folder = "/home/gdrobertslab/lab/FASTQs",
+                               slurm_out = paste(getwd(),
+                                                 "/slurmOut-%j.out",
+                                                 sep = "")) {
+  sample_data <- readr::read_delim(sample_info,
+                                   delim = "\t",
+                                   col_names = TRUE,
+                                   trim_ws = TRUE)
+
+  run_name <- sample_data$Sample_Project[1]
+
+  bcl_folder_list <- list.dirs(path = paste(bcl_folder,
+                                            run_name,
+                                            sep = "/"),
+                               full.names = FALSE,
+                               recursive = FALSE)
+
+  if (email != "") {
+    email <- paste("#SBATCH --mail-user=", email, "\n",
+                           "#SBATCH --mail-type=ALL\n",
+                           sep = "")
+  }
+
+  replace_tibble <-
+    tibble::tibble(find = c("placeholder_run_name",
+                            "placeholder_array_max",
+                            "placeholder_bcl_folder_array",
+                            "placeholder_bcl_folder",
+                            "placeholder_fastq_folder",
+                            "placeholder_email",
+                            "placeholder_slurm_out"),
+                   replace = c(run_name,
+                               length(bcl_folder_list) - 1,
+                               paste(bcl_folder_list, collapse = " "),
+                               bcl_folder,
+                               fastq_folder,
+                               email,
+                               slurm_out)
+  )
+
+  package_dir <- find.package("rrrSingleCellUtils")
+
+  sbatch_template <-
+    readr::read_file(paste(package_dir,
+                           "/cellranger_demux_template.job",
+                           sep = ""))
+
+  # Replace placeholders with real data
+  for (i in seq_len(nrow(replace_tibble))) {
+    sbatch_template <-
+      stringr::str_replace_all(sbatch_template,
+                               pattern = replace_tibble$find[i],
+                               replacement = replace_tibble$replace[i])
+  }
+
+  temp_file <- tempfile(fileext = ".sh")
+
+  readr::write_file(sbatch_template, file = temp_file)
+
+  system(paste("sbatch", temp_file))
 }
 
 #' Run cellranger count on 10X data
 #'
 #' @param sample_info File with sample information Required columns:
 #'     Sample_Project, Sample_ID, Reference, Cell_Num
+#' @param email Email for Slurm notifications
+#' @param counts_folder Folder for cellranger counts output
+#' @param fastq_folder Path to write fastq files
+#' @param ref_folder Genomic reference base folder
+#' @param slurm_out Location to write out slurm out files
 #'
 #' @export
 #'
@@ -174,29 +268,63 @@ fix_sample_sheet <- function(sample_sheet, sample_info_sheet) {
 #' \dontrun{
 #' Placeholder
 #' }
-cellranger_count <- function(sample_info) {
-  sbatch_template <- readr::read_file("inst/cellranger_count_template.job")
+cellranger_count <- function(sample_info,
+                             email = "",
+                             counts_folder = "/home/gdrobertslab/lab/Counts",
+                             fastq_folder = "/home/gdrobertslab/lab/FASTQs",
+                             ref_folder = "/home/gdrobertslab/lab/GenRef",
+                             slurm_out = paste(getwd(),
+                                               "/slurmOut-%j.out",
+                                               sep = "")) {
 
   sample_data <- readr::read_delim(sample_info,
                                    delim = "\t",
                                    col_names = TRUE,
                                    trim_ws = TRUE)
 
+  run_name <- sample_data$Sample_Project[1]
+
+  fastq_folder <- paste(fastq_folder,
+                        run_name,
+                        sep = "/")
+
+  if (email != "") {
+    email <- paste("#SBATCH --mail-user=", email, "\n",
+                           "#SBATCH --mail-type=ALL\n",
+                           sep = "")
+  }
+
   replace_tibble <- tibble::tibble(find = c("placeholder_run_name",
-                                    "placeholder_array_max",
-                                    "placeholder_sample_array_list",
-                                    "placeholder_reference_array_list",
-                                    "placeholder_num_cells_list"),
-                           replace = c(unique(sample_data$Sample_Project),
-                                       nrow(sample_data) %>%
-                                         as.character(),
-                                       paste(sample_data$Sample_ID,
-                                             collapse = " "),
-                                       paste(sample_data$Reference,
-                                             collapse = " "),
-                                       paste(sample_data$Cell_Num,
-                                             collapse = " "))
+                                            "placeholder_array_max",
+                                            "placeholder_sample_array_list",
+                                            "placeholder_reference_array_list",
+                                            "placeholder_num_cells_list",
+                                            "placeholder_email",
+                                            "placeholder_slurm_out",
+                                            "placeholder_reference_folder",
+                                            "placeholder_counts_folder",
+                                            "placeholder_fastq_folder"),
+                                   replace = c(sample_data$Sample_Project[1],
+                                               nrow(sample_data) - 1,
+                                               paste(sample_data$Sample_ID,
+                                                     collapse = " "),
+                                               paste(sample_data$Reference,
+                                                     collapse = " "),
+                                               paste(sample_data$Cell_Num,
+                                                     collapse = " "),
+                                               email,
+                                               slurm_out,
+                                               ref_folder,
+                                               counts_folder,
+                                               fastq_folder)
   )
+
+  package_dir <- find.package("rrrSingleCellUtils")
+
+  sbatch_template <-
+    readr::read_file(paste(package_dir,
+                           "/cellranger_count_template.job",
+                           sep = ""))
 
   # Replace placeholders with real data
   for (i in seq_len(nrow(replace_tibble))) {

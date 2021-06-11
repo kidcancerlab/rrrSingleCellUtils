@@ -20,12 +20,14 @@ use Pod::Usage;
 
 my $verbose;
 my $help;
+my $debug;
 my $sampleInfo;
 my $sampleSheet;
 
 # i = integer, s = string
 GetOptions ("verbose"           => \$verbose,
             "help"              => \$help,
+	    "debug"             => \$debug,
             "sampleInfo=s"      => \$sampleInfo,
             "sampleSheet=s"     => \$sampleSheet
       ) or pod2usage(0) && exit;
@@ -39,6 +41,7 @@ pod2usage(1) && exit if ($help);
 my %sampleInfoHash;
 my $printing = "TRUE";
 my $sampleNum = 0;
+my $printBuffer;
 
 ##############################
 # Code
@@ -62,7 +65,9 @@ while (my $input = <$siFH>){
     }
 
     $sampleNum++;
+    print STDERR $sampleNum, "\n" if ($debug);
 }
+close $siFH;
 
 ##############################
 ### Stuff
@@ -72,8 +77,10 @@ open my $ssFH, "$sampleSheet" or die "Could not open sample sheet input\n$!";
 while (my $input = <$ssFH>){
     chomp $input;
     if ($printing eq "TRUE") {
-        print $input, "\n";
+        $printBuffer .= $input . "\n";
     }
+
+    print STDERR $input, "\n" if ($debug);
 
     if ($input =~ /^Lane/) {
         my @columnNames = split ",", $input;
@@ -81,18 +88,21 @@ while (my $input = <$ssFH>){
         for (my $i = 0; $i < $sampleNum; $i++) {
             for (my $j = 0; $j < scalar(@columnNames); $j++) {
                 if(exists($sampleInfoHash{$columnNames[$j]})) {
-                    print $sampleInfoHash{$columnNames[$j]}[$i];
+                    $printBuffer .= $sampleInfoHash{$columnNames[$j]}[$i];
                 }
 
                 # Don't want a comma after the last column
-                print "," if ($j < scalar(@columnNames) - 1);
+                $printBuffer .= "," if ($j < scalar(@columnNames) - 1);
             }
-            print "\n";
+            $printBuffer .= "\n";
         }
         $printing = "FALSE";
     }
 }
 
+close $ssFH;
+
+print $printBuffer;
 
 #open R1OUTFILE, ">", $outputNameStub . "_R1.fastq";
 
