@@ -9,7 +9,7 @@ cellranger_mkfastq(
   email = "",
   bcl_folder = "/home/gdrobertslab/lab/BCLs",
   fastq_folder = "/home/gdrobertslab/lab/FASTQs",
-  slurm_out = paste(getwd(), "/slurmOut-\%j.out", sep = "")
+  slurm_out = paste(getwd(), "/slurmOut_mkfastq-\%j.out", sep = "")
 )
 }
 \arguments{

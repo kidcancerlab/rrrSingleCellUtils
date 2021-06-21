@@ -4,9 +4,12 @@
 #' @param link_folder Folder containing raw data
 #' @param domain Where the raw files are hosted
 #' @param exp_type Type of 10X sequence data
+#' @param email Email for Slurm notifications
+#' @param slurm_base Base name for slurm output files
 #' @param bcl_folder Path to write BCL files
 #' @param fastq_folder Path to write fastq files
 #' @param counts_folder Path to write counts files
+#' @param ref_folder Path to 10x reference folders
 #'
 #' @details Need to put this in
 #' @return
@@ -20,9 +23,12 @@ process_raw_data <- function(sample_info,
                              link_folder,
                              domain = "//igmdata/igm_roberts",
                              exp_type = "scRNA-seq_3prime",
+                             email = "",
+                             slurm_base = paste(getwd(), "/slurmOut", sep = ""),
                              bcl_folder = "/home/gdrobertslab/lab/BCLs",
                              fastq_folder = "/home/gdrobertslab/lab/FASTQs",
-                             counts_folder = "/home/gdrobertslab/lab/Counts") {
+                             counts_folder = "/home/gdrobertslab/lab/Counts",
+                             ref_folder = "/home/gdrobertslab/lab/GenRef") {
 
   sample_data <- readr::read_delim(sample_info,
                                    delim = "\t",
@@ -48,12 +54,26 @@ process_raw_data <- function(sample_info,
                        sample_info_sheet = sample_info))
 
   # Run cellranger mkfastq
-
+  cellranger_mkfastq(sample_info = sample_info,
+                     email = email,
+                     bcl_folder = bcl_folder,
+                     fastq_folder = fastq_folder,
+                     slurm_out = paste(slurm_base, "_mkfastq-%j.out", sep = ""))
 
   # Run cellranger count if scRNA-seq_3prime
-  cellranger_count(sample_info = sample_info)
+  if (exp_type == "scRNA-seq_3prime") {
+    cellranger_count(sample_info = sample_info,
+                     email = email,
+                     counts_folder = counts_folder,
+                     fastq_folder = fastq_folder,
+                     ref_folder = ref_folder,
+                     slurm_out = paste(slurm_base, "_count-%j.out", sep = ""))
 
-  # Run cellranger-DNA if
+  } else if (exp_type == "scDNA_CNV") {
+
+
+  }
+
 }
 
 #' Retrieve sequencing data and store it in
@@ -82,6 +102,7 @@ get_raw_data <- function(link_folder,
     system(paste("mkdir", dest_folder))
   }
 
+  # Get raw data from IGM
   get_data_cmd <- paste("cd ", dest_folder, " ; ",
                         "export LD_LIBRARY_PATH=\"\"; ",
                         "smbclient ",
@@ -99,8 +120,10 @@ get_raw_data <- function(link_folder,
 
   system(get_data_cmd)
 
+  # Check md5 sums to see if data copied properly.
   check_tar_md5(dest_folder)
 
+  # Untar the downloaded data for further use
   untar_cmd <- paste("cd ", dest_folder, " ; ",
                      "tar ",
                      "--checkpoint=100000 ",
@@ -192,7 +215,7 @@ cellranger_mkfastq <- function(sample_info,
                                bcl_folder = "/home/gdrobertslab/lab/BCLs",
                                fastq_folder = "/home/gdrobertslab/lab/FASTQs",
                                slurm_out = paste(getwd(),
-                                                 "/slurmOut-%j.out",
+                                                 "/slurmOut_mkfastq-%j.out",
                                                  sep = "")) {
   sample_data <- readr::read_delim(sample_info,
                                    delim = "\t",
@@ -259,7 +282,7 @@ cellranger_mkfastq <- function(sample_info,
 #' @param email Email for Slurm notifications
 #' @param counts_folder Folder for cellranger counts output
 #' @param fastq_folder Path to write fastq files
-#' @param ref_folder Genomic reference base folder
+#' @param ref_folder Path to 10x reference folders
 #' @param slurm_out Location to write out slurm out files
 #'
 #' @export
@@ -274,7 +297,7 @@ cellranger_count <- function(sample_info,
                              fastq_folder = "/home/gdrobertslab/lab/FASTQs",
                              ref_folder = "/home/gdrobertslab/lab/GenRef",
                              slurm_out = paste(getwd(),
-                                               "/slurmOut-%j.out",
+                                               "/slurmOut_count-%j.out",
                                                sep = "")) {
 
   sample_data <- readr::read_delim(sample_info,

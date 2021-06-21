@@ -9,9 +9,12 @@ process_raw_data(
   link_folder,
   domain = "//igmdata/igm_roberts",
   exp_type = "scRNA-seq_3prime",
+  email = "",
+  slurm_base = paste(getwd(), "/slurmOut", sep = ""),
   bcl_folder = "/home/gdrobertslab/lab/BCLs",
   fastq_folder = "/home/gdrobertslab/lab/FASTQs",
-  counts_folder = "/home/gdrobertslab/lab/Counts"
+  counts_folder = "/home/gdrobertslab/lab/Counts",
+  ref_folder = "/home/gdrobertslab/lab/GenRef"
 )
 }
 \arguments{
@@ -23,11 +26,17 @@ process_raw_data(
 
 \item{exp_type}{Type of 10X sequence data}
 
+\item{email}{Email for Slurm notifications}
+
+\item{slurm_base}{Base name for slurm output files}
+
 \item{bcl_folder}{Path to write BCL files}
 
 \item{fastq_folder}{Path to write fastq files}
 
 \item{counts_folder}{Path to write counts files}
+
+\item{ref_folder}{Path to 10x reference folders}
 }
 \value{
 

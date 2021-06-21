@@ -10,7 +10,7 @@ cellranger_count(
   counts_folder = "/home/gdrobertslab/lab/Counts",
   fastq_folder = "/home/gdrobertslab/lab/FASTQs",
   ref_folder = "/home/gdrobertslab/lab/GenRef",
-  slurm_out = paste(getwd(), "/slurmOut-\%j.out", sep = "")
+  slurm_out = paste(getwd(), "/slurmOut_count-\%j.out", sep = "")
 )
 }
 \arguments{
@@ -23,7 +23,7 @@ Sample_Project, Sample_ID, Reference, Cell_Num}
 
 \item{fastq_folder}{Path to write fastq files}
 
-\item{ref_folder}{Genomic reference base folder}
+\item{ref_folder}{Path to 10x reference folders}
 
 \item{slurm_out}{Location to write out slurm out files}
 }
