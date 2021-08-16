@@ -17,7 +17,8 @@ kill_cc(
 \item{sobject}{Seurat object to be processed}
 
 \item{cc_regress}{If set to Y, the process with run without user input and
-will automatically proceed to cell cycle regression}
+will automatically proceed to cell cycle regression. If set to Ask, will
+prompt the user. If set to N no regression will be performed.}
 
 \item{find_pcs}{Number of principal components to generate in the re-do PCA
 post-CC regression}

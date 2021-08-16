@@ -195,7 +195,8 @@ process_ltbc <- function(sobject, cid_lt, histogram = FALSE,
 #'
 #' @param sobject Seurat object to be processed
 #' @param cc_regress If set to Y, the process with run without user input and
-#'     will automatically proceed to cell cycle regression
+#'     will automatically proceed to cell cycle regression. If set to Ask, will
+#'     prompt the user. If set to N no regression will be performed.
 #' @param find_pcs Number of principal components to generate in the re-do PCA
 #'     post-CC regression
 #' @param use_pcs Number of principal components to use in the post-regression
@@ -242,7 +243,7 @@ kill_cc <- function(sobject, cc_regress = "N", find_pcs = 20, use_pcs = 3,
 
   print(plot_cc)
 
-  if (cc_regress != "Y") {
+  if (cc_regress == "Ask") {
     cc_regress <-
       readline(prompt =
                  "Proceed with regression of cell cycle-dependent genes (Y/N)?")
