@@ -33,7 +33,8 @@ process_raw_data <- function(sample_info,
   sample_data <- readr::read_delim(sample_info,
                                    delim = "\t",
                                    col_names = TRUE,
-                                   trim_ws = TRUE)
+                                   trim_ws = TRUE,
+                                   show_col_types = FALSE)
 
   project <- sample_data$Sample_Project[1]
 
@@ -42,9 +43,11 @@ process_raw_data <- function(sample_info,
                        sep = "")
 
   # Download, untar and check md5 sums of raw data
+  message("Getting raw data from ", link_folder, ".")
   get_raw_data(link_folder = link_folder, dest_folder = dest_folder)
 
   # Fix sample sheet for all folders with BCL files
+  message("Fixing sample sheets in ", dest_folder, ".")
   list.files(path = dest_folder, pattern = ".tar$") %>%
     stringr::str_remove(".tar") %>%
     lapply(., function(x)
@@ -54,6 +57,8 @@ process_raw_data <- function(sample_info,
                        sample_info_sheet = sample_info))
 
   # Run cellranger mkfastq
+  message("Submtting slurm command to create fastq",
+          "files using cellranger mkfastq.")
   cellranger_mkfastq(sample_info = sample_info,
                      email = email,
                      bcl_folder = bcl_folder,
@@ -62,18 +67,19 @@ process_raw_data <- function(sample_info,
 
   # Run cellranger count if scRNA-seq_3prime
   if (exp_type == "scRNA-seq_3prime") {
+    message("Submtting slurm command to run cellranger count.",
+            "Slurm messages output to", paste(slurm_base,
+                                              "_count-%j.out",
+                                              sep = ""))
     cellranger_count(sample_info = sample_info,
                      email = email,
                      counts_folder = counts_folder,
                      fastq_folder = fastq_folder,
                      ref_folder = ref_folder,
                      slurm_out = paste(slurm_base, "_count-%j.out", sep = ""))
-
   } else if (exp_type == "scDNA_CNV") {
-
-
+    warning("Not yet implimented")
   }
-
 }
 
 #' Retrieve sequencing data and store it in
@@ -144,7 +150,7 @@ get_raw_data <- function(link_folder,
 #'
 check_tar_md5 <- function(folder) {
   message("Checking file md5sums.")
-
+# Make this use srun
   md5_cmd <- paste("md5sum ",
                    folder, "/*.tar",
                    sep = "")
@@ -220,7 +226,8 @@ cellranger_mkfastq <- function(sample_info,
   sample_data <- readr::read_delim(sample_info,
                                    delim = "\t",
                                    col_names = TRUE,
-                                   trim_ws = TRUE)
+                                   trim_ws = TRUE,
+                                   show_col_types = FALSE)
 
   run_name <- sample_data$Sample_Project[1]
 
@@ -232,8 +239,8 @@ cellranger_mkfastq <- function(sample_info,
 
   if (email != "") {
     email <- paste("#SBATCH --mail-user=", email, "\n",
-                           "#SBATCH --mail-type=ALL\n",
-                           sep = "")
+                   "#SBATCH --mail-type=ALL\n",
+                   sep = "")
   }
 
   replace_tibble <-
@@ -244,7 +251,9 @@ cellranger_mkfastq <- function(sample_info,
                             "placeholder_fastq_folder",
                             "placeholder_email",
                             "placeholder_slurm_out"),
-                   replace = c(run_name,
+                   replace = c(paste(run_name,
+                                     "_mkfastq",
+                                     sep = ""),
                                length(bcl_folder_list) - 1,
                                paste(bcl_folder_list, collapse = " "),
                                bcl_folder,
@@ -303,7 +312,8 @@ cellranger_count <- function(sample_info,
   sample_data <- readr::read_delim(sample_info,
                                    delim = "\t",
                                    col_names = TRUE,
-                                   trim_ws = TRUE)
+                                   trim_ws = TRUE,
+                                   show_col_types = FALSE)
 
   run_name <- sample_data$Sample_Project[1]
 
@@ -313,8 +323,8 @@ cellranger_count <- function(sample_info,
 
   if (email != "") {
     email <- paste("#SBATCH --mail-user=", email, "\n",
-                           "#SBATCH --mail-type=ALL\n",
-                           sep = "")
+                   "#SBATCH --mail-type=ALL\n",
+                   sep = "")
   }
 
   replace_tibble <- tibble::tibble(find = c("placeholder_run_name",
@@ -327,7 +337,9 @@ cellranger_count <- function(sample_info,
                                             "placeholder_reference_folder",
                                             "placeholder_counts_folder",
                                             "placeholder_fastq_folder"),
-                                   replace = c(sample_data$Sample_Project[1],
+                                   replace = c(paste(run_name,
+                                                     "_count",
+                                                     sep = ""),
                                                nrow(sample_data) - 1,
                                                paste(sample_data$Sample_ID,
                                                      collapse = " "),

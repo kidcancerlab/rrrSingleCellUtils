@@ -34,4 +34,4 @@ cellranger-dna mkfastq \
 mkdir ${FASTQFolder}/${CommonFolderName}
 cp -R ${TMPDIR}/* ${FASTQFolder}/${CommonFolderName}/
 
-sleep 30m
+sleep 3m
