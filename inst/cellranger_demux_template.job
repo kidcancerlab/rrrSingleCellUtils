@@ -2,11 +2,13 @@
 #SBATCH --job-name=placeholder_run_name
 #SBATCH --output=placeholder_slurm_out
 #SBATCH --error=placeholder_slurm_out
-#SBATCH --time=120:00:00
+#SBATCH --time=1-00:00:00
 #SBATCH --cpus-per-task=30
 #SBATCH --array=0-placeholder_array_max
 #SBATCH --wait
 placeholder_email
+
+set -e
 
 ## set variables
 CommonFolderName=placeholder_run_name
