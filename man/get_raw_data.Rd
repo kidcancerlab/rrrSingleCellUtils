@@ -23,9 +23,6 @@ get_raw_data(
 
 \item{user_group}{Group the user belongs to}
 }
-\value{
-
-}
 \description{
 Retrieve sequencing data and store it in
 }

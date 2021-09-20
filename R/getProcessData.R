@@ -11,13 +11,22 @@
 #' @param counts_folder Path to write counts files
 #' @param ref_folder Path to 10x reference folders
 #'
-#' @details Need to put this in
-#' @return
+#' @details This is a wrapper for several functions to get and process single
+#'  cell data from the NCH IGM core. I have built the defaults to be specific to
+#'  the Roberts lab, so you may need to carefully change the defaults if you
+#'  want to use it outside of this context. The input is a link to data and a
+#'  sample sheet that outlines the information about each sample. The data
+#'  are then downloaded using smbclient and then md5sum checked and untar’d.
+#'  The data are then processed with cellranger mkfastq and either cellranger
+#'  count or cellranger-dna cnv (depending on the exp_type argument).
+#'
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' placeholder
+#' process_raw_data(sample_info = "testSampleInfoSheet_test.txt",
+#' link_folder = "210913_Roberts_GSL-AG-2350",
+#' email = "matthew.cannon@nationwidechildrens.org")
 #' }
 process_raw_data <- function(sample_info,
                              link_folder,
@@ -90,7 +99,6 @@ process_raw_data <- function(sample_info,
 #' @param user Username to pass to smbclient
 #' @param user_group Group the user belongs to
 #'
-#' @return
 #' @export
 #'
 #' @examples
@@ -114,7 +122,7 @@ get_raw_data <- function(link_folder,
                         "smbclient ",
                         domain, " ",
                         "-U ", user,
-                        "%", getPass::getPass("Password for smbclient"), " ",
+                        "%", getPass::getPass("Password for smbclient: "), " ",
                         "-W ", user_group, " ",
                         "-c ",
                         "'cd ", link_folder, "; ",
@@ -124,7 +132,11 @@ get_raw_data <- function(link_folder,
                         "mget *.tar *.md5'",
                         sep = "")
 
-  system(get_data_cmd)
+  return_val <- system(get_data_cmd)
+
+  if (return_val != 0) {
+    stop("Data retrieval failed. Error code ", return_val)
+  }
 
   # Check md5 sums to see if data copied properly.
   check_tar_md5(dest_folder)
@@ -139,7 +151,11 @@ get_raw_data <- function(link_folder,
                      "/*tar",
                      sep = "")
 
-  system(untar_cmd)
+  return_val <- system(untar_cmd)
+
+  if (return_val != 0) {
+    stop("Untar failed. Error code ", return_val)
+  }
 }
 
 #' Check that downloaded files match the expected md5sums
@@ -199,7 +215,11 @@ fix_sample_sheet <- function(sample_sheet, sample_info_sheet) {
                       "mv ", temp_file, " ", sample_sheet,
                       sep = "")
 
-  return(system(system_cmd))
+  return_val <- return(system(system_cmd))
+
+  if (return_val != 0) {
+    stop("Sample sheet repair failed. Error code ", return_val)
+  }
 }
 
 #' Run cellranger mkfastq
@@ -281,7 +301,11 @@ cellranger_mkfastq <- function(sample_info,
 
   readr::write_file(sbatch_template, file = temp_file)
 
-  system(paste("sbatch", temp_file))
+  return_val <- system(paste("sbatch", temp_file))
+
+  if (return_val != 0) {
+    stop("Cellranger mkfastq sbatch submission failed. Error code ", return_val)
+  }
 }
 
 #' Run cellranger count on 10X data
@@ -373,5 +397,9 @@ cellranger_count <- function(sample_info,
 
   readr::write_file(sbatch_template, file = temp_file)
 
-  system(paste("sbatch", temp_file))
+  return_val <- system(paste("sbatch", temp_file))
+
+  if (return_val != 0) {
+    stop("Cellranger count sbatch submission failed. Error code ", return_val)
+  }
 }
