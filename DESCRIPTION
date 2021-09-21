@@ -1,11 +1,12 @@
 Package: rrrSingleCellUtils
 Type: Package
-Title: What the Package Does (Title Case)
+Title: A Set of Tools For Single Cell Analysis
 Version: 0.3.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Author: Matt Cannon
+Maintainer: Matt Cannon <matthewvc1@gmail.com>
+Description: This is a set of utility functions designed for single cell
+    analyses. Primarily designed for use by folks within the Roberts lab, some
+    functions may be of use to others.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true

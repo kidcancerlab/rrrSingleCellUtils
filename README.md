@@ -28,7 +28,17 @@
     * Regress out cell cycle effects 
   * plot_cc()
     * Plot the proportion of cells in each cell cycle stage
-  
+  * process_raw_data
+    * This is a wrapper for several functions to get and process single
+    cell data from the NCH IGM core. I have built the defaults to be specific to
+    the Roberts lab, so you may need to carefully change the defaults if you
+    want to use it outside of this context. The input is a link to data and a
+    sample sheet that outlines the information about each sample (see
+    inst/exampleSampleInfoSheet.txt - Column headers must remain unchanged). The
+    data are then downloaded using smbclient and then md5sum checked and
+    untar’d. The data are then processed with cellranger mkfastq and either
+    cellranger count or cellranger-dna cnv (depending on the exp_type argument).
+
 ### Still in testing
 
   * process_ltbc()
