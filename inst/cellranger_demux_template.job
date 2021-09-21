@@ -1,0 +1,39 @@
+#!/bin/bash
+#SBATCH --job-name=placeholder_slurm_name
+#SBATCH --output=placeholder_slurm_out
+#SBATCH --error=placeholder_slurm_out
+#SBATCH --time=1-00:00:00
+#SBATCH --cpus-per-task=30
+#SBATCH --array=0-placeholder_array_max
+#SBATCH --wait
+placeholder_email
+
+set -e
+
+## set variables
+CommonFolderName=placeholder_run_name
+RunName=placeholder_run_name
+BCLFolderNameArray=(placeholder_bcl_folder_array)
+BCLFolderName=${BCLFolderNameArray[${SLURM_ARRAY_TASK_ID}]}
+
+BCLFolder=placeholder_bcl_folder
+FASTQFolder=placeholder_fastq_folder
+
+## set path info
+export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-dna-1.1.0:$PATH
+ml load bcl2fastq/2.20.2
+cd $TMPDIR
+
+## demultiplex bcl and create fasta files
+cellranger-dna mkfastq \
+  --samplesheet=${BCLFolder}/${CommonFolderName}/${BCLFolderName}/SampleSheet.csv \
+  --run=${BCLFolder}/${CommonFolderName}/${BCLFolderName}/ \
+  --ignore-dual-index \
+  --qc \
+  --output-dir $TMPDIR
+
+## copy the files over from the temporary directory
+mkdir ${FASTQFolder}/${CommonFolderName}
+cp -R ${TMPDIR}/* ${FASTQFolder}/${CommonFolderName}/
+
+sleep 3m

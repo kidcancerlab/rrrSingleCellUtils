@@ -1,0 +1,51 @@
+#!/bin/bash
+#SBATCH --job-name=placeholder_slurm_name
+#SBATCH --output=placeholder_slurm_out
+#SBATCH --error=placeholder_slurm_out
+#SBATCH --time=1-00:00:00
+#SBATCH --cpus-per-task=20
+#SBATCH --array=0-placeholder_array_max
+#SBATCH --wait
+placeholder_email
+
+set -e
+
+## set variables
+RunName=placeholder_run_name
+SampleNameArray=(placeholder_sample_array_list)
+SampleName=${SampleNameArray[${SLURM_ARRAY_TASK_ID}]}
+
+RefFolder=placeholder_reference_folder
+FASTQFolder=placeholder_fastq_folder
+CountsFolder=placeholder_counts_folder
+
+GenRefArray=(placeholder_reference_array_list)
+GenRef=${GenRefArray[${SLURM_ARRAY_TASK_ID}]}
+
+NumCellsArray=(placeholder_num_cells_list)
+NumCells=${NumCellsArray[${SLURM_ARRAY_TASK_ID}]}
+
+## set path info
+export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-3.0.2:$PATH
+ml load bcl2fastq/2.20.2
+
+cd $TMPDIR
+
+## perform alignment and count genes
+ cellranger count \
+  --id ${SampleName} \
+  --fastqs ${FASTQFolder}/${RunName}/ \
+  --sample ${SampleName} \
+  --transcriptome ${RefFolder}/${GenRef} \
+  --expect-cells ${NumCells}
+
+## copy the files over from the temporary directory
+if test -d "${CountsFolder}/${SampleName}"
+then
+  mkdir ${CountsFolder}/${SampleName}-$(date +'%Y%m%d')
+  cp -R ${TMPDIR}/${SampleName}/outs/* ${CountsFolder}/${SampleName}-$(date +'%Y%m%d')
+else
+  mkdir ${CountsFolder}/${SampleName}
+  cp -R ${TMPDIR}/${SampleName}/outs/* ${CountsFolder}/${SampleName}
+fi
+
