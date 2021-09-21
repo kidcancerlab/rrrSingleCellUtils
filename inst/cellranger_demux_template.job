@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=placeholder_run_name
+#SBATCH --job-name=placeholder_slurm_name
 #SBATCH --output=placeholder_slurm_out
 #SBATCH --error=placeholder_slurm_out
 #SBATCH --time=1-00:00:00

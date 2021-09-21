@@ -76,7 +76,7 @@ process_raw_data <- function(sample_info,
 
   # Run cellranger count if scRNA-seq_3prime
   if (exp_type == "scRNA-seq_3prime") {
-    message("Submtting slurm command to run cellranger count.",
+    message("Submtting slurm command to run cellranger count.\n",
             "Slurm messages output to", paste(slurm_base,
                                               "_count-%j.out",
                                               sep = ""))
@@ -89,6 +89,7 @@ process_raw_data <- function(sample_info,
   } else if (exp_type == "scDNA_CNV") {
     warning("Not yet implimented")
   }
+  message("Done!")
 }
 
 #' Retrieve sequencing data and store it in
@@ -270,16 +271,18 @@ cellranger_mkfastq <- function(sample_info,
                             "placeholder_bcl_folder",
                             "placeholder_fastq_folder",
                             "placeholder_email",
-                            "placeholder_slurm_out"),
-                   replace = c(paste(run_name,
-                                     "_mkfastq",
-                                     sep = ""),
+                            "placeholder_slurm_out",
+                            "placeholder_slurm_name"),
+                   replace = c(run_name,
                                length(bcl_folder_list) - 1,
                                paste(bcl_folder_list, collapse = " "),
                                bcl_folder,
                                fastq_folder,
                                email,
-                               slurm_out)
+                               slurm_out,
+                               paste("mkfastq_",
+                                     run_name,
+                                     sep = ""))
   )
 
   package_dir <- find.package("rrrSingleCellUtils")
@@ -360,10 +363,9 @@ cellranger_count <- function(sample_info,
                                             "placeholder_slurm_out",
                                             "placeholder_reference_folder",
                                             "placeholder_counts_folder",
-                                            "placeholder_fastq_folder"),
-                                   replace = c(paste(run_name,
-                                                     "_count",
-                                                     sep = ""),
+                                            "placeholder_fastq_folder",
+                                            "placeholder_slurm_name"),
+                                   replace = c(run_name,
                                                nrow(sample_data) - 1,
                                                paste(sample_data$Sample_ID,
                                                      collapse = " "),
@@ -375,7 +377,10 @@ cellranger_count <- function(sample_info,
                                                slurm_out,
                                                ref_folder,
                                                counts_folder,
-                                               fastq_folder)
+                                               fastq_folder,
+                                               paste("count_",
+                                                     run_name,
+                                                     sep = ""))
   )
 
   package_dir <- find.package("rrrSingleCellUtils")
