@@ -21,12 +21,20 @@
 tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
                          mt_pattern = "^mt-|^MT-", species_pattern = "",
                          violin_plot = TRUE) {
+
+  if (grepl(species_pattern, mt_pattern, fixed = TRUE)) {
+    warning("\n\nDon't put species prefix in mitochondrial pattern\n\n")
+    stop()
+  }
+
   raw_data <- Seurat::Read10X(path_10x)
+
+  species_pattern <- gsub("_", "-", species_pattern)
 
   if (species_pattern != "") {
     raw_data <- raw_data[grep(pattern = species_pattern,
                               raw_data@Dimnames[[1]]), ]
-    raw_data@Dimnames[[1]] <- substring(raw_data@Dimnames[[1]], 6)
+    raw_data@Dimnames[[1]] <- sub(species_pattern, "", raw_data@Dimnames[[1]])
   }
 
   seurat <- Seurat::CreateSeuratObject(raw_data,
