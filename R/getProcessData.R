@@ -316,6 +316,7 @@ cellranger_mkfastq <- function(sample_info,
 #' @param sample_info File with sample information Required columns:
 #'     Sample_Project, Sample_ID, Reference, Cell_Num
 #' @param email Email for Slurm notifications
+#' @param realign_suffix Suffix to add to output folders when re-aligning
 #' @param counts_folder Folder for cellranger counts output
 #' @param fastq_folder Path to write fastq files
 #' @param ref_folder Path to 10x reference folders
@@ -329,6 +330,7 @@ cellranger_mkfastq <- function(sample_info,
 #' }
 cellranger_count <- function(sample_info,
                              email = "",
+                             realign_suffix = "",
                              counts_folder = "/home/gdrobertslab/lab/Counts",
                              fastq_folder = "/home/gdrobertslab/lab/FASTQs",
                              ref_folder = "/home/gdrobertslab/lab/GenRef",
@@ -357,6 +359,7 @@ cellranger_count <- function(sample_info,
   replace_tibble <- tibble::tibble(find = c("placeholder_run_name",
                                             "placeholder_array_max",
                                             "placeholder_sample_array_list",
+                                            "placeholder_outdir_array_list",
                                             "placeholder_reference_array_list",
                                             "placeholder_num_cells_list",
                                             "placeholder_email",
@@ -368,6 +371,10 @@ cellranger_count <- function(sample_info,
                                    replace = c(run_name,
                                                nrow(sample_data) - 1,
                                                paste(sample_data$Sample_ID,
+                                                     collapse = " "),
+                                               paste(paste(sample_data$Sample_ID,
+                                                           realign_suffix,
+                                                           sep = ""),
                                                      collapse = " "),
                                                paste(sample_data$Reference,
                                                      collapse = " "),
