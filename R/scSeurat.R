@@ -6,10 +6,14 @@
 #'     reintroduce excluded features, create a new object with a lower cutoff.
 #' @param min_features Passed to CreateSeuratObject: Include cells where at
 #'     least this many features are detected.
-#' @param mt_pattern Pattern used to identify mitochondrial reads
+#' @param mt_pattern Pattern used to identify mitochondrial reads (eg, "^MT-")  
+#'     Must add species_pattern if remove_species_pattern = FALSE
+#'     (eg, "^hg19-MT-" or "^hg19-MT-|^mm10-mt-")
 #' @param species_pattern Pattern used to select only reads from a single
 #'     species (eg, "^mm10-" or "^hg19-")
-#' @param violin_plot If TRUE, produces a violin plot
+#' @param violin_plot If TRUE (default), produces a violin plot
+#' @param remove_species_pattern Specifies if want to remove species_pattern 
+#'     prefix from gene names. If TRUE (default), removes species_pattern prefix. 
 #'
 #' @return A \code{\link{Seurat}}
 #' @export
@@ -20,21 +24,37 @@
 #' }
 tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
                          mt_pattern = "^mt-|^MT-", species_pattern = "",
-                         violin_plot = TRUE) {
+                         remove_species_pattern = TRUE, violin_plot = TRUE) {
 
-  if (grepl(species_pattern, mt_pattern, fixed = TRUE)) {
-    warning("\n\nDon't put species prefix in mitochondrial pattern\n\n")
+
+  # If removing species names and species pattern is in mt_pattern
+  if (remove_species_pattern == TRUE &
+       grepl(species_pattern %>% stringr::str_remove_all("\\^"),
+             mt_pattern)) {
+    warning("\nDon't put species prefix in mt_pattern\n", 
+            immediate. = TRUE)
+    stop()
+  }
+  
+  # If not removing species names and species pattern not in mt_pattern 
+  if (remove_species_pattern == FALSE &
+      grepl(species_pattern %>% stringr::str_remove_all("\\^"),
+            mt_pattern) == FALSE) {
+    warning("\nMake sure your mt_pattern have species prefixes in it!\n", 
+            immediate. = TRUE)
+    warning("\nmt_pattern should look like: ^hg19-MT-\n", 
+            immediate. = TRUE)
     stop()
   }
 
   raw_data <- Seurat::Read10X(path_10x)
 
-  species_pattern <- gsub("-", "_", species_pattern)
-
   if (species_pattern != "") {
-    raw_data <- raw_data[grep(pattern = species_pattern,
+    raw_data <- raw_data[grep(pattern = gsub("-", "_", species_pattern),
                               raw_data@Dimnames[[1]]), ]
-    raw_data@Dimnames[[1]] <- sub(species_pattern, "", raw_data@Dimnames[[1]])
+    if (remove_species_pattern == TRUE) {
+      raw_data@Dimnames[[1]] <- sub(gsub("-", "_", species_pattern), "", raw_data@Dimnames[[1]])
+    } 
   }
 
   seurat <- Seurat::CreateSeuratObject(raw_data,
