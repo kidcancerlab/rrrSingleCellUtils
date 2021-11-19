@@ -8,7 +8,7 @@
 #'     least this many features are detected.
 #' @param mt_pattern Pattern used to identify mitochondrial reads
 #' @param species_pattern Pattern used to select only reads from a single
-#'     species (eg, "^mm10" or "^hg19")
+#'     species (eg, "^mm10-" or "^hg19-")
 #' @param violin_plot If TRUE, produces a violin plot
 #'
 #' @return A \code{\link{Seurat}}
@@ -16,7 +16,7 @@
 #'
 #' @examples
 #' \dontrun{
-#' seurat_obj <- tenXLoadQC("path/to/10X/data/", species_pattern = "^mm9")
+#' seurat_obj <- tenXLoadQC("path/to/10X/data/", species_pattern = "^mm9-")
 #' }
 tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
                          mt_pattern = "^mt-|^MT-", species_pattern = "",
@@ -29,7 +29,7 @@ tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
 
   raw_data <- Seurat::Read10X(path_10x)
 
-  species_pattern <- gsub("_", "-", species_pattern)
+  species_pattern <- gsub("-", "_", species_pattern)
 
   if (species_pattern != "") {
     raw_data <- raw_data[grep(pattern = species_pattern,
