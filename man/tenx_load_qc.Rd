@@ -10,6 +10,7 @@ tenx_load_qc(
   min_features = 800,
   mt_pattern = "^mt-|^MT-",
   species_pattern = "",
+  remove_species_pattern = TRUE,
   violin_plot = TRUE
 )
 }
@@ -23,12 +24,18 @@ reintroduce excluded features, create a new object with a lower cutoff.}
 \item{min_features}{Passed to CreateSeuratObject: Include cells where at
 least this many features are detected.}
 
-\item{mt_pattern}{Pattern used to identify mitochondrial reads}
+\item{mt_pattern}{Pattern used to identify mitochondrial reads (eg, "^MT-"
+Must add species_pattern if remove_species_pattern = FALSE
+(eg, "^hg19-MT-" or "^hg19-MT-|^mm10-mt-")}
 
 \item{species_pattern}{Pattern used to select only reads from a single
-species (eg, "^mm10" or "^hg19")}
+species (eg, "^mm10-" or "^hg19-")}
 
-\item{violin_plot}{If TRUE, produces a violin plot}
+\item{remove_species_pattern}{Specifies if want to remove species_pattern
+prefix from gene names. If TRUE (default), removes species_pattern
+prefix.}
+
+\item{violin_plot}{If TRUE (default), produces a violin plot}
 }
 \value{
 A \code{\link{Seurat}}
@@ -38,6 +45,6 @@ Load 10X data
 }
 \examples{
 \dontrun{
-seurat_obj <- tenXLoadQC("path/to/10X/data/", species_pattern = "^mm9")
+seurat_obj <- tenXLoadQC("path/to/10X/data/", species_pattern = "^mm9-")
 }
 }

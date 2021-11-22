@@ -6,14 +6,15 @@
 #'     reintroduce excluded features, create a new object with a lower cutoff.
 #' @param min_features Passed to CreateSeuratObject: Include cells where at
 #'     least this many features are detected.
-#' @param mt_pattern Pattern used to identify mitochondrial reads (eg, "^MT-")  
+#' @param mt_pattern Pattern used to identify mitochondrial reads (eg, "^MT-"
 #'     Must add species_pattern if remove_species_pattern = FALSE
 #'     (eg, "^hg19-MT-" or "^hg19-MT-|^mm10-mt-")
 #' @param species_pattern Pattern used to select only reads from a single
 #'     species (eg, "^mm10-" or "^hg19-")
 #' @param violin_plot If TRUE (default), produces a violin plot
-#' @param remove_species_pattern Specifies if want to remove species_pattern 
-#'     prefix from gene names. If TRUE (default), removes species_pattern prefix. 
+#' @param remove_species_pattern Specifies if want to remove species_pattern
+#'     prefix from gene names. If TRUE (default), removes species_pattern
+#'     prefix.
 #'
 #' @return A \code{\link{Seurat}}
 #' @export
@@ -30,19 +31,21 @@ tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
   # If removing species names and species pattern is in mt_pattern
   if (remove_species_pattern == TRUE &
        grepl(species_pattern %>% stringr::str_remove_all("\\^"),
-             mt_pattern)) {
-    warning("\nDon't put species prefix in mt_pattern\n", 
+             mt_pattern) &
+      species_pattern != "") {
+    warning("\nDon't put species prefix in mt_pattern when
+            remove_species_pattern == TRUE\n",
             immediate. = TRUE)
     stop()
   }
-  
-  # If not removing species names and species pattern not in mt_pattern 
+
+  # If not removing species names and species pattern not in mt_pattern
   if (remove_species_pattern == FALSE &
       grepl(species_pattern %>% stringr::str_remove_all("\\^"),
             mt_pattern) == FALSE) {
-    warning("\nMake sure your mt_pattern have species prefixes in it!\n", 
-            immediate. = TRUE)
-    warning("\nmt_pattern should look like: ^hg19-MT-\n", 
+    warning("\nMake sure your mt_pattern have species prefixes in it when
+            remove_species_pattern == FALSE
+            mt_pattern should look like: ^hg19-MT-\n",
             immediate. = TRUE)
     stop()
   }
@@ -53,16 +56,29 @@ tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
     raw_data <- raw_data[grep(pattern = gsub("-", "_", species_pattern),
                               raw_data@Dimnames[[1]]), ]
     if (remove_species_pattern == TRUE) {
-      raw_data@Dimnames[[1]] <- sub(gsub("-", "_", species_pattern), "", raw_data@Dimnames[[1]])
-    } 
+      raw_data@Dimnames[[1]] <- sub(gsub("-",
+                                         "_",
+                                         species_pattern),
+                                    "",
+                                    raw_data@Dimnames[[1]])
+    }
   }
 
   seurat <- Seurat::CreateSeuratObject(raw_data,
                                        min.cells = min_cells,
                                        min.features = min_features)
+
+  # Need to change all underscores to dashes due to CreateSeuratObject doing
+  # the same
   seurat <- Seurat::PercentageFeatureSet(seurat,
-                                         pattern = mt_pattern,
+                                         pattern = gsub("_", "-", mt_pattern),
                                          col.name = "percent.mt")
+
+  if (sum(seurat$percent.mt) == 0) {
+    warning("No mitochondrial reads found!")
+    warning("If you have a sample aligned to a mixed reference, make sure that
+            your species_pattern and mt_pattern arguments are appropriate.")
+  }
 
   if (violin_plot == TRUE) {
     print(Seurat::VlnPlot(seurat,
