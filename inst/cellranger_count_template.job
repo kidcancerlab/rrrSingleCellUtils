@@ -29,7 +29,7 @@ NumCellsArray=(placeholder_num_cells_list)
 NumCells=${NumCellsArray[${SLURM_ARRAY_TASK_ID}]}
 
 ## set path info
-export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-3.0.2:$PATH
+export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-6.1.2:$PATH
 ml load bcl2fastq/2.20.2
 
 cd $TMPDIR

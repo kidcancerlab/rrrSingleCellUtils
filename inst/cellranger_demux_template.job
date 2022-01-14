@@ -20,7 +20,7 @@ BCLFolder=placeholder_bcl_folder
 FASTQFolder=placeholder_fastq_folder
 
 ## set path info
-export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-dna-1.1.0:$PATH
+export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-6.1.2:$PATH
 ml load bcl2fastq/2.20.2
 cd $TMPDIR
 
@@ -28,8 +28,6 @@ cd $TMPDIR
 cellranger-dna mkfastq \
   --samplesheet=${BCLFolder}/${CommonFolderName}/${BCLFolderName}/SampleSheet.csv \
   --run=${BCLFolder}/${CommonFolderName}/${BCLFolderName}/ \
-  --ignore-dual-index \
-  --qc \
   --output-dir $TMPDIR
 
 ## copy the files over from the temporary directory
