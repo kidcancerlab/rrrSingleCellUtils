@@ -2,3 +2,8 @@
 ^\.Rproj\.user$
 ^testData/*\.RData$
 ^.*\.RData$
+^testSampleInfo*
+^ExampleSample*
+M.edited.nichenet.scIntracellular.R
+cid.fq
+lt.fq

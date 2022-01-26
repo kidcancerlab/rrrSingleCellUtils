@@ -24,7 +24,8 @@ Imports:
     stats,
     tidyr,
     purrr,
-    getPass
+    getPass,
+    patchwork
 Depends: R (>= 3.5.0), nichenetr
 Suggests: testthat (>= 3.0.0)
 Config/testthat/edition: 3

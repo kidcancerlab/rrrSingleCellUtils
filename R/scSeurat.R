@@ -15,6 +15,7 @@
 #' @param remove_species_pattern Specifies if want to remove species_pattern
 #'     prefix from gene names. If TRUE (default), removes species_pattern
 #'     prefix.
+#' @param sample_name Sample name. Used in violin plots for title
 #'
 #' @return A \code{\link{Seurat}}
 #' @export
@@ -25,7 +26,8 @@
 #' }
 tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
                          mt_pattern = "^mt-|^MT-", species_pattern = "",
-                         remove_species_pattern = TRUE, violin_plot = TRUE) {
+                         remove_species_pattern = TRUE, violin_plot = TRUE,
+                         sample_name = path_10x) {
 
 
   # If removing species names and species pattern is in mt_pattern
@@ -85,7 +87,12 @@ tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
                           features = c("nFeature_RNA",
                                        "nCount_RNA",
                                        "percent.mt"),
-                          ncol = 3))
+                          ncol = 3) +
+            # ggplot2::labs(caption = paste(sample_name, "\n")) +
+            # ggplot2::theme(plot.caption = ggplot2::element_text(size = 20,
+            #                                                     hjust = 1)))
+            patchwork::plot_annotation(title = path_10x,
+                                       theme = ggplot2::theme(plot.title = ggplot2::element_text(size = 25))))
   }
 
   return(seurat)

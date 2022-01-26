@@ -11,7 +11,8 @@ tenx_load_qc(
   mt_pattern = "^mt-|^MT-",
   species_pattern = "",
   remove_species_pattern = TRUE,
-  violin_plot = TRUE
+  violin_plot = TRUE,
+  sample_name = path_10x
 )
 }
 \arguments{
@@ -36,6 +37,8 @@ prefix from gene names. If TRUE (default), removes species_pattern
 prefix.}
 
 \item{violin_plot}{If TRUE (default), produces a violin plot}
+
+\item{sample_name}{Sample name. Used in violin plots for title}
 }
 \value{
 A \code{\link{Seurat}}
