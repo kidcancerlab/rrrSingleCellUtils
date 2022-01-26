@@ -25,9 +25,10 @@ ml load bcl2fastq/2.20.2
 cd $TMPDIR
 
 ## demultiplex bcl and create fasta files
-cellranger-dna mkfastq \
+cellranger mkfastq \
   --samplesheet=${BCLFolder}/${CommonFolderName}/${BCLFolderName}/SampleSheet.csv \
   --run=${BCLFolder}/${CommonFolderName}/${BCLFolderName}/ \
+  --filter-dual-index \
   --output-dir $TMPDIR
 
 ## copy the files over from the temporary directory
