@@ -7,4 +7,5 @@ utils::globalVariables(c(".", "avg.exp.scaled", "features.plot", "id",
                          "ligands_bona_fide", "lr_network", "lr_network_strict",
                          "receptors", "receptors_bona_fide",
                          "weighted_networks", "weighted_networks_lr", "Phase",
-                         "Cluster", "Proportion", "weight"))
+                         "Cluster", "Proportion", "weight", "cluster",
+                         "sil_width"))
