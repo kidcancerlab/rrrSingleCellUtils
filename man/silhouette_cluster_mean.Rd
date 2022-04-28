@@ -8,9 +8,6 @@ silhouette_cluster_mean(sil_obj)
 }
 \arguments{
 \item{sil_obj}{A silhouette object}
-
-\item{sobject}{A Seurat object containing all of the cells for analysis
-(required)}
 }
 \value{
 A numeric value

@@ -8,4 +8,4 @@ utils::globalVariables(c(".", "avg.exp.scaled", "features.plot", "id",
                          "receptors", "receptors_bona_fide",
                          "weighted_networks", "weighted_networks_lr", "Phase",
                          "Cluster", "Proportion", "weight", "cluster",
-                         "sil_width"))
+                         "sil_width", "sil_vals", "res_vals", "num_clusters"))

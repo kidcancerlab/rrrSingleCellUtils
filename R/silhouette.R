@@ -30,8 +30,6 @@ silhouette_seurat <- function(sobject,
 #' Calculate the average silhouette score from a silhouette object
 #'
 #' @details This function takes in a Seruat object and runs silhouette scoring
-#' @param sobject A Seurat object containing all of the cells for analysis
-#'    (required)
 #' @param sil_obj A silhouette object
 #' @export
 #'
@@ -51,8 +49,6 @@ silhouette_mean <- function(sil_obj) {
 #'
 #' @details This function takes in a silhouette object and returns a vector of
 #' mean silhouette scores for each cluster
-#' @param sobject A Seurat object containing all of the cells for analysis
-#'    (required)
 #' @param sil_obj A silhouette object
 #' @export
 #'
@@ -71,8 +67,6 @@ silhouette_cluster_mean <- function(sil_obj) {
 #' Plot silhouette scores
 #'
 #' @details This function takes in a Seruat object and runs silhouette scoring
-#' @param sobject A Seurat object containing all of the cells for analysis
-#'    (required)
 #' @param sil_obj A silhouette object
 #' @export
 #'
@@ -101,4 +95,56 @@ silhouette_plot <- function(sil_obj) {
      ggplot2::coord_flip()
 
     return(plot_name)
+}
+
+#' Find optimal FindClusters() resolution value to maximize silhouette score
+#'
+#' @details This function takes in a Seruat object returns a data frame of
+#' silhouette scores for each resolution value
+#' @param sobject A Seurat object containing all of the cells for analysis
+#'    (required)
+#' @param test_res A numeric vector of resolution values to test
+#' @param summary_plot A logical value indicating whether to plot the results
+#' @export
+#'
+#' @return A numeric value
+#'
+#' @examples
+#' \dontrun{
+#' optimize_silhouette(sobject = seurat_obj,
+#'                     test_res = seq(0.1, 0.9, by = 0.1))
+#' }
+optimize_silhouette <- function(sobject,
+                                test_res = seq(0.05, 0.75, by = 0.05),
+                                summary_plot = TRUE) {
+    output <- data.frame(sil_vals = rep(NA, length(test_res)) %>%
+                                        as.numeric(),
+                         res_vals = rep(NA, length(test_res)) %>%
+                                        as.numeric(),
+                         num_clusters = rep(NA, length(test_res)) %>%
+                                        as.numeric())
+
+    for (i in seq_along(test_res)) {
+        message(paste("## Testing resolution: ", test_res[i]))
+        output$res_vals[i] <- test_res[i]
+
+        sil_obj <- sobject %>%
+            Seurat::FindClusters(resolution = test_res[i]) %>%
+            silhouette_seurat()
+
+        output$num_clusters[i] <- summary(sil_obj)$clus.avg.widths %>%
+            length()
+        output$sil_vals[i] <- silhouette_mean(sil_obj)
+    }
+
+    if (summary_plot) {
+        print(ggplot2::ggplot(output,
+                            ggplot2::aes(x = sil_vals,
+                                         y = num_clusters)) +
+            ggplot2::geom_text(ggplot2::aes(label = res_vals)) +
+            ggplot2::labs(x = "Silhouette score",
+                          y = "Number of clusters"))
+    }
+
+    return(output)
 }
