@@ -43,6 +43,13 @@
 
   * process_ltbc()
 
+### To do
+
+  * Make arguments inherit from other functions instead of re-typing them
+  * Add argument to provide path to cellranger
+  * Add argument to specify bcl2fastq path or module
+  * Vignette
+
 ---
 
 ## Errors

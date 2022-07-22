@@ -6,9 +6,7 @@
 \usage{
 process_raw_data(
   sample_info,
-  link_folder,
   domain = "//igmdata/igm_roberts",
-  exp_type = "scRNA-seq_3prime",
   email = "",
   slurm_base = paste(getwd(), "/slurmOut", sep = ""),
   bcl_folder = "/home/gdrobertslab/lab/BCLs",
@@ -20,11 +18,7 @@ process_raw_data(
 \arguments{
 \item{sample_info}{File containing sample info (see details)}
 
-\item{link_folder}{Folder containing raw data}
-
 \item{domain}{Where the raw files are hosted}
-
-\item{exp_type}{Type of 10X sequence data}
 
 \item{email}{Email for Slurm notifications}
 
