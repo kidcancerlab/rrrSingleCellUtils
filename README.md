@@ -49,6 +49,7 @@
   * Add argument to provide path to cellranger
   * Add argument to specify bcl2fastq path or module
   * Vignette
+  * Function to check sample sheet
 
 ---
 

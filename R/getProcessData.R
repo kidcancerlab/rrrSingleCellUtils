@@ -12,9 +12,9 @@
 #' @details This is a wrapper for several functions to get and process single
 #'  cell data from the NCH IGM core. I have built the defaults to be specific to
 #'  the Roberts lab, so you may need to carefully change the defaults if you
-#'  want to use it outside of this context. The input is a link to data and a
-#'  sample sheet that outlines the information about each sample. The data
-#'  are then downloaded using smbclient and then md5sum checked and untar’d.
+#'  want to use it outside of this context. The input is a sample sheet that
+#'  outlines the information about each sample. The data are then downloaded
+#'  using smbclient and then md5sum checked and untar’d.
 #'  The data are then processed with cellranger mkfastq and either cellranger
 #'  count or cellranger-dna cnv (depending on the exp_type argument).
 #'
@@ -23,7 +23,6 @@
 #' @examples
 #' \dontrun{
 #' process_raw_data(sample_info = "testSampleInfoSheet_test.txt",
-#' link_folder = "210913_Roberts_GSL-AG-2350",
 #' email = "matthew.cannon@nationwidechildrens.org")
 #' }
 process_raw_data <- function(sample_info,
@@ -61,15 +60,15 @@ process_raw_data <- function(sample_info,
     dplyr::select(exp_type, link_folder) %>%
     dplyr::distinct()
 
-#############################
-# Going to need to change up the loop here, you need to re-do your password mid-run
+  pw <- getPass::getPass("Password for smbclient: ")
 
-  for (i in seq_len(nrow(link_exp_type))) { #unique(sample_data$link_folder)) {
+  for (i in seq_len(nrow(link_exp_type))) {
     dl_link <- link_exp_type$link_folder[i]
     # Download, untar and check md5 sums of raw data
     message("Getting raw data from ", dl_link, ".")
     tar_list <- get_raw_data(link_folder = dl_link,
-                             dest_folder = dest_folder)
+                             dest_folder = dest_folder,
+                             .pw = pw)
 
     # Write out subsampled sampleInfoSheet with data from one link_folder
     temp_sample_info_sheets[[dl_link]] <- tempfile(fileext = ".tsv")
@@ -132,6 +131,7 @@ process_raw_data <- function(sample_info,
 #' @param domain Where the raw files are hosted
 #' @param user Username to pass to smbclient
 #' @param user_group Group the user belongs to
+#' @param .pw internal use only
 #'
 #' @export
 #'
@@ -144,7 +144,8 @@ get_raw_data <- function(link_folder,
                          dest_folder,
                          domain = "//igmdata/igm_roberts",
                          user = Sys.info()[["user"]],
-                         user_group = "research") {
+                         user_group = "research",
+                         .pw) {
 
   if (!dir.exists(dest_folder)) {
     system(paste("mkdir", dest_folder))
@@ -159,7 +160,7 @@ get_raw_data <- function(link_folder,
                            domain, " ",
                            "-U ", user,
                            "%",
-                           getPass::getPass("Password for smbclient: "),
+                           .pw,
                            " ",
                            "-W ", user_group, " ",
                            "-c ",
@@ -178,7 +179,7 @@ get_raw_data <- function(link_folder,
                              domain, " ",
                               "-U ", user,
                              "%",
-                             getPass::getPass("Password for smbclient: "),
+                             .pw,
                              " ",
                              "-W ", user_group, " ",
                              "-c ",
@@ -338,6 +339,15 @@ cellranger_mkfastq <- function(sample_info,
     filter_arg <- "\\\\\\\n  --force-single-index\\\n"
   }
 
+  # Need to add a suffix to the fastq folder for the multiomics so we can
+  # reference it during counting
+  fastq_suffix <- ""
+  if (sample_data$exp_type[1] == "multiomics GEX") {
+      fastq_suffix <- "_R"
+  } else if (sample_data$exp_type[1] == "multiomics ATAC") {
+      fastq_suffix <- "_A"
+  }
+
   replace_tibble <-
     tibble::tibble(find = c("placeholder_run_name",
                             "placeholder_array_max",
@@ -361,9 +371,7 @@ cellranger_mkfastq <- function(sample_info,
                                      run_name,
                                      sep = ""),
                                cellranger_type,
-                               stringr::str_replace_all(sample_data$exp_type[1],
-                                                        " ",
-                                                        "_"),
+                               fastq_suffix,
                                filter_arg))
 
   package_dir <- find.package("rrrSingleCellUtils")
@@ -438,6 +446,7 @@ cellranger_count <- function(sample_info,
 
   cellranger_template <- "/cellranger_count_template.job"
   tmp_csv <- ""
+  # Need to deal with the multiomic completely differently due to cellranger-arc
   if (grepl("multiomic", sample_data$exp_type[1])) {
     cellranger_template <- "/cellranger_count_multiomics_template.job"
 
@@ -445,23 +454,25 @@ cellranger_count <- function(sample_info,
                         tmpdir = getwd(),
                         fileext = ".csv")
 
+    # Create csv that cellranger-arc can use for count - each sample will be
+    # pulled out of this csv in the job template using grep
     sample_data %>%
         dplyr::select(Sample_ID, exp_type) %>%
-        dplyr::mutate(fastqs = paste0(fastq_folder,
-                                      "_",
-                                      stringr::str_replace_all(exp_type,
-                                                                  " ",
-                                                                  "_"),
+        dplyr::mutate(suffix = dplyr::if_else(exp_type == "multiomics GEX",
+                                              "_R",
+                                              "_A"),
+                      fastqs = paste0(fastq_folder,
+                                      suffix,
                                       "/",
                                       run_name),
-               exp_type = stringr::str_replace(exp_type,
-                                               "multiomics GEX",
-                                               "Gene Expression") %>%
-                          stringr::str_replace("multiomics ATAC",
-                                               "Chromatin Accessibility")) %>%
+                      exp_type = stringr::str_replace(exp_type,
+                                                      "multiomics GEX",
+                                                      "Gene Expression") %>%
+                            stringr::str_replace("multiomics ATAC",
+                                                 "Chromatin Accessibility")) %>%
         dplyr::rename(library_type = exp_type,
                       sample = Sample_ID) %>%
-        dplyr::select(fastqs, sample, library_type) %>%
+        dplyr::select(fastqs, sample, library_type, -suffix) %>%
         readr::write_csv(file = tmp_csv)
   }
 
@@ -478,7 +489,6 @@ cellranger_count <- function(sample_info,
   # Using separate template
   # The Cell Ranger ARC pipeline can only analyze Gene Expression and ATAC data
   # together and the input is a csv file
-
   replace_tibble <- tibble::tibble(find = c("placeholder_run_name",
                                             "placeholder_array_max",
                                             "placeholder_sample_array_list",

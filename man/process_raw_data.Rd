@@ -39,16 +39,15 @@ Download and pre-process raw 10X data
 This is a wrapper for several functions to get and process single
  cell data from the NCH IGM core. I have built the defaults to be specific to
  the Roberts lab, so you may need to carefully change the defaults if you
- want to use it outside of this context. The input is a link to data and a
- sample sheet that outlines the information about each sample. The data
- are then downloaded using smbclient and then md5sum checked and untar’d.
+ want to use it outside of this context. The input is a sample sheet that
+ outlines the information about each sample. The data are then downloaded
+ using smbclient and then md5sum checked and untar’d.
  The data are then processed with cellranger mkfastq and either cellranger
  count or cellranger-dna cnv (depending on the exp_type argument).
 }
 \examples{
 \dontrun{
 process_raw_data(sample_info = "testSampleInfoSheet_test.txt",
-link_folder = "210913_Roberts_GSL-AG-2350",
 email = "matthew.cannon@nationwidechildrens.org")
 }
 }

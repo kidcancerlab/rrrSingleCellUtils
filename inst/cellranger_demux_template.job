@@ -39,11 +39,11 @@ placeholder_cellranger_type mkfastq \
 #  --filter-dual-index \ #not sure we need this?
 
 ## copy the files over from the temporary directory
-if [ ! -d ${FASTQFolder}/${CommonFolderName}_${ExpType} ]
+if [ ! -d ${FASTQFolder}/${CommonFolderName}${ExpType} ]
 then
-mkdir -p ${FASTQFolder}/${CommonFolderName}_${ExpType}
+mkdir -p ${FASTQFolder}/${CommonFolderName}${ExpType}
 fi
 
-cp -R ${TMPDIR}/* ${FASTQFolder}/${CommonFolderName}_${ExpType}/
+cp -R ${TMPDIR}/* ${FASTQFolder}/${CommonFolderName}${ExpType}/
 
 sleep 3m
