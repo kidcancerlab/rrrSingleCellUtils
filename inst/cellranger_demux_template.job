@@ -33,6 +33,8 @@ cd $TMPDIR
 
 ## demultiplex bcl and create fasta files
 placeholder_cellranger_type mkfastq \
+  --localcores=30 \
+  --localmem=220 \
   --samplesheet=${BCLFolder}/${CommonFolderName}/${BCLFolderName}/SampleSheet.csv \
   --run=${BCLFolder}/${CommonFolderName}/${BCLFolderName}/ \
   --output-dir $TMPDIR placeholder_filter_arg
