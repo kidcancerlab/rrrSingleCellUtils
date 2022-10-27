@@ -117,25 +117,12 @@ silhouette_plot <- function(sil_obj) {
 optimize_silhouette <- function(sobject,
                                 test_res = seq(0.05, 0.75, by = 0.05),
                                 summary_plot = TRUE) {
-    output <- data.frame(sil_vals = rep(NA, length(test_res)) %>%
-                                        as.numeric(),
-                         res_vals = rep(NA, length(test_res)) %>%
-                                        as.numeric(),
-                         num_clusters = rep(NA, length(test_res)) %>%
-                                        as.numeric())
 
-    for (i in seq_along(test_res)) {
-        message(paste("## Testing resolution: ", test_res[i]))
-        output$res_vals[i] <- test_res[i]
-
-        sil_obj <- sobject %>%
-            Seurat::FindClusters(resolution = test_res[i]) %>%
-            silhouette_seurat()
-
-        output$num_clusters[i] <- summary(sil_obj)$clus.avg.widths %>%
-            length()
-        output$sil_vals[i] <- silhouette_mean(sil_obj)
-    }
+    output <-
+        lapply(test_res, function(x) silhouette_to_df(sobject = sobject,
+                                                      res = x)) %>%
+        t() %>%
+        as.data.frame()
 
     if (summary_plot) {
         print(ggplot2::ggplot(output,
@@ -147,4 +134,25 @@ optimize_silhouette <- function(sobject,
     }
 
     return(output)
+}
+
+# Function to use with apply in optimize_silhouette instead of a for loop
+silhouette_to_df <- function(sobject, res) {
+    output <- list()
+
+    output[["res_vals"]] <- res
+
+    sobject <- sobject %>%
+        Seurat::FindClusters(resolution = res, verbose = FALSE)
+    if (max(as.numeric(as.character(sobject$seurat_clusters))) > 0) {
+        sil_obj <- silhouette_seurat(sobject)
+
+        output[["num_clusters"]] <- summary(sil_obj)$clus.avg.widths %>%
+            length()
+        output[["sil_vals"]] <- silhouette_mean(sil_obj)
+    } else {
+        output[["num_clusters"]] <- 1
+        output[["sil_vals"]] <- NA
+    }
+    return(as.data.frame(output))
 }
