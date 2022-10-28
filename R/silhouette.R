@@ -118,11 +118,20 @@ optimize_silhouette <- function(sobject,
                                 test_res = seq(0.05, 0.75, by = 0.05),
                                 summary_plot = TRUE) {
 
-    output <-
-        lapply(test_res, function(x) silhouette_to_df(sobject = sobject,
-                                                      res = x)) %>%
-        t() %>%
-        as.data.frame()
+    if (.Platform$OS.type == "unix") {
+        num_cores <- parallel::detectCores()
+        output <-
+            parallel::mclapply(test_res,
+                               function(x) silhouette_to_df(sobject = sobject,
+                                                            res = x),
+                               mc.cores = num_cores) %>%
+            dplyr::bind_rows()
+    } else {
+        output <-
+            lapply(test_res, function(x) silhouette_to_df(sobject = sobject,
+                                                          res = x)) %>%
+            dplyr::bind_rows()
+    }
 
     if (summary_plot) {
         print(ggplot2::ggplot(output,
