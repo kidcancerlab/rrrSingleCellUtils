@@ -405,6 +405,7 @@ cellranger_mkfastq <- function(sample_info,
 #' @param sample_info File with sample information Required columns:
 #'     Sample_Project, Sample_ID, Reference, Cell_Num
 #' @param email Email for Slurm notifications
+#' @param include_introns Should intronic reads be included in counts?
 #' @param realign_suffix Suffix to add to output folders when re-aligning
 #' @param counts_folder Folder for cellranger counts output
 #' @param fastq_folder Path to write fastq files
@@ -419,6 +420,7 @@ cellranger_mkfastq <- function(sample_info,
 #' }
 cellranger_count <- function(sample_info,
                              email = "",
+                             include_introns = TRUE,
                              realign_suffix = "",
                              counts_folder = "/home/gdrobertslab/lab/Counts",
                              fastq_folder = "/home/gdrobertslab/lab/FASTQs",
@@ -444,10 +446,14 @@ cellranger_count <- function(sample_info,
                     "#SBATCH --mail-type=ALL\n")
   }
 
+  multiomic <- dplyr::if_else(grepl("multiomic", sample_data$exp_type[1]),
+                              TRUE,
+                              FALSE)
+
   cellranger_template <- "/cellranger_count_template.job"
   tmp_csv <- ""
   # Need to deal with the multiomic completely differently due to cellranger-arc
-  if (grepl("multiomic", sample_data$exp_type[1])) {
+  if (multiomic) {
     cellranger_template <- "/cellranger_count_multiomics_template.job"
 
     tmp_csv <- tempfile(pattern = "crCount",
@@ -479,11 +485,19 @@ cellranger_count <- function(sample_info,
   # Since cellranger-arc count pulls in both GEX and ATAC at the same time
   # we don't need to run both, so only need the data from one of the two exp
   # to pull in both, that's why I use only gex data in the replace_tibble below
-  if (grepl("multiomics", sample_data$exp_type[1])) {
+  if (multiomic) {
     sample_data <-
         sample_data %>%
         dplyr::filter(exp_type == "multiomics GEX")
   }
+
+  # the command for including introns is different for cellranger-arc
+  intron_arg <-
+    dplyr::if_else(include_introns,
+                   "",
+                   dplyr::if_else(multiomic,
+                                  "\n --gex-exclude-introns false",
+                                  "\n  --include-introns false \\\\\\"))
 
   # Need very different arguments for cellranger/cellranger-arc
   # Using separate template
@@ -501,7 +515,8 @@ cellranger_count <- function(sample_info,
                                             "placeholder_counts_folder",
                                             "placeholder_fastq_folder",
                                             "placeholder_slurm_name",
-                                            "placeholder_library_csv"),
+                                            "placeholder_library_csv",
+                                            "include_introns_placeholder"),
                                    replace = c(run_name,
                                                nrow(sample_data) - 1,
                                                paste(sample_data$Sample_ID,
@@ -522,7 +537,8 @@ cellranger_count <- function(sample_info,
                                                paste("count_",
                                                      run_name,
                                                      sep = ""),
-                                               tmp_csv))
+                                               tmp_csv,
+                                               intron_arg))
 
   package_dir <- find.package("rrrSingleCellUtils")
 

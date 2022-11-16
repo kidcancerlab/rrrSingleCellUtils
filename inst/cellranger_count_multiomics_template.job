@@ -33,7 +33,7 @@ grep "library_type\|${OutDir}" \
 
 ## perform alignment and count genes
 cellranger-arc count \
-  --id ${OutDir} \
+  --id ${OutDir} \include_introns_placeholder
   --reference ${RefFolder}/${GenRef} \
   --libraries tempCount${OutDir}.csv \
   --localcores 10

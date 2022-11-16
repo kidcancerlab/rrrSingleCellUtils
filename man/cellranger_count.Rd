@@ -7,6 +7,7 @@
 cellranger_count(
   sample_info,
   email = "",
+  include_introns = TRUE,
   realign_suffix = "",
   counts_folder = "/home/gdrobertslab/lab/Counts",
   fastq_folder = "/home/gdrobertslab/lab/FASTQs",
@@ -19,6 +20,8 @@ cellranger_count(
 Sample_Project, Sample_ID, Reference, Cell_Num}
 
 \item{email}{Email for Slurm notifications}
+
+\item{include_introns}{Should intronic reads be included in counts?}
 
 \item{realign_suffix}{Suffix to add to output folders when re-aligning}
 
