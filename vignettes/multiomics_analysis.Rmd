@@ -1,0 +1,20 @@
+---
+title: "multiomics_analysis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{multiomics_analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(rrrSingleCellUtils)
+```
+

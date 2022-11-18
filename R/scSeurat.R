@@ -11,6 +11,7 @@
 #'     (eg, "^hg19-MT-" or "^hg19-MT-|^mm10-mt-")
 #' @param species_pattern Pattern used to select only reads from a single
 #'     species (eg, "^mm10-" or "^hg19-")
+#' @param exp_type Experiment type (eg, "GEX", "ATAC", "GEX+ATAC")
 #' @param violin_plot If TRUE (default), produces a violin plot
 #' @param remove_species_pattern Specifies if want to remove species_pattern
 #'     prefix from gene names. If TRUE (default), removes species_pattern
@@ -24,9 +25,14 @@
 #' \dontrun{
 #' seurat_obj <- tenXLoadQC("path/to/10X/data/", species_pattern = "^mm9-")
 #' }
-tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
-                         mt_pattern = "^mt-|^MT-", species_pattern = "",
-                         remove_species_pattern = TRUE, violin_plot = TRUE,
+tenx_load_qc <- function(path_10x,
+                         min_cells = 5,
+                         min_features = 800,
+                         mt_pattern = "^mt-|^MT-",
+                         species_pattern = "",
+                         exp_type = "GEX",
+                         remove_species_pattern = TRUE,
+                         violin_plot = TRUE,
                          sample_name = path_10x) {
 
 
@@ -52,52 +58,97 @@ tenx_load_qc <- function(path_10x, min_cells = 5, min_features = 800,
     stop()
   }
 
-  raw_data <- Seurat::Read10X(path_10x)
+  if (grepl("GEX", exp_type)) {
+    raw_data <- Seurat::Read10X(path_10x)
+    if ("Gene Expression" %in% names(raw_data)) {
+        raw_data <- raw_data[["Gene Expression"]]
+        message("Loading gene expression data from multiomics dataset")
+    }
 
-  if (species_pattern != "") {
-    raw_data <- raw_data[grep(pattern = gsub("-", "_", species_pattern),
-                              raw_data@Dimnames[[1]]), ]
-    if (remove_species_pattern == TRUE) {
-      raw_data@Dimnames[[1]] <- sub(gsub("-",
-                                         "_",
-                                         species_pattern),
-                                    "",
-                                    raw_data@Dimnames[[1]])
+    if (species_pattern != "") {
+        raw_data <- raw_data[grep(pattern = gsub("-", "_", species_pattern),
+                                raw_data@Dimnames[[1]]), ]
+        if (remove_species_pattern == TRUE) {
+            raw_data@Dimnames[[1]] <- sub(gsub("-",
+                                               "_",
+                                               species_pattern),
+                                           "",
+                                           raw_data@Dimnames[[1]])
+        }
+    }
+
+    seurat <- Seurat::CreateSeuratObject(raw_data,
+                                        min.cells = min_cells,
+                                        min.features = min_features)
+
+    # Need to change all underscores to dashes due to CreateSeuratObject doing
+    # the same
+    seurat <-
+        Seurat::PercentageFeatureSet(seurat,
+                                     pattern = gsub("_", "-", mt_pattern),
+                                     col.name = "percent.mt")
+
+    if (sum(seurat$percent.mt) == 0) {
+        warning("No mitochondrial reads found!")
+        warning("If you have a sample aligned to a mixed reference, make sure that
+                your species_pattern and mt_pattern arguments are appropriate.")
     }
   }
 
-  seurat <- Seurat::CreateSeuratObject(raw_data,
-                                       min.cells = min_cells,
-                                       min.features = min_features)
+  if (grepl("ATAC", exp_type)) {
+      h5_file <- paste0(dirname(path_10x), "/filtered_feature_bc_matrix.h5")
+      frag_file <- paste0(dirname(path_10x), "/atac_fragments.tsv.gz")
+      raw_data <- Seurat::Read10X_h5(h5_file)$Peaks
 
-  # Need to change all underscores to dashes due to CreateSeuratObject doing
-  # the same
-  seurat <- Seurat::PercentageFeatureSet(seurat,
-                                         pattern = gsub("_", "-", mt_pattern),
-                                         col.name = "percent.mt")
+      if (species_pattern != "") {
+        raw_data <-
+            raw_data[grep(pattern = gsub("-", "_", species_pattern),
+                          raw_data@Dimnames[[1]]), ]
+        if (remove_species_pattern) {
+            raw_data@Dimnames[[1]] <-
+                sub(gsub("-",
+                         "_",
+                         species_pattern),
+                    "",
+                    raw_data@Dimnames[[1]])
+        }
 
-  if (sum(seurat$percent.mt) == 0) {
-    warning("No mitochondrial reads found!")
-    warning("If you have a sample aligned to a mixed reference, make sure that
-            your species_pattern and mt_pattern arguments are appropriate.")
+        if (exp_type == "ATAC") {
+            seurat <-
+                Signac::CreateChromatinAssay(counts = raw_data,
+                                             sep = c(":", "-"),
+                                             fragments = frag_file,
+                                             min.cells = min_cells) %>%
+                Seurat::CreateSeuratObject(assay = "ATAC")
+        } else if (exp_type == "GEX+ATAC") {
+            seurat[["ATAC"]] <-
+                Signac::CreateChromatinAssay(counts = raw_data,
+                                             sep = c(":", "-"),
+                                             fragments = frag_file,
+                                             min.cells = min_cells)
+        }
+    }
+    seurat <-
+        Seurat::PercentageFeatureSet(seurat,
+                                     pattern = gsub("_", "-", mt_pattern),
+                                     col.name = "percent.mt",
+                                     assay = "ATAC")
+
   }
 
-  if (violin_plot == TRUE) {
+
+  if (violin_plot) {
     print(Seurat::VlnPlot(seurat,
                           features = c("nFeature_RNA",
                                        "nCount_RNA",
                                        "percent.mt"),
                           ncol = 3) +
-            # ggplot2::labs(caption = paste(sample_name, "\n")) +
-            # ggplot2::theme(plot.caption = ggplot2::element_text(size = 20,
-            #                                                     hjust = 1)))
-            patchwork::plot_annotation(title = path_10x,
-                                       theme = ggplot2::theme(plot.title = ggplot2::element_text(size = 25))))
+          patchwork::plot_annotation(title = path_10x,
+                                     theme = ggplot2::theme(plot.title = ggplot2::element_text(size = 25))))
   }
 
   return(seurat)
 }
-
 
 #' Extract cellecta barcode information from a sam or bam file
 #'
