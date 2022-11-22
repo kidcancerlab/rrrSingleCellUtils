@@ -64,7 +64,7 @@ while (my $input = <$samFH>){
     chomp $input;
     # Skip headers
     if($input !~ /^@/) {
-      if ($input =~ /CGCA([ACGT]{14})TGGT([ACGT]{30})TGGT.+(CB:Z:([ATGC]{16}))/) {
+      if ($input =~ /CGCA([ACGT]{14})TGGT([ACGT]{30})TGGT.+CB:Z:([ATGC]{16})/) {
           my $lt_14 = $1;
           my $lt_30 = $2;
           my $cid = $3;
