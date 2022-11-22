@@ -206,7 +206,7 @@ process_ltbc <- function(sobject, cid_lt, histogram = FALSE,
     sort()
 
   # Integrate the lineage tracing barcode into the Seurat object metadata
-  sobject$lt <- cid_lt[sobject@assays$RNA@counts@Dimnames[[2]]]
+  sobject$lt <- cid_lt[substr(sobject@assays$RNA@counts@Dimnames[[2]], 1, 16)]
 
   # Generate the frequency tables
   ylabel <- "Number of Cells"
