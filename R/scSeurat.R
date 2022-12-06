@@ -226,7 +226,7 @@ process_ltbc <- function(sobject, cid_lt, histogram = FALSE,
     print(ggplot2::ggplot(bc_plot_data, ggplot2::aes(x = stats::reorder(Var1,
                                                                         -freq),
                                                      y = freq)) +
-            ggplot2::geom_bar(fill = col.fill, stat = "identity") +
+            ggplot2::geom_bar(fill = col_fill, stat = "identity") +
             ggplot2::ggtitle(title) +
             ggplot2::ylab(ylabel) +
             ggplot2::xlab("Lineage Barcode") +
