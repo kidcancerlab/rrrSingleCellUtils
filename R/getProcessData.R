@@ -548,15 +548,13 @@ cellranger_count <- function(sample_info,
                                             "placeholder_fastq_folder",
                                             "placeholder_slurm_name",
                                             "placeholder_library_csv",
-                                            "placeholder_include_introns",
-                                            "placeholder_csv"),
+                                            "placeholder_include_introns"),
                                    replace = c(run_name,
                                                nrow(sample_data) - 1,
                                                paste(sample_data$Sample_ID,
                                                      collapse = " "),
-                                               paste(paste(sample_data$Sample_ID,
-                                                           realign_suffix,
-                                                           sep = ""),
+                                               paste(paste0(sample_data$Sample_ID,
+                                                            realign_suffix),
                                                      collapse = " "),
                                                paste(sample_data$Reference,
                                                      collapse = " "),
@@ -571,8 +569,7 @@ cellranger_count <- function(sample_info,
                                                      run_name,
                                                      sep = ""),
                                                tmp_csv,
-                                               intron_arg,
-                                               tmp_csv))
+                                               intron_arg))
 
   package_dir <- find.package("rrrSingleCellUtils")
 

@@ -2,7 +2,7 @@
 #SBATCH --job-name=placeholder_slurm_name
 #SBATCH --output=placeholder_slurm_out
 #SBATCH --error=placeholder_slurm_out
-#SBATCH --time=1-00:00:00
+#SBATCH --time=2-00:00:00
 #SBATCH --cpus-per-task=10
 #SBATCH --partition=himem
 #SBATCH --array=0-placeholder_array_max
@@ -35,7 +35,7 @@ grep "library_type\|${OutDir}" \
 cellranger-arc count \
   --id ${OutDir} \placeholder_include_introns
   --reference ${RefFolder}/${GenRef} \
-  --libraries placeholder_csv \
+  --libraries tempCount${OutDir}.csv \
   --localcores 10
 
 ## copy the files over from the temporary directory
