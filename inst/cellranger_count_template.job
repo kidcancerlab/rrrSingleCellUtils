@@ -36,7 +36,7 @@ cd $TMPDIR
 
 ## perform alignment and count genes
 cellranger count \
-  --id ${OutDir} \include_introns_placeholder
+  --id ${OutDir} \placeholder_include_introns
   --fastqs ${FASTQFolder}/${RunName}/ \
   --sample ${SampleName} \
   --transcriptome ${RefFolder}/${GenRef} \

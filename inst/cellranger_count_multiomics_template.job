@@ -22,7 +22,7 @@ GenRefArray=(placeholder_reference_array_list)
 GenRef=${GenRefArray[${SLURM_ARRAY_TASK_ID}]}
 
 ## set path info
-export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-arc-2.0.0:$PATH
+export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-arc-2.0.2:$PATH
 export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/bcl2fastq/2.20/bin:$PATH
 
 cd $TMPDIR
@@ -33,9 +33,9 @@ grep "library_type\|${OutDir}" \
 
 ## perform alignment and count genes
 cellranger-arc count \
-  --id ${OutDir} \include_introns_placeholder
+  --id ${OutDir} \placeholder_include_introns
   --reference ${RefFolder}/${GenRef} \
-  --libraries tempCount${OutDir}.csv \
+  --libraries placeholder_csv \
   --localcores 10
 
 ## copy the files over from the temporary directory

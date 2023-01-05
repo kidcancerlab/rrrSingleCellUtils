@@ -34,94 +34,120 @@ process_raw_data <- function(sample_info,
                              counts_folder = "/home/gdrobertslab/lab/Counts",
                              ref_folder = "/home/gdrobertslab/lab/GenRef") {
 
-  system(paste0("dos2unix ", sample_info))
+    system(paste0("dos2unix ", sample_info))
 
-  sample_data <- readr::read_delim(sample_info,
-                                   delim = "\t",
-                                   col_names = TRUE,
-                                   trim_ws = TRUE,
-                                   show_col_types = FALSE)
+    sample_data <- readr::read_delim(sample_info,
+                                     delim = "\t",
+                                     col_names = TRUE,
+                                     trim_ws = TRUE,
+                                     show_col_types = FALSE)
 
-  project <- sample_data$Sample_Project[1]
+    project <- sample_data$Sample_Project[1]
 
-  dest_folder <- paste(bcl_folder, "/",
-                       project,
-                       sep = "")
+    dest_folder <- paste(bcl_folder, "/",
+                         project,
+                         sep = "")
 
-  exp_type <- sample_data$exp_type[1]
+    exp_type <- sample_data$exp_type[1]
 
-  # Sometimes we're going to have multiple download folders and multiple
-  # experiment types (such as multiomics) that need to be handled separately
-  # Therefore, we loop over each link_folder
-  # This code is going to assume that each download folder has a single exp_type
-  temp_sample_info_sheets <- list()
+    # Sometimes we're going to have multiple download folders and multiple
+    # experiment types (such as multiomics) that need to be handled separately
+    # Therefore, we loop over each link_folder
+    # This code is going to assume that each download folder has a single exp_type
+    temp_sample_info_sheets <- list()
 
-  link_exp_type <- sample_data %>%
-    dplyr::select(exp_type, link_folder) %>%
-    dplyr::distinct()
+    link_exp_type <- sample_data %>%
+        dplyr::pull(link_folder) %>%
+        unique()
 
-  pw <- getPass::getPass("Password for smbclient: ")
+    pw <- getPass::getPass("Password for smbclient: ")
 
-  for (i in seq_len(nrow(link_exp_type))) {
-    dl_link <- link_exp_type$link_folder[i]
-    # Download, untar and check md5 sums of raw data
-    message("Getting raw data from ", dl_link, ".")
-    tar_list <- get_raw_data(link_folder = dl_link,
-                             dest_folder = dest_folder,
-                             .pw = pw)
+    tar_link_df <- data.frame()
 
-    # Write out subsampled sampleInfoSheet with data from one link_folder
-    temp_sample_info_sheets[[dl_link]] <- tempfile(fileext = ".tsv")
-    sample_data %>%
-        dplyr::filter(link_folder == dl_link) %>%
-        readr::write_tsv(file = temp_sample_info_sheets[[dl_link]])
+    # Download each of the tar files and save a df matching link to the tar file(s)
+    for (i in seq_len(length(link_exp_type))) {
+        dl_link <- link_exp_type[i]
+        # Download, untar and check md5 sums of raw data
+        message("Getting raw data from ", dl_link, ".")
+        tar_list <- get_raw_data(link_folder = dl_link,
+                                 dest_folder = dest_folder,
+                                 domain = domain,
+                                 .pw = pw)
+        tar_link_df <-
+            rbind(tar_link_df,
+                  data.frame(link_folder = dl_link,
+                             tar_folder = stringr::str_remove(tar_list, ".tar")))
+    }
 
-    # Fix sample sheet for all folders with BCL files
-    message("Fixing sample sheets in ", dest_folder, ".")
-    tar_list %>%
-        stringr::str_remove(".tar") %>%
-        lapply(., function(x)
-            fix_sample_sheet(sample_sheet = paste(dest_folder, "/",
-                                                  x, "/SampleSheet.csv",
-                                                  sep = ""),
-                             sample_info_sheet = temp_sample_info_sheets[[dl_link]]))
+    ###
+    # For now, I am assuming there is one tar file per link_folder, but this
+    # needs to be changed to handle multiple tar files per link_folder later
+    ###
 
-    # Run cellranger mkfastq
-    message("Submitting slurm command to create fastq",
-            "files using cellranger mkfastq.")
-    cellranger_mkfastq(sample_info = temp_sample_info_sheets[[dl_link]],
-                       email = email,
-                       tar_folders = tar_list %>% stringr::str_remove(".tar"),
-                       bcl_folder = bcl_folder,
-                       fastq_folder = fastq_folder,
-                       slurm_out = paste(slurm_base,
-                                         "_mkfastq-%j.out",
-                                         sep = ""))
-  }
+    sample_data <-
+        sample_data %>%
+        dplyr::left_join(tar_link_df, by = "link_folder")
 
-  # Run cellranger count if scRNA-seq_3prime
-  if (exp_type == "scRNA-seq_3prime") {
-    message("Submtting slurm command to run cellranger count.\n",
-            "Slurm messages output to", paste(slurm_base,
-                                              "_count-%j.out",
-                                              sep = ""))
-    cellranger_count(sample_info = sample_info,
-                     email = email,
-                     counts_folder = counts_folder,
-                     fastq_folder = fastq_folder,
-                     ref_folder = ref_folder,
-                     slurm_out = paste(slurm_base, "_count-%j.out", sep = ""))
-  } else if (grepl("multiomics", exp_type)) {
-    cellranger_count(sample_info = sample_info,
-                     email = email,
-                     counts_folder = counts_folder,
-                     fastq_folder = fastq_folder,
-                     ref_folder = ref_folder,
-                     slurm_out = paste(slurm_base, "_count-%j.out", sep = ""))
-  } else if (exp_type == "scDNA_CNV") {
-    warning("Not yet implimented")
-  }
-  message("Done!")
+    # Get unique combination of tar_folder and exp_type to use with the
+    # following loop
+    tar_exps <-
+        sample_data %>%
+        dplyr::select(link_folder, tar_folder, exp_type) %>%
+        dplyr::distinct()
+
+    # Loop over each tar_folder and exp_type combination to run mkfastq
+    for (i in seq_len(nrow(tar_exps))) {
+        tar_f <- tar_exps$tar_folder[i]
+
+        # Write out subsampled sampleInfoSheet with data from one link_folder
+        temp_sample_info_sheets[[tar_f]] <-
+            tempfile(fileext = ".tsv")
+        dplyr::left_join(tar_exps[i, ], sample_data) %>%
+            readr::write_tsv(file = temp_sample_info_sheets[[tar_f]])
+
+        # Fix sample sheet for all folders with BCL files
+        message("Fixing sample sheet in ", tar_f, ".")
+        # tar_list %>%
+        #     stringr::str_remove(".tar") %>%
+            # lapply(., function(x)
+                fix_sample_sheet(sample_sheet = paste0(dest_folder, "/",
+                                                       tar_f, "/SampleSheet.csv"),
+                                 sample_info_sheet =
+                                    temp_sample_info_sheets[[tar_f]])#)
+
+        # Run cellranger mkfastq
+        message("Submitting slurm command to create fastq",
+                "files using cellranger mkfastq.")
+        cellranger_mkfastq(sample_info = temp_sample_info_sheets[[tar_f]],
+                           email = email,
+                           tar_folders = tar_f,
+                           bcl_folder = bcl_folder,
+                           fastq_folder = fastq_folder,
+                           slurm_out = paste0(slurm_base,
+                                             "_mkfastq-%j.out"))
+    }
+
+    # Run cellranger count if scRNA-seq_3prime
+    if (exp_type == "scRNA-seq_3prime") {
+        message("Submtting slurm command to run cellranger count.\n",
+                "Slurm messages output to", paste0(slurm_base, "_count-%j.out"))
+        cellranger_count(sample_info = sample_info,
+                         email = email,
+                         counts_folder = counts_folder,
+                         fastq_folder = fastq_folder,
+                         ref_folder = ref_folder,
+                         slurm_out = paste(slurm_base, "_count-%j.out", sep = ""))
+    } else if (grepl("multiomics", exp_type)) {
+        cellranger_count(sample_info = sample_info,
+                         email = email,
+                         counts_folder = counts_folder,
+                         fastq_folder = fastq_folder,
+                         ref_folder = ref_folder,
+                         slurm_out = paste(slurm_base, "_count-%j.out", sep = ""))
+    } else if (exp_type == "scDNA_CNV") {
+        warning("Not yet implimented")
+    }
+    message("Done!")
 }
 
 #' Retrieve sequencing data and store it in
@@ -264,14 +290,13 @@ fix_sample_sheet <- function(sample_sheet, sample_info_sheet) {
 
   temp_file <- tempfile(fileext = ".csv")
 
-  system_cmd <- paste("perl ",
+  system_cmd <- paste0("perl ",
                       package_dir,
                       "/exec/fixSampleSheet.pl ",
                       "--sampleInfo ", sample_info_sheet, " ",
                       "--sampleSheet ", sample_sheet, " ",
                       "> ", temp_file, "; ",
-                      "mv ", temp_file, " ", sample_sheet,
-                      sep = "")
+                      "mv ", temp_file, " ", sample_sheet)
 
   return_val <- return(system(system_cmd))
 
@@ -341,12 +366,17 @@ cellranger_mkfastq <- function(sample_info,
 
   # Need to add a suffix to the fastq folder for the multiomics so we can
   # reference it during counting
-  fastq_suffix <- ""
-  if (sample_data$exp_type[1] == "multiomics GEX") {
-      fastq_suffix <- "_R"
-  } else if (sample_data$exp_type[1] == "multiomics ATAC") {
-      fastq_suffix <- "_A"
-  }
+    fastq_suffix <- ""
+    base_mask <- ""
+    if (sample_data$exp_type[1] == "multiomics GEX") {
+        fastq_suffix <- "_R"
+        base_mask <-
+        "\n  --use-bases-mask=Y28n*,I10n*,I10n*,Y90n* \\\\\\\n  --filter-dual-index \\\\"
+    } else if (sample_data$exp_type[1] == "multiomics ATAC") {
+        fastq_suffix <- "_A"
+        base_mask <-
+            "\n  --use-bases-mask=Y50n*,I8n*,Y24n*,Y49n* \\\\\\\n  --filter-single-index \\\\"
+    }
 
   replace_tibble <-
     tibble::tibble(find = c("placeholder_run_name",
@@ -359,7 +389,8 @@ cellranger_mkfastq <- function(sample_info,
                             "placeholder_slurm_name",
                             "placeholder_cellranger_type",
                             "placeholder_exp_type",
-                            "placeholder_filter_arg"),
+                            "placeholder_filter_arg",
+                            "placeholder_base_mask"),
                    replace = c(run_name,
                                length(tar_folders) - 1,
                                paste(tar_folders, collapse = " "),
@@ -372,7 +403,8 @@ cellranger_mkfastq <- function(sample_info,
                                      sep = ""),
                                cellranger_type,
                                fastq_suffix,
-                               filter_arg))
+                               filter_arg,
+                               base_mask))
 
   package_dir <- find.package("rrrSingleCellUtils")
 
@@ -496,8 +528,8 @@ cellranger_count <- function(sample_info,
     dplyr::if_else(include_introns,
                    "",
                    dplyr::if_else(multiomic,
-                                  "\n --gex-exclude-introns false",
-                                  "\n  --include-introns false \\\\\\"))
+                                  "\n --gex-exclude-introns false \\\\\\",
+                                  "\n --include-introns false \\\\\\"))
 
   # Need very different arguments for cellranger/cellranger-arc
   # Using separate template
@@ -516,7 +548,8 @@ cellranger_count <- function(sample_info,
                                             "placeholder_fastq_folder",
                                             "placeholder_slurm_name",
                                             "placeholder_library_csv",
-                                            "include_introns_placeholder"),
+                                            "placeholder_include_introns",
+                                            "placeholder_csv"),
                                    replace = c(run_name,
                                                nrow(sample_data) - 1,
                                                paste(sample_data$Sample_ID,
@@ -538,7 +571,8 @@ cellranger_count <- function(sample_info,
                                                      run_name,
                                                      sep = ""),
                                                tmp_csv,
-                                               intron_arg))
+                                               intron_arg,
+                                               tmp_csv))
 
   package_dir <- find.package("rrrSingleCellUtils")
 

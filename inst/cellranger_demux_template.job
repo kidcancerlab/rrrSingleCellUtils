@@ -26,7 +26,7 @@ FASTQFolder=placeholder_fastq_folder
 
 ## set path info
 export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-7.0.0:$PATH
-export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-arc-2.0.0:$PATH
+export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-arc-2.0.2:$PATH
 export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/bcl2fastq/2.20/bin:$PATH
 
 cd $TMPDIR
@@ -36,7 +36,7 @@ placeholder_cellranger_type mkfastq \
   --localcores=30 \
   --localmem=220 \
   --samplesheet=${BCLFolder}/${CommonFolderName}/${BCLFolderName}/SampleSheet.csv \
-  --run=${BCLFolder}/${CommonFolderName}/${BCLFolderName}/ \
+  --run=${BCLFolder}/${CommonFolderName}/${BCLFolderName}/ \placeholder_base_mask
   --output-dir $TMPDIR placeholder_filter_arg
 #  --filter-dual-index \ #not sure we need this?
 
