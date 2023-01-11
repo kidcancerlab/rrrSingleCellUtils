@@ -7,7 +7,7 @@
 cellranger_count(
   sample_info,
   email = "",
-  include_introns = TRUE,
+  include_introns = FALSE,
   realign_suffix = "",
   counts_folder = "/home/gdrobertslab/lab/Counts",
   fastq_folder = "/home/gdrobertslab/lab/FASTQs",

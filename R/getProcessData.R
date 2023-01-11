@@ -8,6 +8,7 @@
 #' @param fastq_folder Path to write fastq files
 #' @param counts_folder Path to write counts files
 #' @param ref_folder Path to 10x reference folders
+#' @param include_introns Should intronic reads be included in counts?
 #'
 #' @details This is a wrapper for several functions to get and process single
 #'  cell data from the NCH IGM core. I have built the defaults to be specific to
@@ -28,6 +29,7 @@
 process_raw_data <- function(sample_info,
                              domain = "//igmdata/igm_roberts",
                              email = "",
+                             include_introns = FALSE,
                              slurm_base = paste(getwd(), "/slurmOut", sep = ""),
                              bcl_folder = "/home/gdrobertslab/lab/BCLs",
                              fastq_folder = "/home/gdrobertslab/lab/FASTQs",
@@ -136,6 +138,7 @@ process_raw_data <- function(sample_info,
                          counts_folder = counts_folder,
                          fastq_folder = fastq_folder,
                          ref_folder = ref_folder,
+                         include_introns = include_introns,
                          slurm_out = paste(slurm_base, "_count-%j.out", sep = ""))
     } else if (grepl("multiomics", exp_type)) {
         cellranger_count(sample_info = sample_info,
@@ -143,6 +146,7 @@ process_raw_data <- function(sample_info,
                          counts_folder = counts_folder,
                          fastq_folder = fastq_folder,
                          ref_folder = ref_folder,
+                         include_introns = include_introns,
                          slurm_out = paste(slurm_base, "_count-%j.out", sep = ""))
     } else if (exp_type == "scDNA_CNV") {
         warning("Not yet implimented")
@@ -452,7 +456,7 @@ cellranger_mkfastq <- function(sample_info,
 #' }
 cellranger_count <- function(sample_info,
                              email = "",
-                             include_introns = TRUE,
+                             include_introns = FALSE,
                              realign_suffix = "",
                              counts_folder = "/home/gdrobertslab/lab/Counts",
                              fastq_folder = "/home/gdrobertslab/lab/FASTQs",

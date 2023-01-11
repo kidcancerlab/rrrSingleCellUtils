@@ -36,10 +36,10 @@ tenx_load_qc <- function(path_10x,
                          sample_name = path_10x) {
 
 
-  # If removing species names and species pattern is in mt_pattern
+    # If removing species names and species pattern is in mt_pattern
     if (remove_species_pattern == TRUE &
         grepl(species_pattern %>% stringr::str_remove_all("\\^"),
-                mt_pattern) &
+              mt_pattern) &
         species_pattern != "") {
         warning("\nDon't put species prefix in mt_pattern when
                 remove_species_pattern == TRUE\n",
@@ -47,7 +47,7 @@ tenx_load_qc <- function(path_10x,
         stop()
     }
 
-  # If not removing species names and species pattern not in mt_pattern
+    # If not removing species names and species pattern not in mt_pattern
     if (remove_species_pattern == FALSE &
         grepl(species_pattern %>% stringr::str_remove_all("\\^"),
             mt_pattern) == FALSE) {
@@ -103,40 +103,40 @@ tenx_load_qc <- function(path_10x,
         frag_file <- paste0(path_10x, "/atac_fragments.tsv.gz")
         raw_data <- Seurat::Read10X_h5(h5_file)$Peaks
 
-    if (species_pattern != "") {
-        raw_data <-
-            raw_data[grep(pattern = gsub("-", "_", species_pattern),
-                            raw_data@Dimnames[[1]]), ]
-        if (remove_species_pattern) {
-            raw_data@Dimnames[[1]] <-
-                sub(gsub("-",
-                            "_",
-                            species_pattern),
-                    "",
-                    raw_data@Dimnames[[1]])
+        if (species_pattern != "") {
+            raw_data <-
+                raw_data[grep(pattern = gsub("-", "_", species_pattern),
+                              raw_data@Dimnames[[1]]), ]
+            if (remove_species_pattern) {
+                raw_data@Dimnames[[1]] <-
+                    sub(gsub("-",
+                             "_",
+                             species_pattern),
+                        "",
+                        raw_data@Dimnames[[1]])
+            }
         }
-    }
 
-    if (exp_type == "ATAC") {
+        if (exp_type == "ATAC") {
+            seurat <-
+                Signac::CreateChromatinAssay(counts = raw_data,
+                                             sep = c(":", "-"),
+                                             fragments = frag_file,
+                                             min.cells = min_cells) %>%
+                Seurat::CreateSeuratObject(assay = "ATAC")
+        } else if (exp_type == "GEX+ATAC") {
+            seurat[["ATAC"]] <-
+                Signac::CreateChromatinAssay(counts = raw_data,
+                                             sep = c(":", "-"),
+                                             fragments = frag_file,
+                                             min.cells = min_cells)
+        }
+
         seurat <-
-            Signac::CreateChromatinAssay(counts = raw_data,
-                                         sep = c(":", "-"),
-                                         fragments = frag_file,
-                                         min.cells = min_cells) %>%
-            Seurat::CreateSeuratObject(assay = "ATAC")
-    } else if (exp_type == "GEX+ATAC") {
-        seurat[["ATAC"]] <-
-            Signac::CreateChromatinAssay(counts = raw_data,
-                                         sep = c(":", "-"),
-                                         fragments = frag_file,
-                                         min.cells = min_cells)
-    }
-
-    seurat <-
-        Seurat::PercentageFeatureSet(seurat,
-                                     pattern = gsub("_", "-", mt_pattern),
-                                     col.name = "percent.mt",
-                                     assay = "ATAC")
+            Seurat::PercentageFeatureSet(seurat,
+                                         pattern = gsub("_", "-", mt_pattern),
+                                         col.name = "percent.mt",
+                                         assay = "ATAC")
 
     }
 

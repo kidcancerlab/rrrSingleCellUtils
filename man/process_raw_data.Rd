@@ -8,6 +8,7 @@ process_raw_data(
   sample_info,
   domain = "//igmdata/igm_roberts",
   email = "",
+  include_introns = FALSE,
   slurm_base = paste(getwd(), "/slurmOut", sep = ""),
   bcl_folder = "/home/gdrobertslab/lab/BCLs",
   fastq_folder = "/home/gdrobertslab/lab/FASTQs",
@@ -21,6 +22,8 @@ process_raw_data(
 \item{domain}{Where the raw files are hosted}
 
 \item{email}{Email for Slurm notifications}
+
+\item{include_introns}{Should intronic reads be included in counts?}
 
 \item{slurm_base}{Base name for slurm output files}
 
