@@ -97,7 +97,12 @@ r_feature_plot <- function(object,
 #'
 #' @examples
 #' \dontrun{
-#' 
+#' ggplot(storms,
+#'        aes(x = year,
+#'            y = pressure,
+#'            color = category)) +
+#'    geom_point() +
+#'    theme_roberts()
 #' }
 theme_roberts <- function(axis_font_size = 5,
                           axis_title_font_size = 8,

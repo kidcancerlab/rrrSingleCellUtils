@@ -43,6 +43,11 @@ Roberts lab ggplot theme defaults
 }
 \examples{
 \dontrun{
-
+ggplot(storms,
+       aes(x = year,
+           y = pressure,
+           color = category)) +
+   geom_point() +
+   theme_roberts()
 }
 }
