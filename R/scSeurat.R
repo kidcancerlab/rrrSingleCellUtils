@@ -390,3 +390,48 @@ plot_cc <- function(sobject, plot_type = "bar") {
   }
   return(plot_obj)
 }
+
+#' Process a Seurat object
+#'
+#' @inheritParams Seurat::RunUMAP
+#' @inheritParams Seurat::FindClusters
+#' @param sobject A Seurat object
+#' @param run_umap_dims Number of PCA dimensions to use in RunUMAP()
+#'      and FindNeighbors()
+#' @param graph_name Name of graph to use for the clustering algorithm in FindClusters()
+#'
+#' @return A Seurat object
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' test <- process_seurat(pbmc_small)
+#' }
+process_seurat <- function(sobject,
+                           verbose = FALSE,
+                           run_umap_dims = 1:10,
+                           assay = "RNA",
+                           resolution = 0.3,
+                           reduction = "pca",
+                           graph_name = "RNA_snn") {
+    sobject %>%
+        Seurat::NormalizeData(verbose = verbose,
+                              assay = assay) %>%
+        Seurat::FindVariableFeatures(verbose = verbose,
+                                     assay = assay) %>%
+        Seurat::ScaleData(verbose = verbose,
+                          assay = assay) %>%
+        Seurat::RunPCA(verbose = verbose,
+                       assay = assay) %>%
+        Seurat::RunUMAP(dims = run_umap_dims,
+                        reduction = reduction,
+                        verbose = verbose,
+                        assay = assay) %>%
+        Seurat::FindNeighbors(dims = run_umap_dims,
+                              reduction = reduction,
+                              verbose = verbose,
+                              assay = assay) %>%
+        Seurat::FindClusters(resolution = resolution,
+                             verbose = verbose,
+                             graph.name = graph_name)
+}
