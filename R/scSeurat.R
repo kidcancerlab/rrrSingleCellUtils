@@ -435,3 +435,63 @@ process_seurat <- function(sobject,
                              verbose = verbose,
                              graph.name = graph_name)
 }
+
+#' Use median and standard deviation to subset a Seurat object based on specific features
+#'
+#' @param sobject Seurat object
+#' @param sd_down Number of standard deviations below the median to subset
+#' @param sd_up Number of standard deviations above the median to subset
+#' @param make_plots Whether to make plots of the features before and after subsetting
+#' @param features Vector of features to use for subsetting
+#'
+#' @return A Seurat object
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' filtered <- auto_subset(SeuratObject::pbmc_small)
+#' }
+auto_subset <- function(sobject,
+                        sd_down = 1,
+                        sd_up = 2,
+                        make_plots = TRUE,
+                        features = c("nCount_RNA",
+                                     "nFeature_RNA")) {
+
+    cutoff_table <-
+        sobject@meta.data %>%
+        dplyr::select(dplyr::all_of(features)) %>%
+        tidyr::pivot_longer(cols = dplyr::everything(),
+                            names_to = "feature",
+                            values_to = "value") %>%
+        dplyr::group_by(feature) %>%
+        dplyr::summarize(median_val = stats::median(value),
+                         sd_val = stats::sd(value),
+                         .groups = "drop") %>%
+        dplyr::mutate(min_val = median_val - sd_down * sd_val,
+                      max_val = median_val + sd_up * sd_val)
+
+    if (make_plots) {
+        print(feature_hist(sobject,
+                           features = features,
+                           cutoff_table = cutoff_table))
+    }
+
+    for (feature_name in features) {
+        cutoffs <-
+            cutoff_table %>%
+            dplyr::filter(feature == feature_name)
+
+        values <- Seurat::FetchData(object = sobject, vars = feature_name)
+        sobject <-
+            sobject[, which(x = values >= cutoffs$min_val[1] &
+                                values <= cutoffs$max_val[1])]
+    }
+
+    if (make_plots) {
+        print(feature_hist(sobject,
+                           features = features,
+                           cutoff_table = cutoff_table))
+    }
+    return(sobject)
+}

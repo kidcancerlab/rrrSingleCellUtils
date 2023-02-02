@@ -5,7 +5,9 @@ utils::globalVariables(c(".", "avg.exp.scaled", "features.plot", "id",
                          "lt_14", "lt_30", "database", "from", "to", "pearson",
                          "test_ligand", "ligand_target_matrix", "ligands",
                          "ligands_bona_fide", "lr_network", "lr_network_strict",
-                         "receptors", "receptors_bona_fide",
+                         "receptors", "receptors_bona_fide", "value",
                          "weighted_networks", "weighted_networks_lr", "Phase",
                          "Cluster", "Proportion", "weight", "cluster",
-                         "sil_width", "sil_vals", "res_vals", "num_clusters"))
+                         "sil_width", "sil_vals", "res_vals", "num_clusters",
+                         "min_val", "max_val", "median_val", "sd_val",
+                         "feature"))

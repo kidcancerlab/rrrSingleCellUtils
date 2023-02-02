@@ -150,3 +150,65 @@ theme_roberts <- function(axis_font_size = 5,
             ),
     ggplot2::scale_color_manual(values = plot_cols))
 }
+
+#' Make ggplot2-based histograms of Seurat features
+#'
+#' @param sobject Seurat object
+#' @param features Features to plot
+#' @param cutoff_table Table of cutoffs to plot for each feature
+#'     This table should have columns named "feature", "min_val" and "max_val"
+#'     where "feature" matches each element of the "features" argument, and
+#'     "min_val" and"max_val" are numeric values. This argument is optional.
+#'
+#' @return A ggplot object
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' feature_hist(SeuratObject::pbmc_small,
+#'              features = c("nFeature_RNA", "nCount_RNA"))
+#' }
+feature_hist <- function(sobject,
+                         features,
+                         cutoff_table = NULL) {
+    temp_data <-
+        Seurat::FetchData(sobject,
+                          vars = features) %>%
+            tidyr::pivot_longer(cols = dplyr::everything(),
+                                names_to = "feature",
+                                values_to = "value")
+
+    plot_name <-
+        ggplot2::ggplot(temp_data,
+                        ggplot2::aes(x = value)) +
+            ggplot2::geom_histogram(bins = 400) +
+            ggplot2::facet_wrap(~ feature,
+                                scales = "free",
+                                ncol = 1) +
+            ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90,
+                                                               hjust = 1))
+
+    if (!is.null(cutoff_table)) {
+        # Function to add min/max lines
+        if (any(!c("feature", "min_val", "max_val") %in%
+                colnames(cutoff_table))) {
+            stop(paste("cutoff_table must have columns named",
+                       "'feature',",
+                       "'min_val'",
+                       "and 'max_val'"))
+        }
+        for (limit in c("min_val", "max_val")) {
+            plot_name <- local({
+                limit <- limit
+                plot_name +
+                    ggplot2::geom_vline(data = cutoff_table,
+                                mapping = ggplot2::aes(xintercept = get(limit)),
+                                color = "black",
+                                linetype = "dashed",
+                                size = 1)
+            })
+        }
+    }
+
+    return(plot_name)
+}
