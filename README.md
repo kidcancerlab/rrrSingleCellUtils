@@ -43,6 +43,15 @@
 
   * process_ltbc()
 
+### To do
+
+  * Make arguments inherit from other functions instead of re-typing them
+  * Add argument to provide path to cellranger
+  * Add argument to specify bcl2fastq path or module
+  * Vignette
+  * Function to check sample sheet
+  * For multiomics, make sure both atac and gex are present in sample input sheet, and not as "sample1_atac" and "sample1_gex", which will fail. Should be "sample1" and "sample2" for both.
+
 ---
 
 ## Errors

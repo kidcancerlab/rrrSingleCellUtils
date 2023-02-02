@@ -27,7 +27,7 @@ my $sampleSheet;
 # i = integer, s = string
 GetOptions ("verbose"           => \$verbose,
             "help"              => \$help,
-	    "debug"             => \$debug,
+            "debug"             => \$debug,
             "sampleInfo=s"      => \$sampleInfo,
             "sampleSheet=s"     => \$sampleSheet
       ) or pod2usage(0) && exit;
@@ -70,24 +70,29 @@ while (my $input = <$siFH>){
 close $siFH;
 
 ##############################
-### Stuff
-### More stuff
+### Read in the original sample sheet, drop the excess header and replace with our info
 
 open my $ssFH, "$sampleSheet" or die "Could not open sample sheet input\n$!";
 while (my $input = <$ssFH>){
     chomp $input;
-    if ($printing eq "TRUE") {
-        $printBuffer .= $input . "\n";
-    }
 
     print STDERR $input, "\n" if ($debug);
 
+    # Keep only the data header
+    # If the header is kept, the parsed reads have varying lengths
+    if ($input =~ /^\[Data\]/) {
+        $printBuffer .= $input . "\n";
+    }
+
+    # Once we get to the "Lane" line of the file, print out headers and all data
+    # from the sample info sheet
     if ($input =~ /^Lane/) {
+        $printBuffer .= $input . "\n";
         my @columnNames = split ",", $input;
 
         for (my $i = 0; $i < $sampleNum; $i++) {
             for (my $j = 0; $j < scalar(@columnNames); $j++) {
-                if(exists($sampleInfoHash{$columnNames[$j]})) {
+                if (exists($sampleInfoHash{$columnNames[$j]})) {
                     $printBuffer .= $sampleInfoHash{$columnNames[$j]}[$i];
                 }
 
@@ -96,15 +101,13 @@ while (my $input = <$ssFH>){
             }
             $printBuffer .= "\n";
         }
-        $printing = "FALSE";
     }
 }
 
 close $ssFH;
 
+# Wait to print until the end so we can overwrite the original file
 print $printBuffer;
-
-#open R1OUTFILE, ">", $outputNameStub . "_R1.fastq";
 
 ##############################
 # POD
@@ -116,7 +119,7 @@ print $printBuffer;
 
 Summary:    
     
-    xxxxxx.pl - generates a consensus for a specified gene in a specified taxa
+    xxxxxx.pl - 
     
 Usage:
 

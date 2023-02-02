@@ -30,9 +30,18 @@ Imports:
     grDevices,
     ggpubr,
     extrafont,
-    scales
+    scales,
+    Signac,
+    GenomicFeatures,
+    GenomicRanges,
+    SeuratObject,
+    BiocGenerics
 Depends: R (>= 3.5.0), nichenetr
-Suggests: testthat (>= 3.0.0)
+Suggests: 
+    rmarkdown,
+    knitr,
+    testthat (>= 3.0.0)
 Config/testthat/edition: 3
 NeedsCompilation: no
 Packaged: 2021-06-03 17:21:13 UTC; mvc002
+VignetteBuilder: knitr

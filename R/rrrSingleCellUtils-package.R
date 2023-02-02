@@ -8,5 +8,6 @@
 #' @importFrom grDevices pdfFonts
 #' @importFrom patchwork plot_annotation
 #' @importFrom scales alpha
+#' @importFrom utils read.table
 ## usethis namespace: end
 NULL

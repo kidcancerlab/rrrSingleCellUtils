@@ -10,4 +10,6 @@ utils::globalVariables(c(".", "avg.exp.scaled", "features.plot", "id",
                          "Cluster", "Proportion", "weight", "cluster",
                          "sil_width", "sil_vals", "res_vals", "num_clusters",
                          "min_val", "max_val", "median_val", "sd_val",
-                         "feature"))
+                         "feature", "Sample_ID", "exp_type", "suffix", "fastqs",
+                         "library_type", "link_folder", "tx_id", "tar_folder",
+                         "CB"))

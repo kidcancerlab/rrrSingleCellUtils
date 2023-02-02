@@ -1,0 +1,30 @@
+---
+title: "multiomics_analysis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{multiomics_analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(rrrSingleCellUtils)
+```
+
+
+## ATAC data analysis
+
+### Load in ATAC data
+```{r eval=FALSE}
+atac_data <-
+    tenx_load_qc("/home/gdrobertslab/lab/Counts/S0150/",
+                 exp_type = "ATAC")
+
+```

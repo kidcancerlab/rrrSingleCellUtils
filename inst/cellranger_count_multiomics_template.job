@@ -2,8 +2,9 @@
 #SBATCH --job-name=placeholder_slurm_name
 #SBATCH --output=placeholder_slurm_out
 #SBATCH --error=placeholder_slurm_out
-#SBATCH --time=1-00:00:00
-#SBATCH --cpus-per-task=20
+#SBATCH --time=2-00:00:00
+#SBATCH --cpus-per-task=10
+#SBATCH --partition=himem
 #SBATCH --array=0-placeholder_array_max
 #SBATCH --wait
 placeholder_email
@@ -11,37 +12,31 @@ placeholder_email
 set -e
 
 ## set variables
-RunName=placeholder_run_name
-SampleNameArray=(placeholder_sample_array_list)
-SampleName=${SampleNameArray[${SLURM_ARRAY_TASK_ID}]}
-
 OutDirArray=(placeholder_outdir_array_list)
 OutDir=${OutDirArray[${SLURM_ARRAY_TASK_ID}]}
 
 RefFolder=placeholder_reference_folder
-FASTQFolder=placeholder_fastq_folder
 CountsFolder=placeholder_counts_folder
 
 GenRefArray=(placeholder_reference_array_list)
 GenRef=${GenRefArray[${SLURM_ARRAY_TASK_ID}]}
 
-NumCellsArray=(placeholder_num_cells_list)
-NumCells=${NumCellsArray[${SLURM_ARRAY_TASK_ID}]}
-
 ## set path info
-export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-7.0.0:$PATH
+export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-arc-2.0.2:$PATH
 export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/bcl2fastq/2.20/bin:$PATH
 
 cd $TMPDIR
 
+grep "library_type\|${OutDir}" \
+    placeholder_library_csv \
+    > tempCount${OutDir}.csv
+
 ## perform alignment and count genes
-cellranger count \
+cellranger-arc count \
   --id ${OutDir} \placeholder_include_introns
-  --fastqs ${FASTQFolder}/${RunName}/ \
-  --sample ${SampleName} \
-  --transcriptome ${RefFolder}/${GenRef} \
-  --localcores 20 \
-  --expect-cells ${NumCells}
+  --reference ${RefFolder}/${GenRef} \
+  --libraries tempCount${OutDir}.csv \
+  --localcores 10
 
 ## copy the files over from the temporary directory
 if test -d "${CountsFolder}/${OutDir}"

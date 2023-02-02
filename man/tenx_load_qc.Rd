@@ -10,6 +10,7 @@ tenx_load_qc(
   min_features = 800,
   mt_pattern = "^mt-|^MT-",
   species_pattern = "",
+  exp_type = "GEX",
   remove_species_pattern = TRUE,
   violin_plot = TRUE,
   sample_name = path_10x
@@ -31,6 +32,8 @@ Must add species_pattern if remove_species_pattern = FALSE
 
 \item{species_pattern}{Pattern used to select only reads from a single
 species (eg, "^mm10-" or "^hg19-")}
+
+\item{exp_type}{Experiment type (eg, "GEX", "ATAC", "GEX+ATAC")}
 
 \item{remove_species_pattern}{Specifies if want to remove species_pattern
 prefix from gene names. If TRUE (default), removes species_pattern

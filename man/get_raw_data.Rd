@@ -9,7 +9,8 @@ get_raw_data(
   dest_folder,
   domain = "//igmdata/igm_roberts",
   user = Sys.info()[["user"]],
-  user_group = "research"
+  user_group = "research",
+  .pw
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ get_raw_data(
 \item{user}{Username to pass to smbclient}
 
 \item{user_group}{Group the user belongs to}
+
+\item{.pw}{internal use only}
 }
 \description{
 Retrieve sequencing data and store it in
