@@ -3,12 +3,13 @@
 #' @param sample_info File containing sample info (see details)
 #' @param domain Where the raw files are hosted
 #' @param email Email for Slurm notifications
+#' @param include_introns Should intronic reads be included in counts?
+#' @param plots Should plots be generated?
 #' @param slurm_base Base name for slurm output files
 #' @param bcl_folder Path to write BCL files
 #' @param fastq_folder Path to write fastq files
 #' @param counts_folder Path to write counts files
 #' @param ref_folder Path to 10x reference folders
-#' @param include_introns Should intronic reads be included in counts?
 #'
 #' @details This is a wrapper for several functions to get and process single
 #'  cell data from the NCH IGM core. I have built the defaults to be specific to
@@ -17,7 +18,8 @@
 #'  outlines the information about each sample. The data are then downloaded
 #'  using smbclient and then md5sum checked and untar’d.
 #'  The data are then processed with cellranger mkfastq and either cellranger
-#'  count or cellranger-dna cnv (depending on the exp_type argument).
+#'  count or cellranger-dna cnv (depending on the exp_type argument). A seurat
+#'  object is generated as well and filtered using auto_subset().
 #'
 #' @export
 #'
@@ -30,6 +32,7 @@ process_raw_data <- function(sample_info,
                              domain = "//igmdata/igm_roberts",
                              email = "",
                              include_introns = FALSE,
+                             plots = FALSE,
                              slurm_base = paste(getwd(), "/slurmOut", sep = ""),
                              bcl_folder = "/home/gdrobertslab/lab/BCLs",
                              fastq_folder = "/home/gdrobertslab/lab/FASTQs",
@@ -109,13 +112,9 @@ process_raw_data <- function(sample_info,
 
         # Fix sample sheet for all folders with BCL files
         message("Fixing sample sheet in ", tar_f, ".")
-        # tar_list %>%
-        #     stringr::str_remove(".tar") %>%
-            # lapply(., function(x)
-                fix_sample_sheet(sample_sheet = paste0(dest_folder, "/",
-                                                       tar_f, "/SampleSheet.csv"),
-                                 sample_info_sheet =
-                                    temp_sample_info_sheets[[tar_f]])#)
+        fix_sample_sheet(sample_sheet = paste0(dest_folder, "/",
+                                               tar_f, "/SampleSheet.csv"),
+                         sample_info_sheet = temp_sample_info_sheets[[tar_f]])
 
         # Run cellranger mkfastq
         message("Submitting slurm command to create fastq",
@@ -149,8 +148,32 @@ process_raw_data <- function(sample_info,
                          include_introns = include_introns,
                          slurm_out = paste(slurm_base, "_count-%j.out", sep = ""))
     } else if (exp_type == "scDNA_CNV") {
-        warning("Not yet implimented")
+        warning("scDNA_CNV counting not yet implimented")
     }
+
+    sub_sample_data <-
+        sample_data %>%
+        dplyr::select(-any_of(c("PI",
+                                "Reference",
+                                "index",
+                                "index2",
+                                "link_folder")))
+    # Generate Seurat objects and save to SeuratObj folder
+    for (sample_name in sub_sample_data$Sample_ID) {
+        s_obj <-
+            tenx_load_qc(paste0(counts_folder, "/",
+                                sample_name,
+                                "/filtered_feature_bc_matrix"),
+                         violin_plot = FALSE) %>%
+            auto_subset()
+    }
+
+    #################################
+    ### Need to add code to chmod files
+
+    #################################
+    ### Clean up un-needed files
+
     message("Done!")
 }
 

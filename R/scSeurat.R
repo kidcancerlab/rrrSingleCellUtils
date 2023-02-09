@@ -605,6 +605,7 @@ process_seurat <- function(sobject,
 #' @param sd_up Number of standard deviations above the median to subset
 #' @param make_plots Whether to make plots of the features before and after subsetting
 #' @param features Vector of features to use for subsetting
+#' @param sample_name Name of sample to use in plot titles
 #'
 #' @return A Seurat object
 #' @export
@@ -618,7 +619,8 @@ auto_subset <- function(sobject,
                         sd_up = 2,
                         make_plots = TRUE,
                         features = c("nCount_RNA",
-                                     "nFeature_RNA")) {
+                                     "nFeature_RNA"),
+                        sample_name = NULL) {
 
     cutoff_table <-
         sobject@meta.data %>%
@@ -650,10 +652,10 @@ auto_subset <- function(sobject,
                                 values <= cutoffs$max_val[1])]
     }
 
-    if (make_plots) {
-        print(feature_hist(sobject,
-                           features = features,
-                           cutoff_table = cutoff_table))
-    }
+    # if (make_plots) {
+    #     print(feature_hist(sobject,
+    #                        features = features,
+    #                        cutoff_table = cutoff_table))
+    # }
     return(sobject)
 }
