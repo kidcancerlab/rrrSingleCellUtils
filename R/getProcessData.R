@@ -47,12 +47,25 @@ process_raw_data <- function(sample_info,
                                      trim_ws = TRUE,
                                      show_col_types = FALSE)
 
+    # For each sample, check if files are present to show that data are already
+    # 1. Processed into a saved Seurat object
+    # 2. Processed through cellranger_count
+    # 3. Processed through cellranger_mkfastq
+    # 4. Downloaded and md5sum checked
+    # Each level negates the need to do the following levels
+
+    status_tibble <-
+        tribble(~Sample_ID, ~seurat_made, ~cellranger_count, ~cellranger_mkfastq,
+                ~downloaded)
+
+
     project <- sample_data$Sample_Project[1]
 
     dest_folder <- paste(bcl_folder, "/",
                          project,
                          sep = "")
 
+    ################################ This needs to change
     exp_type <- sample_data$exp_type[1]
 
     # Sometimes we're going to have multiple download folders and multiple
@@ -74,6 +87,9 @@ process_raw_data <- function(sample_info,
         dl_link <- link_exp_type[i]
         # Download, untar and check md5 sums of raw data
         message("Getting raw data from ", dl_link, ".")
+
+        ############################### Need to handle the case in which the link is dead
+
         tar_list <- get_raw_data(link_folder = dl_link,
                                  dest_folder = dest_folder,
                                  domain = domain,
