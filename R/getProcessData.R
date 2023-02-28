@@ -532,7 +532,7 @@ cellranger_count <- function(sample_info,
     dplyr::if_else(include_introns,
                    "",
                    dplyr::if_else(multiomic,
-                                  "\n --gex-exclude-introns false \\\\\\",
+                                  "\n --gex-exclude-introns \\\\\\",
                                   "\n --include-introns false \\\\\\"))
 
   # Need very different arguments for cellranger/cellranger-arc
