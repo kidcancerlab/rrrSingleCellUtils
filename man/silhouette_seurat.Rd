@@ -2,7 +2,7 @@
 % Please edit documentation in R/silhouette.R
 \name{silhouette_seurat}
 \alias{silhouette_seurat}
-\title{Create a gene list containing putative targets of ligand activity.}
+\title{Perform silhouette scoring on a Seurat object.}
 \usage{
 silhouette_seurat(sobject, cluster_col = "seurat_clusters", dims = c(1:10))
 }
@@ -18,7 +18,7 @@ silhouette_seurat(sobject, cluster_col = "seurat_clusters", dims = c(1:10))
 A silhouette object
 }
 \description{
-Create a gene list containing putative targets of ligand activity.
+Perform silhouette scoring on a Seurat object.
 }
 \details{
 This function takes in a Seruat object and runs silhouette scoring

@@ -1,4 +1,4 @@
-#' Create a gene list containing putative targets of ligand activity.
+#' Perform silhouette scoring on a Seurat object.
 #'
 #' @details This function takes in a Seruat object and runs silhouette scoring
 #' @param sobject A Seurat object containing all of the cells for analysis
