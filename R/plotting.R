@@ -127,7 +127,6 @@ theme_roberts <- function(axis_font_size = 5,
                     message("Arial font files not found in /home/gdrobertslab/lab/Tools/fonts/Arial/")
                     message("Either use a different font or install Arial")
                     print(e)
-                    stop()
             }
         )
     }
