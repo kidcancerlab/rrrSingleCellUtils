@@ -342,10 +342,12 @@ kill_cc <- function(sobject, cc_regress = "N", find_pcs = 20, use_pcs = 3,
     print("You need to set a method supported by this function")
   }
 
-  plot_cc <- Seurat::DimPlot(sobject,
-                             reduction = method,
-                             label = TRUE,
-                             pt.size = 1)
+  plot_cc <-
+    Seurat::DimPlot(sobject,
+                    reduction = method,
+                    label = TRUE,
+                    pt.size = 1) +
+    theme_roberts()
 
   print(plot_cc)
 
@@ -377,12 +379,14 @@ kill_cc <- function(sobject, cc_regress = "N", find_pcs = 20, use_pcs = 3,
                           reduction = method,
                           label = TRUE,
                           pt.size = 1,
-                          group.by = "Phase"))
+                          group.by = "Phase") +
+            theme_roberts())
 
     print(Seurat::DimPlot(sobject,
                           reduction = method,
                           label = TRUE,
-                          pt.size = 1))
+                          pt.size = 1) +
+            theme_roberts())
 
   } else {
     print("No CC regression performed.")
