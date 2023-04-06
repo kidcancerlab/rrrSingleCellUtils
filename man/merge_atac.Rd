@@ -10,7 +10,8 @@ merge_atac(
   max_peak_width = 10000,
   frag_paths,
   cell_ids,
-  n_regions_simul = 2000
+  n_regions_simul = 2000,
+  threads = 1
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ merge_atac(
 \item{cell_ids}{DESCRIPTION.}
 
 \item{n_regions_simul}{DESCRIPTION.}
+
+\item{threads}{Number of threads to use.}
 }
 \value{
 RETURN_DESCRIPTION

@@ -8,6 +8,7 @@
 #' @param frag_paths DESCRIPTION.
 #' @param cell_ids DESCRIPTION.
 #' @param n_regions_simul DESCRIPTION.
+#' @param threads Number of threads to use.
 #'
 #' @export
 #'
@@ -19,7 +20,8 @@ merge_atac <- function(peak_beds,
                        max_peak_width = 10000,
                        frag_paths,
                        cell_ids,
-                       n_regions_simul = 2000) {
+                       n_regions_simul = 2000,
+                       threads = 1) {
     message("Make sure that paths and cell_ids are in the same order")
     message("peak_beds: ", paste(peak_beds, sep = " "))
     message("frag_paths: ", paste(frag_paths, sep = " "))
@@ -53,7 +55,11 @@ merge_atac <- function(peak_beds,
     }
 
     # Use apply to make the Seurat objects and then merge them
-    obj_list <- lapply(seq_len(length(frag_paths)), make_chrom_seurat)
+    obj_list <-
+        parallel::mclapply(seq_len(length(frag_paths)),
+                           make_chrom_seurat,
+                           mc.cores = threads)
+
     seurat_obj <- merge(x = obj_list[[1]],
                         y = obj_list[-1],
                         add.cell.ids = cell_ids)
