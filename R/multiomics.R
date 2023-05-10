@@ -325,7 +325,7 @@ merge_gex_atac <- function(gex_sobj,
 
     # Make joint UMAP
     merged_data <-
-        merged_data
+        merged_data %>%
         Seurat::FindMultiModalNeighbors(reduction.list = list("pca", "lsi"),
                                         dims.list = list(gex_pca_dims, atac_pca_dims),
                                         verbose = verbose)
