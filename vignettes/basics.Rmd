@@ -1,8 +1,8 @@
 ---
-title: "multiomics_analysis"
+title: "Basics of {rrrSingleCellUtils}"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{multiomics_analysis}
+  %\VignetteIndexEntry{Basics of rrrSingleCellUtils}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -25,5 +25,5 @@ pbmc_fixed <-
     process_seurat(SeuratObject::pbmc_small,
                    run_umap_dims = 1:10,
                    resolution = 0.8)
-DimPlot(pbmc_fixed)
+Seurat::DimPlot(pbmc_fixed)
 ```
