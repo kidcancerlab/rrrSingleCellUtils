@@ -7,11 +7,14 @@
 process_seurat(
   sobject,
   verbose = FALSE,
-  run_umap_dims = 1:10,
+  run_umap_dims = 1:30,
   assay = "RNA",
   resolution = 0.3,
   reduction = "pca",
-  graph_name = "RNA_snn"
+  graph_name = "RNA_snn",
+  cluster_k_param = 30,
+  umap_n_neighbors = 30L,
+  umap_metric = "euclidean"
 )
 }
 \arguments{
@@ -32,6 +35,12 @@ if running UMAP on a Graph}
 UMAP input. Default is PCA}
 
 \item{graph_name}{Name of graph to use for the clustering algorithm in FindClusters()}
+
+\item{cluster_k_param}{Number of neighbors (k.param) to use in FindClusters()}
+
+\item{umap_n_neighbors}{Number of neighbors (n.neighbors) to use in RunUMAP()}
+
+\item{umap_metric}{Metric (metric) to use in RunUMAP()}
 }
 \value{
 A Seurat object

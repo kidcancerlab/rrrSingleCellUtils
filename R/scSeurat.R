@@ -457,6 +457,9 @@ plot_cc <- function(sobject, plot_type = "bar") {
 #' @param run_umap_dims Number of PCA dimensions to use in RunUMAP()
 #'      and FindNeighbors()
 #' @param graph_name Name of graph to use for the clustering algorithm in FindClusters()
+#' @param cluster_k_param Number of neighbors (k.param) to use in FindClusters()
+#' @param umap_n_neighbors Number of neighbors (n.neighbors) to use in RunUMAP()
+#' @param umap_metric Metric (metric) to use in RunUMAP()
 #'
 #' @return A Seurat object
 #' @export
@@ -467,11 +470,23 @@ plot_cc <- function(sobject, plot_type = "bar") {
 #' }
 process_seurat <- function(sobject,
                            verbose = FALSE,
-                           run_umap_dims = 1:10,
+                           run_umap_dims = 1:30,
                            assay = "RNA",
                            resolution = 0.3,
                            reduction = "pca",
-                           graph_name = "RNA_snn") {
+                           graph_name = "RNA_snn",
+                           cluster_k_param = 30,
+                           umap_n_neighbors = 30L,
+                           umap_metric = "euclidean") {
+    # Make sure run_umap_dims isn't more than we have in pca
+    if (max(run_umap_dims) > ncol(Seurat::Embeddings(sobject,
+                                                     reduction = reduction))) {
+        run_umap_dims <- seq_len(ncol(Seurat::Embeddings(sobject,
+                                                 reduction = reduction)))
+        warning(paste("run_umap_dims argument is greater than the number of",
+                      "dimensions in the reduction. Using all dimensions."))
+    }
+
     sobject %>%
         Seurat::NormalizeData(verbose = verbose,
                               assay = assay) %>%
@@ -483,6 +498,8 @@ process_seurat <- function(sobject,
                        assay = assay) %>%
         Seurat::RunUMAP(dims = run_umap_dims,
                         reduction = reduction,
+                        n.neighbors = umap_n_neighbors,
+                        metric = umap_metric,
                         verbose = verbose,
                         assay = assay) %>%
         Seurat::FindNeighbors(dims = run_umap_dims,
@@ -491,7 +508,8 @@ process_seurat <- function(sobject,
                               assay = assay) %>%
         Seurat::FindClusters(resolution = resolution,
                              verbose = verbose,
-                             graph.name = graph_name)
+                             graph.name = graph_name,
+                             k.param = cluster_k_param)
 }
 
 #' Use median and standard deviation to subset a Seurat object based on specific features
