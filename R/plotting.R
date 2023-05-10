@@ -211,3 +211,89 @@ feature_hist <- function(sobject,
 
     return(plot_name)
 }
+
+#' Make ggplot2-based plots of Dimensionality Reductions
+#'
+#' @param sobject Seurat object
+#' @param reduction Dimensionality reduction to plot
+#' @param group_by Grouping variable to plot
+#' @param dims Dimensions to plot
+#' @param pt_size Point size
+#' @param label_size Label font size
+#' @param facet_by Facet the plot by this variable
+#' @param facet_cols Number of columns to use for faceting
+#' @param facet_scales Should scales be fixed ("fixed", the default), free
+#'  ("free"), or free in one dimension ("free_x", "free_y")?
+#'
+#' @return A ggplot object
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' dim_plot(SeuratObject::pbmc_small,
+#'          reduction = "pca")
+#' }
+dim_plot <- function(sobject,
+                     reduction = "umap",
+                     group_by = "seurat_clusters",
+                     dims = c(1, 2),
+                     pt_size = 1,
+                     label_size = 2,
+                     facet_by = NULL,
+                     facet_cols = 1,
+                     facet_scales = "fixed") {
+    if (!reduction %in% Seurat::Reductions(sobject)) {
+        stop(paste(reduction, "is not a valid reduction for this Seurat object"))
+    }
+
+    if (!group_by %in% colnames(sobject@meta.data)) {
+        stop(paste(group_by, "is not a valid grouping variable for this Seurat object"))
+    }
+
+    if (!facet_by %in% colnames(sobject@meta.data)) {
+        stop(paste(facet_by, "is not a valid faceting variable for this Seurat object"))
+    }
+
+    dim_red <-
+        Seurat::Embeddings(sobject,
+                           reduction = reduction) %>%
+        as.data.frame() %>%
+        tibble::rownames_to_column("cell") %>%
+        # Move the cell column to the end so I can use dims to grab the dims
+        dplyr::relocate(cell, .after = dplyr::last_col()) %>%
+        dplyr::full_join(sobject@meta.data %>%
+                            tibble::rownames_to_column("cell"),
+                         by = "cell")
+
+    centroids <-
+        dim_red %>%
+        dplyr::group_by(dplyr::across(group_by)) %>%
+        dplyr::summarize(dplyr::across(dplyr::all_of(colnames(dim_red)[dims]),
+                                       ~ mean(.x, na.rm = TRUE)))
+
+    plot_out <-
+        ggplot2::ggplot(dim_red,
+                        ggplot2::aes(x = get(colnames(dim_red)[dims[1]]),
+                                     y = get(colnames(dim_red)[dims[2]]),
+                                     color = get(group_by))) +
+        ggplot2::geom_point(size = pt_size) +
+        ggrepel::geom_text_repel(data = centroids,
+                                 ggplot2::aes(x = get(colnames(dim_red)[dims[1]]),
+                                              y = get(colnames(dim_red)[dims[2]]),
+                                              label = get(group_by)),
+                                 size = label_size) +
+        theme_roberts() +
+        ggplot2::labs(x = colnames(dim_red)[dims[1]],
+             y = colnames(dim_red)[dims[2]],
+             color = group_by)
+
+    if (!is.null(facet_by)) {
+        plot_out <- plot_out +
+            ggplot2::facet_wrap(~ get(facet_by),
+                                scales = facet_scales,
+                                ncol = facet_cols)
+    }
+
+    return(plot_out)
+}
+
