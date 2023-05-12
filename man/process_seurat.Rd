@@ -12,7 +12,7 @@ process_seurat(
   resolution = 0.3,
   reduction = "pca",
   graph_name = "RNA_snn",
-  cluster_k_param = 30,
+  neighbor_k_param = 30,
   umap_n_neighbors = 30L,
   umap_metric = "euclidean"
 )
@@ -36,7 +36,7 @@ UMAP input. Default is PCA}
 
 \item{graph_name}{Name of graph to use for the clustering algorithm in FindClusters()}
 
-\item{cluster_k_param}{Number of neighbors (k.param) to use in FindClusters()}
+\item{neighbor_k_param}{Number of neighbors (k.param) to use in FindNeighbors()}
 
 \item{umap_n_neighbors}{Number of neighbors (n.neighbors) to use in RunUMAP()}
 
