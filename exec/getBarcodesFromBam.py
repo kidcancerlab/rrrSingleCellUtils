@@ -67,7 +67,8 @@ def process_lines(chrom):
                         decode("utf-8").\
                         splitlines():
             if re.compile(r'CB:Z:([ATGC]+-1)\t').search(line) and \
-                   re.compile(r'CB:Z:([ATGC]+-1)\t').search(line).group(1) in cell_barcodes:
+               re.compile(r'CB:Z:([ATGC]+-1)\t').search(line).group(1) in cell_barcodes and \
+               re.compile(r'UB:Z:([ATGC]+)\t').search(line):
                 cell_barcode = re.compile(r'CB:Z:([ATGC]+-1)\t').search(line).group(1)
                 umi_chr_loc = re.compile(r'UB:Z:([ATGC]+)\t').\
                                  search(line).\
