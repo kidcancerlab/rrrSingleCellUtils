@@ -425,7 +425,9 @@ cellranger_mkfastq <- function(sample_info,
                                replacement = replace_tibble$replace[i])
   }
 
-  temp_file <- tempfile(fileext = ".sh")
+  temp_file <- tempfile(fileext = ".sh",
+                        pattern = "mkfastq",
+                        tmpdir = getwd())
 
   readr::write_file(sbatch_template, file = temp_file)
 
@@ -589,7 +591,9 @@ cellranger_count <- function(sample_info,
                                replacement = replace_tibble$replace[i])
   }
 
-  temp_file <- tempfile(fileext = ".sh")
+  temp_file <- tempfile(fileext = ".sh",
+                        pattern = "count",
+                        tmpdir = getwd())
 
   readr::write_file(sbatch_template, file = temp_file)
 
