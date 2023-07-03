@@ -52,6 +52,7 @@
   * Function to check sample sheet
   * For multiomics, make sure both atac and gex are present in sample input sheet, and not as "sample1_atac" and "sample1_gex", which will fail. Should be "sample1" and "sample2" for both.
   * Save shell scripts to current directory instead of tempdir
+  * Try out snp calling: https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1863-4
 
 ---
 
