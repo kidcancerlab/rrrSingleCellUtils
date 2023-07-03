@@ -16,6 +16,16 @@ knitr::opts_chunk$set(
 
 ```{r setup}
 library(rrrSingleCellUtils)
+library(tidyverse)
+```
+
+```{r get_process, eval=FALSE}
+read_tsv("/home/gdrobertslab/lab/BCLs/R0059/sampleInfoSheet_R0059.txt") %>%
+    DT::datatable()
+
+process_raw_data("/home/gdrobertslab/lab/BCLs/R0059/sampleInfoSheet_R0059.txt",
+                 email = "matthew.cannon@nationwidechildrens.org")
+# Enter password when prompted
 ```
 
 ## Processing a Seurat object
@@ -25,5 +35,6 @@ pbmc_fixed <-
     process_seurat(SeuratObject::pbmc_small,
                    run_umap_dims = 1:10,
                    resolution = 0.8)
+
 Seurat::DimPlot(pbmc_fixed)
 ```
