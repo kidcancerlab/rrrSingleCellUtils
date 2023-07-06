@@ -66,27 +66,28 @@ def process_lines(chrom):
         for line in subprocess.check_output(cmd_list).\
                         decode("utf-8").\
                         splitlines():
-            if re.compile(r'CB:Z:([ATGC]+-1)\t').search(line) and \
-               re.compile(r'CB:Z:([ATGC]+-1)\t').search(line).group(1) in cell_barcodes and \
-               re.compile(r'UB:Z:([ATGC]+)\t').search(line):
+            if re.compile(r'CB:Z:([ATGC]+-1)').search(line) and \
+               re.compile(r'CB:Z:([ATGC]+-1)').search(line).group(1) in cell_barcodes and \
+               re.compile(r'UB:Z:([ATGC]+)').search(line):
                 cell_barcode = re.compile(r'CB:Z:([ATGC]+-1)\t').search(line).group(1)
-                umi_chr_loc = re.compile(r'UB:Z:([ATGC]+)\t').\
+                umi_chr_loc = re.compile(r'UB:Z:([ATGC]+)').\
                                  search(line).\
                                  group(1) + \
                     '_' + \
                     line.split('\t')[2] + \
                     '_' + \
-                    line.split('\t')[3]
+                    line.split('\t')[3] + \
+                    cell_barcode
 
                 # Add barcode to list inside lines_dict
                 if cell_barcode not in lines_dict:
                     lines_dict[cell_barcode] = []
 
-                # Don't add line if umi_chr_loc + cell_barcode already in umi_dict
+                # Don't add line if umi_chr_loc already in umi_dict
                 # This gets rid of PCR duplicates
-                if umi_chr_loc + cell_barcode not in umi_dict:
+                if umi_chr_loc not in umi_dict:
                     lines_dict[cell_barcode].append(line)
-                    umi_dict[umi_chr_loc + cell_barcode] = 1
+                    umi_dict[umi_chr_loc] = 1
 
     def print_dict(barcode):
         nonlocal lines_dict
@@ -97,7 +98,7 @@ def process_lines(chrom):
         return
 
     # Print out the dictionary for each barcode
-    [print_dict(barcode) for barcode in list(lines_dict.keys())]
+    junk = [print_dict(barcode) for barcode in list(lines_dict.keys())]
     # print_dict(barcode)
     if args.verbose:
         print(chrom + " is done.", file = sys.stderr)
