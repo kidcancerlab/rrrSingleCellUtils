@@ -12,12 +12,12 @@ parser = argparse.ArgumentParser(description='Get sam entries for each cell barc
 parser.add_argument('--cells',
                     '-c',
                     type=str,
-                    default='F420_cells_10cells.txt',
+                    default='/home/gdrobertslab/mvc002/analyses/roberts/dev/testSnps/output/two_cancers/two_cancers_clusters_cells_S0149.txt',
                     help='list of cell barcodes with no header')
 parser.add_argument('--bam',
                     '-b',
                     type=str,
-                    default='F420_100k.bam',
+                    default='/home/gdrobertslab/lab/Counts/S0149/possorted_genome_bam.bam',
                     help='bam file output from cellranger')
 parser.add_argument('--out_base',
                     '-o',
@@ -42,6 +42,7 @@ args = parser.parse_args()
 
 ################################################################################
 ### Global variables
+label_dict = {}
 chr_list = []
 header = []
 read_names = []
@@ -67,52 +68,61 @@ def process_lines(chrom):
                         decode("utf-8").\
                         splitlines():
             if re.compile(r'CB:Z:([ATGC]+-1)').search(line) and \
-               re.compile(r'CB:Z:([ATGC]+-1)').search(line).group(1) in cell_barcodes and \
+               re.compile(r'CB:Z:([ATGC]+-1)').search(line).group(1) in label_dict.keys() and \
                re.compile(r'UB:Z:([ATGC]+)').search(line):
                 cell_barcode = re.compile(r'CB:Z:([ATGC]+-1)\t').search(line).group(1)
-                umi_chr_loc = re.compile(r'UB:Z:([ATGC]+)').\
+                umi = re.compile(r'UB:Z:([ATGC]+)').\
                                  search(line).\
-                                 group(1) + \
-                    '_' + \
-                    line.split('\t')[2] + \
-                    '_' + \
-                    line.split('\t')[3] + \
+                                 group(1)
+                chr = line.split('\t')[2]
+                pos = line.split('\t')[3]
+                molecule = \
+                    umi + \
+                    chr + \
+                    pos + \
                     cell_barcode
 
+                cell_label = label_dict.get(cell_barcode)
+
                 # Add barcode to list inside lines_dict
-                if cell_barcode not in lines_dict:
-                    lines_dict[cell_barcode] = []
+                if cell_label not in lines_dict:
+                    lines_dict[cell_label] = []
 
-                # Don't add line if umi_chr_loc already in umi_dict
+                # Don't add line if molecule already in umi_dict
                 # This gets rid of PCR duplicates
-                if umi_chr_loc not in umi_dict:
-                    lines_dict[cell_barcode].append(line)
-                    umi_dict[umi_chr_loc] = 1
+                if molecule not in umi_dict:
+                    lines_dict[cell_label].append(line)
+                    umi_dict[molecule] = 1
 
-    def print_dict(barcode):
+    def print_dict(label):
         nonlocal lines_dict
-        with open(args.out_base + barcode + ".sam", "a") as g:
+        with open(args.out_base + label + ".sam", "a") as g:
             fcntl.flock(g, fcntl.LOCK_EX)
-            g.writelines('\n'.join(lines_dict.get(barcode)) + '\n')
+            g.writelines('\n'.join(lines_dict.get(label)) + '\n')
             fcntl.flock(g, fcntl.LOCK_UN)
         return
 
     # Print out the dictionary for each barcode
-    junk = [print_dict(barcode) for barcode in list(lines_dict.keys())]
+    junk = [print_dict(label) for label in list(lines_dict.keys())]
     # print_dict(barcode)
     if args.verbose:
         print(chrom + " is done.", file = sys.stderr)
 
     return
 
-def write_header(barcode):
-    open(args.out_base + barcode + ".sam", "w").writelines('\n'.join(bam_header) + '\n')
+def write_header(label):
+    open(args.out_base + label + ".sam", "w").writelines('\n'.join(bam_header) + '\n')
+
+def add_to_label_dict(x):
+    cell, label = x.split('\t')
+    label_dict[cell] = label
 
 ########
 # Read in cell barcodes
 # This assumes there is no header in barcode file
 barcode_file = open(args.cells, 'r')
-cell_barcodes = [x.strip() for x in barcode_file.readlines()]
+cell_barcodes = [add_to_label_dict(x.strip()) for x in barcode_file.readlines()]
+all_labels = list(set(label_dict.values()))
 # check if cell_barcodes is empty
 if not cell_barcodes:
     print("Error: cell_barcodes is empty", file = sys.stderr)
@@ -145,7 +155,7 @@ if args.verbose:
 
 # Print out the header into each output sam file
 with Pool(processes = args.processes) as pool:
-    output = pool.map(write_header, cell_barcodes)
+    output = pool.map(write_header, all_labels)
 
 # For the test of the file:
 # Make list of lists of lines to pass to pool.map
