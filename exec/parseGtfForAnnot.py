@@ -19,7 +19,7 @@ obs_fields = set()
 ########
 # Read in the gtf file and print out the bits I need
 if args.gtf.endswith('.gz'):
-    gtf_file = gzip.open(args.gtf, mode = 'r')
+    gtf_file = gzip.open(args.gtf, mode = 'rt')
 else:
     gtf_file = open(args.gtf, 'r')
 
@@ -27,7 +27,7 @@ else:
 print('gene_biotype', 'tx_name', 'gene_id', 'gene_name', sep = '\t')
 
 for line in gtf_file:
-    line = line.decode('utf-8').strip()
+    line = line.strip()
     output = []
     if not line.startswith('#'):
         col_list = line.split('\t')
