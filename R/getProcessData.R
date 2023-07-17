@@ -371,7 +371,7 @@ cellranger_mkfastq <- function(sample_info,
   # Need to add a suffix to the fastq folder for the multiomics so we can
   # reference it during counting
     fastq_suffix <- ""
-    base_mask <- ""
+    base_mask <- "\n  --use-bases-mask=Y28n*,I10n*,I10n*,Y90n* \\\\\\\n"
     if (sample_data$exp_type[1] == "multiomics GEX") {
         fastq_suffix <- "_R"
         base_mask <-
