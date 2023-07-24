@@ -1,8 +1,6 @@
 import argparse
 import sys
 import re
-# import pandas as pd
-# import numpy as np
 import fcntl
 import subprocess
 import itertools
