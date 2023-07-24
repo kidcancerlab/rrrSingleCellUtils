@@ -1,6 +1,7 @@
 #' Load 10X data
 #'
 #' @param path_10x Path to 10X RNAseq data "filtered_feature_bc_matrix" folder
+#' @param h5_file Path to 10X h5 file
 #' @param min_cells Passed to CreateSeuratObject: Include features detected in
 #'     at least this many cells. Will subset the counts matrix as well. To
 #'     reintroduce excluded features, create a new object with a lower cutoff.
@@ -88,7 +89,7 @@ tenx_load_qc <- function(path_10x = "",
             # Need to change all underscores to dashes due to CreateSeuratObject
             # doing the same
 
-        if (sum(seurat$percent.mt) == 0) {
+        if (sum(seurat$percent.mt, na.rm = TRUE) == 0) {
             warning("No mitochondrial reads found!")
             warning("If you have a sample aligned to a mixed reference, make ",
                     "sure that your species_pattern and mt_pattern arguments ",
