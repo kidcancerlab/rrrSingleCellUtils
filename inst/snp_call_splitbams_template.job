@@ -1,0 +1,33 @@
+#!/bin/sh
+#SBATCH --account=placeholder_account
+#SBATCH --job-name=rrr_bam_split
+#SBATCH --output=placeholder_slurm_out
+#SBATCH --error=placeholder_slurm_out
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=30
+#SBATCH --partition=general,himem
+#SBATCH --wait
+#SBATCH --time=0-12:00:00
+
+set -e ### stops bash script if line ends with error
+
+echo ${HOSTNAME}
+
+cell_array=(output/two_cancers/two_cancers_clusters_cells_*txt)
+cell_file=placeholder_cell_file
+bam_file=placeholder_bam_file
+sam_dir=placeholder_sam_dir
+
+ml purge
+ml load SAMtools/1.15
+
+ml load Miniconda3/4.9.2
+eval "$(conda shell.bash hook)"
+conda activate py3_10
+
+python placeholder_py_file \
+    --cells ${cell_file} \
+    --out_base ${sam_dir} \
+    -p 30 \
+    --bam ${bam_file}

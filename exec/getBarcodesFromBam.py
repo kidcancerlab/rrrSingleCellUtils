@@ -20,7 +20,7 @@ parser.add_argument('--bam',
 parser.add_argument('--out_base',
                     '-o',
                     type = str,
-                    default = 'cellbam_',
+                    default = '',
                     help='output bam file name')
 parser.add_argument('--sam_batch_n',
                     '-n',
