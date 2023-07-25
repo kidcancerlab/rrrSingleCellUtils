@@ -55,6 +55,8 @@
   * Try out snp calling: https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1863-4
   * Check to avoid HDF5 error
   * In tenx_load_qc, check if all data is filtered out or sobj is empty
+  * Figure out multiomic FRiP calculation and see if I need to divide by 2
+    * https://support.10xgenomics.com/single-cell-multiome-atac-gex/software/pipelines/latest/algorithms/overview
 
 ---
 
