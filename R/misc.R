@@ -12,7 +12,7 @@ utils::globalVariables(c(".", "avg.exp.scaled", "features.plot", "id",
                          "min_val", "max_val", "median_val", "sd_val",
                          "feature", "Sample_ID", "exp_type", "suffix", "fastqs",
                          "library_type", "link_folder", "tx_id", "tar_folder",
-                         "CB"))
+                         "CB", "bam_file", "cell_barcode", "cell_group"))
 
 #' Use a sbatch template to submit a job to the cluster
 #'
@@ -26,6 +26,8 @@ utils::globalVariables(c(".", "avg.exp.scaled", "features.plot", "id",
 #' @param temp_prefix The prefix to use for the temporary sbatch file.
 #' @param warning_label A string to use in the warning message if the sbatch
 #'  submission fails.
+#' @param submit Whether to actually submit the sbatch job or just write the
+#' sbatch file. If FALSE, the sbatch file will be written but not submitted.
 #'
 #' @return 0 if the sbatch submission was successful, otherwise an error is
 #'  thrown
@@ -38,6 +40,7 @@ use_sbatch_template <- function(replace_tibble,
                                 submit = TRUE) {
     sbatch_template <-
         readr::read_file(paste0(find.package("rrrSingleCellUtils"),
+                                "/",
                                 template))
 
     # Replace placeholders with real data
