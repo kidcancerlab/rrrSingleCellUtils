@@ -80,7 +80,6 @@ check_cmd <- function(cmd) {
     if (Sys.which(cmd) == "") {
         stop(paste(cmd,
                    "command not found, do you need to load a module?"))
-    } else {
-        return(0)
     }
+    return(0)
 }

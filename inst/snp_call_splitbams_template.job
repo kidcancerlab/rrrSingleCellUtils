@@ -14,7 +14,6 @@ set -e ### stops bash script if line ends with error
 
 echo ${HOSTNAME}
 
-cell_array=(output/two_cancers/two_cancers_clusters_cells_*txt)
 cell_file=placeholder_cell_file
 bam_file=placeholder_bam_file
 sam_dir=placeholder_sam_dir

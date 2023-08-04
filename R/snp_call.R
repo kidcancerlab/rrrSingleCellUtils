@@ -11,6 +11,7 @@
 #                         "/outs/possorted_genome_bam.bam"),
 #             cell_barcode = str_remove(cell_barcode, ".+_"))
 
+
 #' Generate a tree using SNPs derived from single cell clusters
 #'
 #' @param cellid_bam_table A tibble with three columns: cell_barcode,
@@ -36,7 +37,7 @@
 get_snp_tree <- function(cellid_bam_table,
                          temp_dir = tempdir(),
                          slurm_base = paste(getwd(), "/slurmOut", sep = ""),
-                         account = "gdrobertlab",
+                         account = "gdrobertslab",
                          ploidy,
                          ref_fasta,
                          min_depth = 5,
@@ -105,9 +106,9 @@ get_snp_tree <- function(cellid_bam_table,
 check_cellid_bam_table <- function(cellid_bam_table) {
     # Columns should be cell_barcode, cell_group and bam_file
     if (any(!c("cell_barcode",
-              "cell_group",
-              "bam_file") %in% colnames(cellid_bam_table))) {
-        stop("Columns should be cell_id, cell_group and bam_file")
+               "cell_group",
+               "bam_file") %in% colnames(cellid_bam_table))) {
+        stop("Columns should include cell_id, cell_group and bam_file")
     }
 
     # check that cell barcode is of format `[ATGC]+-1`
@@ -140,12 +141,13 @@ call_snps <- function(cellid_bam_table,
                       bam_to_use,
                       sam_dir,
                       bcf_dir,
-                      slurm_base = paste(getwd(), "/slurmOut_call", sep = ""),
-                      account = "gdrobertlab",
+                      slurm_base = paste0(getwd(), "/slurmOut_call-%j.txt"),
+                      account = "gdrobertslab",
                       ploidy,
                       ref_fasta,
                       min_depth = 5,
-                      submit = TRUE) {
+                      submit = TRUE,
+                      cleanup = TRUE) {
     # Check that the sam and bcf directories exist, and if not, create them
     if (!dir.exists(sam_dir)) {
         dir.create(sam_dir)
@@ -155,7 +157,7 @@ call_snps <- function(cellid_bam_table,
     }
     # write out the cell ids to a file with two columns: cell_id, cell_group
     cell_file <- paste0(sam_dir, "/cell_ids.txt")
-    readr::write_tsv(cellid_bam_table,
+    readr::write_tsv(dplyr::select(cellid_bam_table, cell_barcode, cell_group),
                      file = cell_file,
                      col_names = FALSE)
 
@@ -173,7 +175,7 @@ call_snps <- function(cellid_bam_table,
             "placeholder_slurm_out",    slurm_base,
             "placeholder_cell_file",    cell_file,
             "placeholder_bam_file",     bam_to_use,
-            "placeholder_sam_dir",      sam_dir,
+            "placeholder_sam_dir",      paste0(sam_dir, "/"),
             "placeholder_py_file",      py_file
         )
 
@@ -185,20 +187,22 @@ call_snps <- function(cellid_bam_table,
 
     ploidy <- pick_ploidy(ploidy)
 
-    array_max <- "do this later"
+    array_max <-
+        list.files(path = sam_dir, pattern = ".sam") %>%
+        length()  - 1
 
     replace_tibble_snp <-
         dplyr::tribble(
             ~find,                      ~replace,
             "placeholder_account",      account,
             "placeholder_slurm_out",    slurm_base,
-            "placeholder_array_max",    array_max,
+            "placeholder_array_max",    as.character(array_max),
             "placeholder_sam_dir",      sam_dir,
             "placeholder_ref_fasta",    ref_fasta,
             "placeholder_ploidy",       ploidy,
             "placeholder_bam_file",     bam_to_use,
             "placeholder_bcf_dir",      bcf_dir,
-            "placeholder_min_depth",    min_depth
+            "placeholder_min_depth",    as.character(min_depth)
         )
 
     # Call mpileup on each split_bams folder using a template and substituting
@@ -210,6 +214,10 @@ call_snps <- function(cellid_bam_table,
                             submit = submit)
 
     # Delete contents of the split_sams folder
+    if (cleanup) {
+        unlink(sam_dir, recursive = TRUE)
+    }
+    return(0)
 }
 
 #' Transform the ploidy argument into a valid argument for bcftools
@@ -218,6 +226,8 @@ call_snps <- function(cellid_bam_table,
 #'  the ploidy.
 #' @return A string that can be passed to use_sbatch_template() to fill in
 #'  placeholder_ploidy
+#' @details GRCh37 is hg19, GRCh38 is hg38, X, Y, 1, mm10_hg19 is our mixed
+#' species reference with species prefixes on chromosomes, mm10 is mm10
 pick_ploidy <- function(ploidy) {
     if (file.exists(ploidy)) {
         return(paste("--ploidy-file", ploidy))
