@@ -57,8 +57,9 @@ get_snp_tree <- function(cellid_bam_table,
 
     bam_files <- unique(cellid_bam_table$bam_file)
     # Write out the table if cell ids, groups and bam files
-    parallel::mclapply(bam_files,
-                       function(x) {
+    #ret_vals <-
+        parallel::mclapply(bam_files,
+                           function(x) {
                             sub_cellid_bam_table <-
                                 cellid_bam_table %>%
                                 dplyr::filter(bam_file == x) %>%
@@ -79,24 +80,85 @@ get_snp_tree <- function(cellid_bam_table,
                                       ref_fasta = ref_fasta,
                                       submit = submit)
                        },
-                       mc.cores = length(bam_files))
+                           mc.cores = length(bam_files))
 
     # The output from the previous step is a folder for each bam file located
-    # in temp_dir/split_bcfs/. Next merge all the bcf files
-    merge_bcfs(bcf_folder = temp_dir,
-               out_file = paste0(temp_dir, "/merged.bcf"),
-               submit = submit)
-
-    # Calculate a distance matrix
-    dist_from_bcf(bcf = paste0(temp_dir, "/merged.bcf"),
-                  out_file = paste0(temp_dir, "/distances.txt"),
-                  submit = submit)
+    # in temp_dir/split_bcfs/. Next merge all the bcf files and calculate a
+    # distance matrix using my slow python script
+    #ret_val <-
+        merge_bcfs(bcf_in_dir = paste0(temp_dir,
+                                       "split_bcfs/"),
+                   out_bcf = paste0(temp_dir, "/merged.bcf"),
+                   out_dist = paste0(temp_dir, "/distances"),
+                   submit = submit,
+                   slurm_out = paste0(slurm_base, "_merge-%j.out"),
+                   account = account)
 
     # Read in the distance matrix and make a tree
-    tree_out <- calc_tree(bcf = paste0(temp_dir, "/merged.bcf"))
+    dist_tree <- calc_tree(matrix = paste0(temp_dir, "/distances.tsv"))
 
-    return(tree_out)
+    return(dist_tree)
 }
+
+#' Use the output from get_snp_tree to label cells
+#'
+#' @param sobject A Seurat object
+#' @param dist_tree A hclust tree output from get_snp_tree()
+#' @param group_col_name The name of the column in the Seurat object that was
+#'  used when assigning cells to groups for get_snp_tree()
+#' @param control_group The name of the control group. If this is not NULL,
+#'  then the group containing the control will be labeled "normal" and the
+#'  other group(s) will be labeled "tumor".
+#' @param cut_n_groups The number of groups to cut the tree into.
+#' @param cut_dist The distance to cut the tree at. This can be derived from the
+#'  y-axis of plotting the output from get_snp_tree().
+#'
+#' @return A Seurat object with a new columns in the metadata slot called
+#'  tree_group and, if control_group is not NULL, snp_tumor_call.
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#'    placeholder here for now
+#' }
+label_tree_groups <- function(sobject,
+                              dist_tree,
+                              group_col_name = "used_clusters",
+                              control_group,
+                              cut_n_groups = NULL,
+                              cut_dist = NULL) {
+    tree_groups <-
+        stats::cutree(dist_tree,
+                      k = cut_n_groups,
+                      h = cut_dist) %>%
+        tibble::enframe(name = group_col_name,
+                        value = "tree_group") %>%
+        dplyr::mutate(tree_group = LETTERS[tree_group])
+
+    # if tree_group contains the control, then rename it to "normal" and label
+    # the other group(s) as "tumor"
+    if (!is.null(control_group)) {
+        tree_groups <-
+            tree_groups %>%
+            dplyr::group_by(tree_group) %>%
+            dplyr::mutate(snp_tumor_call = ifelse(control_group %in%
+                                           get(group_col_name),
+                                           "normal",
+                                           "tumor"))
+    }
+    sobj_out <-
+        sobject@meta.data %>%
+        tibble::rownames_to_column("cell_barcode") %>%
+        dplyr::left_join(tree_groups, by = group_col_name) %>%
+        dplyr::select(dplyr::all_of(c(colnames(tree_groups),
+                                      "cell_barcode"))) %>%
+        tibble::column_to_rownames("cell_barcode") %>%
+        Seurat::AddMetaData(object = sobject)
+
+    return(sobj_out)
+}
+
 
 #' Check that the cellid_bam_table is of the proper format
 #'
@@ -126,8 +188,8 @@ check_cellid_bam_table <- function(cellid_bam_table) {
         dplyr::select(-cell_barcode) %>%
         dplyr::distinct() %>%
         dplyr::group_by(cell_group) %>%
-        dplyr::summarize(n = dplyr::n()) %>%
-        dplyr::pull(n) %>%
+        dplyr::summarize(n_bams = dplyr::n()) %>%
+        dplyr::pull(n_bams) %>%
         max()
     if (bams_per_group != 1) {
         stop("Each cell_group should be unique to a single bam file")
@@ -137,6 +199,24 @@ check_cellid_bam_table <- function(cellid_bam_table) {
 
 # ploidy options: GRCh37, GRCh38, X, Y, 1, mm10_hg19, mm10
 
+#' Call SNPs for a single bam file
+#'
+#' @param cellid_bam_table A table with columns cell_id, cell_group and bam_file
+#' @param bam_to_use The bam file to use
+#' @param sam_dir The directory to write the sam files to
+#' @param bcf_dir The directory to write the bcf files to
+#' @param slurm_base The base name for the slurm output files
+#' @param account The hpc account to use in slurm scripts
+#' @param ploidy The ploidy of the organism. See details for more information
+#' @param ref_fasta The reference fasta file to use
+#' @param min_depth The minimum depth to use when calling snps
+#' @param submit Whether or not to submit the slurm scripts
+#' @param cleanup Whether or not to clean up the sam and bcf files afterwards
+#'
+#' @return 0 if the snps were called successfully
+#'
+#' @details GRCh37 is hg19, GRCh38 is hg38, X, Y, 1, mm10_hg19 is our mixed
+#'
 call_snps <- function(cellid_bam_table,
                       bam_to_use,
                       sam_dir,
@@ -248,26 +328,66 @@ pick_ploidy <- function(ploidy) {
     }
 }
 
-merge_bcfs <- function(bcf_folder,
-                       out_file) {
+
+merge_bcfs <- function(bcf_in_dir,
+                       out_bcf,
+                       out_dist,
+                       submit = TRUE,
+                       account = "gdrobertslab",
+                       slurm_out = "slurmOut_merge-%j.txt") {
+    py_file <-
+        paste0(find.package("rrrSingleCellUtils"),
+               "/exec/vcfToMatrix.py")
+
     # use template to merge bcfs and write out a distance matrix, substituting
     # out the placeholder fields
+    replace_tibble_merge_dist <-
+        dplyr::tribble(
+            ~find,                      ~replace,
+            "placeholder_account",      account,
+            "placeholder_slurm_out",    slurm_out,
+            "placeholder_bcf_out",      out_bcf,
+            "placeholder_py_file",      py_file,
+            "placeholder_bcf_dir",      bcf_in_dir,
+            "placeholder_dist_out",     out_dist
+        )
+
+    # Call mpileup on each split_bams folder using a template and substituting
+    # out the placeholder fields and index the individual bcf files
+    result <-
+        use_sbatch_template(replace_tibble_merge_dist,
+                            "snp_call_merge_dist_template.job",
+                            warning_label = "Calling SNPs",
+                            submit = submit)
 
     # index the bcf file
 
     # remove individual bcf files
 }
 
-dist_from_bcf <- function(bcf,
-                          out_file) {
-    # use template to calculate a distance matrix, substituting out the
-    # placeholder fields
-
-    # write out the distance matrix
-}
-
-calc_tree <- function(bcf) {
+calc_tree <- function(matrix) {
     # read in the distance matrix and make a tree
+    dist_tree <-
+        read.table(matrix,
+                   header = TRUE,
+                   row.names = 1,
+                   sep = "\t") %>%
+        tibble::rownames_to_column("sample_1") %>%
+        tidyr::pivot_longer(names_to = "sample_2",
+                            values_to = "dist",
+                            -sample_1) %>%
+        dplyr::filter(!is.na(snp_dist)) %>%
+        dplyr::group_by(sample_1) %>%
+        dplyr::mutate(group_count = dplyr::n()) %>%
+        dplyr::filter(group_count > 1) %>%
+        dplyr::select(-group_count) %>%
+        tidyr::pivot_wider(names_from = sample_2,
+                           values_from = snp_dist) %>%
+        tibble::column_to_rownames("sample_1") %>%
+        as.matrix() %>%
+        stats::dist() %>%
+        stats::hclust()
 
     # Return a hclust tree
+    return(dist_tree)
 }

@@ -12,7 +12,9 @@ utils::globalVariables(c(".", "avg.exp.scaled", "features.plot", "id",
                          "min_val", "max_val", "median_val", "sd_val",
                          "feature", "Sample_ID", "exp_type", "suffix", "fastqs",
                          "library_type", "link_folder", "tx_id", "tar_folder",
-                         "CB", "bam_file", "cell_barcode", "cell_group"))
+                         "CB", "bam_file", "cell_barcode", "cell_group",
+                         "tree_group", "sample_1", "sample_2", "group_count",
+                         "n_bams", "snp_dist"))
 
 #' Use a sbatch template to submit a job to the cluster
 #'

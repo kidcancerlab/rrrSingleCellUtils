@@ -17,3 +17,7 @@ A string that can be passed to use_sbatch_template() to fill in
 \description{
 Transform the ploidy argument into a valid argument for bcftools
 }
+\details{
+GRCh37 is hg19, GRCh38 is hg38, X, Y, 1, mm10_hg19 is our mixed
+species reference with species prefixes on chromosomes, mm10 is mm10
+}

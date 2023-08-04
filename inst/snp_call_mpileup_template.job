@@ -66,8 +66,8 @@ samtools view \
         --threads 3 \
         --exclude-types indels \
         -O b \
-        -o placeholder_bcf_dir/${clust_name}.bcf
+        -o placeholder_bcf_dir/${label}.bcf
 
 bcftools index \
     --threads 5 \
-    placeholder_bcf_dir/${clust_name}.bcf
+    placeholder_bcf_dir/${label}.bcf

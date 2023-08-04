@@ -1,0 +1,39 @@
+#!/bin/sh
+#SBATCH --account=placeholder_account
+#SBATCH --output=placeholder_slurm_out
+#SBATCH --error=placeholder_slurm_out
+#SBATCH --job-name rrr_merge
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=30
+#SBATCH --partition=himem,general
+#SBATCH --wait
+#SBATCH --time=4-00:00:00
+
+set -e ### stops bash script if line ends with error
+
+echo ${HOSTNAME} ${SLURM_ARRAY_TASK_ID}
+
+ml purge
+ml load GCC/9.3.0 \
+        GCCcore/9.3.0 \
+        SAMtools/1.15 \
+        BCFtools/1.11
+
+bcftools merge \
+    --threads 30 \
+    -O u \
+    placeholder_bcf_dir/*.bcf \
+    | bcftools filter
+    --output placeholder_bcf_out \
+
+bcftools index \
+    --threads 30 \
+    placeholder_bcf_out
+
+python placeholder_py_file \
+    --processes 30 \
+    --trim_path \
+    --vcf placeholder_bcf_out \
+    --out_base placeholder_dist_out
+
