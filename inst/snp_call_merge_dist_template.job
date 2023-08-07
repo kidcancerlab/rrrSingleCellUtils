@@ -21,11 +21,12 @@ ml load GCC/9.3.0 \
         BCFtools/1.11
 
 bcftools merge \
-    --threads 30 \
-    -O u \
-    placeholder_bcf_dir/*.bcf \
-    | bcftools filter
-    --output placeholder_bcf_out \
+        --threads 30 \
+        -O u \
+        placeholder_bcf_dir/*.bcf \
+    | bcftools filter \
+        -O b \
+        --output placeholder_bcf_out
 
 bcftools index \
     --threads 30 \

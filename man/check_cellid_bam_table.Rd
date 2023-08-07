@@ -2,7 +2,7 @@
 % Please edit documentation in R/snp_call.R
 \name{check_cellid_bam_table}
 \alias{check_cellid_bam_table}
-\title{Check that the cellid_bam_table is of the proper format}
+\title{Check that the cellid_bam_table input is of the proper format}
 \usage{
 check_cellid_bam_table(cellid_bam_table)
 }
@@ -13,5 +13,5 @@ check_cellid_bam_table(cellid_bam_table)
 0 if the table is of the proper format, otherwise an error is thrown
 }
 \description{
-Check that the cellid_bam_table is of the proper format
+Check that the cellid_bam_table input is of the proper format
 }

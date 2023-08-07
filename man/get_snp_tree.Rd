@@ -7,12 +7,13 @@
 get_snp_tree(
   cellid_bam_table,
   temp_dir = tempdir(),
-  slurm_base = paste(getwd(), "/slurmOut", sep = ""),
+  slurm_base = paste0(getwd(), "/slurmOut"),
   account = "gdrobertslab",
   ploidy,
   ref_fasta,
   min_depth = 5,
-  submit = TRUE
+  submit = TRUE,
+  cleanup = TRUE
 )
 }
 \arguments{

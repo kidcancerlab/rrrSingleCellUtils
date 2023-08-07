@@ -1,17 +1,3 @@
-# two_sobj <- qs::qread("/home/gdrobertslab/mvc002/analyses/roberts/dev/testSnps/output/patient_met_1/two_sobj.qs")
-
-# c_b_t <-
-#     two_sobj@meta.data %>%
-#     select(used_clusters) %>%
-#     rename(cell_group = used_clusters) %>%
-#     rownames_to_column("cell_barcode") %>%
-#     as_tibble() %>%
-#     mutate(bam_file = paste0("/home/gdrobertslab/lab/Counts/",
-#                         str_remove(cell_barcode, "_.*"),
-#                         "/outs/possorted_genome_bam.bam"),
-#             cell_barcode = str_remove(cell_barcode, ".+_"))
-
-
 #' Generate a tree using SNPs derived from single cell clusters
 #'
 #' @param cellid_bam_table A tibble with three columns: cell_barcode,
@@ -36,18 +22,19 @@
 #' }
 get_snp_tree <- function(cellid_bam_table,
                          temp_dir = tempdir(),
-                         slurm_base = paste(getwd(), "/slurmOut", sep = ""),
+                         slurm_base = paste0(getwd(), "/slurmOut"),
                          account = "gdrobertslab",
                          ploidy,
                          ref_fasta,
                          min_depth = 5,
-                         submit = TRUE) {
+                         submit = TRUE,
+                         cleanup = TRUE) {
     check_cellid_bam_table(cellid_bam_table)
 
     # Check that conda environment py3_10 exists, and if not, create it
     ## Check that the conda command is available
     check_cmd("conda")
-    if (system("conda env list | grep py3_10") != 0) {
+    if (system("conda env list | grep py3_10", ignore.stdout = TRUE) != 0) {
         message("Creating required conda environment py3_10")
         system("conda env create -f environment.yml py3_10.yml")
     }
@@ -57,42 +44,47 @@ get_snp_tree <- function(cellid_bam_table,
 
     bam_files <- unique(cellid_bam_table$bam_file)
     # Write out the table if cell ids, groups and bam files
-    #ret_vals <-
-        parallel::mclapply(bam_files,
-                           function(x) {
-                            sub_cellid_bam_table <-
-                                cellid_bam_table %>%
-                                dplyr::filter(bam_file == x) %>%
-                                dplyr::select(cell_barcode, cell_group)
 
-                            bam_stub <- stringr::str_remove(x, ".bam")
-                            call_snps(cellid_bam_table = sub_cellid_bam_table,
-                                      bam_to_use = x,
-                                      sam_dir = paste0(temp_dir,
-                                                       "split_sams/",
-                                                       bam_stub),
-                                      bcf_dir = paste0(temp_dir,
-                                                       "split_bcfs/",
-                                                       bam_stub),
-                                      slurm_base = slurm_base,
-                                      account = account,
-                                      ploidy = ploidy,
-                                      ref_fasta = ref_fasta,
-                                      submit = submit)
-                       },
-                           mc.cores = length(bam_files))
+    parallel::mclapply(seq_len(length(bam_files)),
+                       function(i) {
+        bam_name <- bam_files[i]
+
+        sub_cellid_bam_table <-
+            cellid_bam_table %>%
+            dplyr::filter(bam_file == bam_name) %>%
+            dplyr::select(cell_barcode, cell_group)
+
+        call_snps(cellid_bam_table = sub_cellid_bam_table,
+                  bam_to_use = bam_name,
+                  sam_dir = paste0(temp_dir,
+                                   "/split_sams_",
+                                   i,
+                                   "/"),
+                  bcf_dir = paste0(temp_dir,
+                                   "/split_bcfs_",
+                                   i,
+                                   "/"),
+                  slurm_base = paste0(slurm_base, "_mpileup-%j.out"),
+                  account = account,
+                  ploidy = ploidy,
+                  ref_fasta = ref_fasta,
+                  submit = submit,
+                  cleanup = cleanup)
+        },
+                        mc.cores = length(bam_files))
 
     # The output from the previous step is a folder for each bam file located
     # in temp_dir/split_bcfs/. Next merge all the bcf files and calculate a
     # distance matrix using my slow python script
-    #ret_val <-
-        merge_bcfs(bcf_in_dir = paste0(temp_dir,
-                                       "split_bcfs/"),
-                   out_bcf = paste0(temp_dir, "/merged.bcf"),
-                   out_dist = paste0(temp_dir, "/distances"),
-                   submit = submit,
-                   slurm_out = paste0(slurm_base, "_merge-%j.out"),
-                   account = account)
+
+    merge_bcfs(bcf_in_dir = paste0(temp_dir,
+                                   "/split_bcfs_[0-9]*/*bcf"),
+               out_bcf = paste0(temp_dir, "/merged.bcf"),
+               out_dist = paste0(temp_dir, "/distances"),
+               submit = submit,
+               slurm_out = paste0(slurm_base, "_merge-%j.out"),
+               account = account,
+               cleanup = cleanup)
 
     # Read in the distance matrix and make a tree
     dist_tree <- calc_tree(matrix = paste0(temp_dir, "/distances.tsv"))
@@ -159,8 +151,7 @@ label_tree_groups <- function(sobject,
     return(sobj_out)
 }
 
-
-#' Check that the cellid_bam_table is of the proper format
+#' Check that the cellid_bam_table input is of the proper format
 #'
 #' @param cellid_bam_table the cellid_bam_table to check
 #'
@@ -197,8 +188,6 @@ check_cellid_bam_table <- function(cellid_bam_table) {
     return(0)
 }
 
-# ploidy options: GRCh37, GRCh38, X, Y, 1, mm10_hg19, mm10
-
 #' Call SNPs for a single bam file
 #'
 #' @param cellid_bam_table A table with columns cell_id, cell_group and bam_file
@@ -211,7 +200,7 @@ check_cellid_bam_table <- function(cellid_bam_table) {
 #' @param ref_fasta The reference fasta file to use
 #' @param min_depth The minimum depth to use when calling snps
 #' @param submit Whether or not to submit the slurm scripts
-#' @param cleanup Whether or not to clean up the sam and bcf files afterwards
+#' @param cleanup Whether or not to clean up the sam files afterwards
 #'
 #' @return 0 if the snps were called successfully
 #'
@@ -289,7 +278,7 @@ call_snps <- function(cellid_bam_table,
     # out the placeholder fields and index the individual bcf files
     result <-
         use_sbatch_template(replace_tibble_snp,
-                            "snptree_call_snp_template.txt",
+                            "snp_call_mpileup_template.job",
                             warning_label = "Calling SNPs",
                             submit = submit)
 
@@ -328,13 +317,24 @@ pick_ploidy <- function(ploidy) {
     }
 }
 
-
+#' Merge bcfs generated by call_snps() and write out a distance matrix
+#'
+#' @param bcf_in_dir The directory containing the bcfs to merge
+#' @param out_bcf The path to the output bcf file
+#' @param out_dist The path to the output distance matrix
+#' @param submit Whether to submit the job to slurm
+#' @param account The cluster account to use in the slurm script
+#' @param slurm_out The name of the slurm output file
+#' @param cleanup Whether to delete the bcfs after merging
+#'
+#' @return 0 if successful
 merge_bcfs <- function(bcf_in_dir,
                        out_bcf,
                        out_dist,
                        submit = TRUE,
                        account = "gdrobertslab",
-                       slurm_out = "slurmOut_merge-%j.txt") {
+                       slurm_out = "slurmOut_merge-%j.txt",
+                       cleanup = TRUE) {
     py_file <-
         paste0(find.package("rrrSingleCellUtils"),
                "/exec/vcfToMatrix.py")
@@ -360,11 +360,18 @@ merge_bcfs <- function(bcf_in_dir,
                             warning_label = "Calling SNPs",
                             submit = submit)
 
-    # index the bcf file
-
     # remove individual bcf files
+    if (cleanup) {
+        unlink(bcf_in_dir, recursive = TRUE)
+    }
+    return(0)
 }
 
+#' Calculate a tree from a distance matrix output from merge_bcfs()
+#'
+#' @param matrix The path to the distance matrix output from merge_bcfs()
+#'
+#' @return A hclust object
 calc_tree <- function(matrix) {
     # read in the distance matrix and make a tree
     dist_tree <-
@@ -390,4 +397,37 @@ calc_tree <- function(matrix) {
 
     # Return a hclust tree
     return(dist_tree)
+}
+
+#' Use the metadata in a Seurat object to determine which clusters are
+#' predominantly control cell types
+#'
+#' @param sobject A Seurat object
+#' @param normal_celltypes A vector of cell types that are considered non-tumor
+#' @param cluster_col The name of the column that was used to define clusters in
+#'  get_snp_tree()
+#' @param celltype_col The name of the column that has cell type information
+#' @param min_prop_control The minimum proportion of cells in a cluster that
+#'  are control cell types to consider that cluster a control cluster
+#'
+#' @return A vector of cluster names that are predominantly control cell types
+#'
+#' @export
+match_celltype_clusters <- function(sobject,
+                                    normal_celltypes,
+                                    cluster_col,
+                                    celltype_col,
+                                    min_prop_control = 0.5) {
+
+    control_clusters <-
+        sobject@meta.data %>%
+        dplyr::select(dplyr::all_of(c(cluster_col, celltype_col))) %>%
+        dplyr::group_by(dplyr::across(dplyr::all_of(cluster_col))) %>%
+        dplyr::filter(sum(get(celltype_col) %in%
+                                                   control_celltypes) /
+                                               dplyr::n() > min_prop_control) %>%
+        dplyr::pull(cluster_col) %>%
+        unique()
+
+    return(control_clusters)
 }

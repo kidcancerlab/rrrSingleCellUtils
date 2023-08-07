@@ -39,7 +39,7 @@ call_snps(
 
 \item{submit}{Whether or not to submit the slurm scripts}
 
-\item{cleanup}{Whether or not to clean up the sam and bcf files afterwards}
+\item{cleanup}{Whether or not to clean up the sam files afterwards}
 }
 \value{
 0 if the snps were called successfully
