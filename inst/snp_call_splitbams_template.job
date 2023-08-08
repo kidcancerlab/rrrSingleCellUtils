@@ -8,7 +8,7 @@
 #SBATCH --cpus-per-task=30
 #SBATCH --partition=general,himem
 #SBATCH --wait
-#SBATCH --time=0-12:00:00
+#SBATCH --time=1-00:00:00
 
 set -e ### stops bash script if line ends with error
 
@@ -28,5 +28,5 @@ conda activate py3_10
 python placeholder_py_file \
     --cells ${cell_file} \
     --out_base ${sam_dir} \
-    -p 30 \
+    -p 20 \
     --bam ${bam_file}

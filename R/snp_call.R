@@ -78,7 +78,7 @@ get_snp_tree <- function(cellid_bam_table,
     # distance matrix using my slow python script
 
     merge_bcfs(bcf_in_dir = paste0(temp_dir,
-                                   "/split_bcfs_[0-9]*/*bcf"),
+                                   "/split_bcfs_[0-9]*/"),
                out_bcf = paste0(temp_dir, "/merged.bcf"),
                out_dist = paste0(temp_dir, "/distances"),
                submit = submit,
@@ -162,6 +162,11 @@ check_cellid_bam_table <- function(cellid_bam_table) {
                "cell_group",
                "bam_file") %in% colnames(cellid_bam_table))) {
         stop("Columns should include cell_id, cell_group and bam_file")
+    }
+
+    # Check that there is data in the table
+    if (nrow(cellid_bam_table) == 0) {
+        stop("No data in cellid_bam_table")
     }
 
     # check that cell barcode is of format `[ATGC]+-1`
@@ -252,7 +257,8 @@ call_snps <- function(cellid_bam_table,
         use_sbatch_template(replace_tibble_split,
                             "snp_call_splitbams_template.job",
                             warning_label = "Bam splitting",
-                            submit = submit)
+                            submit = submit,
+                            file_dir = ".")
 
     ploidy <- pick_ploidy(ploidy)
 
@@ -280,7 +286,8 @@ call_snps <- function(cellid_bam_table,
         use_sbatch_template(replace_tibble_snp,
                             "snp_call_mpileup_template.job",
                             warning_label = "Calling SNPs",
-                            submit = submit)
+                            submit = submit,
+                            file_dir = ".")
 
     # Delete contents of the split_sams folder
     if (cleanup) {
@@ -358,7 +365,8 @@ merge_bcfs <- function(bcf_in_dir,
         use_sbatch_template(replace_tibble_merge_dist,
                             "snp_call_merge_dist_template.job",
                             warning_label = "Calling SNPs",
-                            submit = submit)
+                            submit = submit,
+                            file_dir = ".")
 
     # remove individual bcf files
     if (cleanup) {
