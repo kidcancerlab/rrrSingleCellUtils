@@ -6,6 +6,7 @@
 #'  bam_file column should contain the path to the bam file for that cell.
 #' @param temp_dir The directory to write temporary files to.
 #' @param slurm_base The directory to write slurm output files to.
+#' @param sbatch_base The prefix to use with the sbatch job file.
 #' @param account The hpc account to use.
 #' @param ploidy Either a file path to a ploidy file, or a string indicating
 #'  the ploidy.
@@ -23,6 +24,7 @@
 get_snp_tree <- function(cellid_bam_table,
                          temp_dir = tempdir(),
                          slurm_base = paste0(getwd(), "/slurmOut"),
+                         sbatch_base = "sbatch_",
                          account = "gdrobertslab",
                          ploidy,
                          ref_fasta,
@@ -39,11 +41,16 @@ get_snp_tree <- function(cellid_bam_table,
         system("conda env create -f environment.yml py3_10.yml")
     }
 
+    # Check that temp_dir exists, and if not, create it
+    if (!dir.exists(temp_dir)) {
+        message("Creating temporary directory: ", temp_dir)
+        dir.create(temp_dir)
+    }
+
     # Warn that this is going to take a while
     message("Hold onto your hat and get a coffee, this will take a while.")
 
     bam_files <- unique(cellid_bam_table$bam_file)
-    # Write out the table if cell ids, groups and bam files
 
     parallel::mclapply(seq_len(length(bam_files)),
                        function(i) {
@@ -65,6 +72,7 @@ get_snp_tree <- function(cellid_bam_table,
                                    i,
                                    "/"),
                   slurm_base = paste0(slurm_base, "_mpileup-%j.out"),
+                  sbatch_base = sbatch_base,
                   account = account,
                   ploidy = ploidy,
                   ref_fasta = ref_fasta,
@@ -83,6 +91,7 @@ get_snp_tree <- function(cellid_bam_table,
                out_dist = paste0(temp_dir, "/distances"),
                submit = submit,
                slurm_out = paste0(slurm_base, "_merge-%j.out"),
+               sbatch_base = sbatch_base,
                account = account,
                cleanup = cleanup)
 
@@ -117,7 +126,7 @@ get_snp_tree <- function(cellid_bam_table,
 label_tree_groups <- function(sobject,
                               dist_tree,
                               group_col_name = "used_clusters",
-                              control_group,
+                              normal_groups,
                               cut_n_groups = NULL,
                               cut_dist = NULL) {
     tree_groups <-
@@ -130,14 +139,14 @@ label_tree_groups <- function(sobject,
 
     # if tree_group contains the control, then rename it to "normal" and label
     # the other group(s) as "tumor"
-    if (!is.null(control_group)) {
+    if (!is.null(normal_groups)) {
         tree_groups <-
             tree_groups %>%
             dplyr::group_by(tree_group) %>%
-            dplyr::mutate(snp_tumor_call = ifelse(control_group %in%
-                                           get(group_col_name),
-                                           "normal",
-                                           "tumor"))
+            dplyr::mutate(snp_tumor_call = ifelse(any(normal_groups %in%
+                                                   get(group_col_name)),
+                                                  "normal",
+                                                  "tumor"))
     }
     sobj_out <-
         sobject@meta.data %>%
@@ -190,6 +199,12 @@ check_cellid_bam_table <- function(cellid_bam_table) {
     if (bams_per_group != 1) {
         stop("Each cell_group should be unique to a single bam file")
     }
+
+    # check that there are no spaces in either the cell_group or bam_file
+    if (any(stringr::str_detect(cellid_bam_table$cell_group, " ")) ||
+        any(stringr::str_detect(cellid_bam_table$bam_file, " "))) {
+        stop("Neither cell_group nor bam_file should not contain spaces")
+    }
     return(0)
 }
 
@@ -216,6 +231,7 @@ call_snps <- function(cellid_bam_table,
                       sam_dir,
                       bcf_dir,
                       slurm_base = paste0(getwd(), "/slurmOut_call-%j.txt"),
+                      sbatch_base = "sbatch_",
                       account = "gdrobertslab",
                       ploidy,
                       ref_fasta,
@@ -258,7 +274,8 @@ call_snps <- function(cellid_bam_table,
                             "snp_call_splitbams_template.job",
                             warning_label = "Bam splitting",
                             submit = submit,
-                            file_dir = ".")
+                            file_dir = ".",
+                            temp_prefix = sbatch_base)
 
     ploidy <- pick_ploidy(ploidy)
 
@@ -341,6 +358,7 @@ merge_bcfs <- function(bcf_in_dir,
                        submit = TRUE,
                        account = "gdrobertslab",
                        slurm_out = "slurmOut_merge-%j.txt",
+                       sbatch_base = "sbatch_",
                        cleanup = TRUE) {
     py_file <-
         paste0(find.package("rrrSingleCellUtils"),
@@ -366,7 +384,8 @@ merge_bcfs <- function(bcf_in_dir,
                             "snp_call_merge_dist_template.job",
                             warning_label = "Calling SNPs",
                             submit = submit,
-                            file_dir = ".")
+                            file_dir = ".",
+                            temp_prefix = sbatch_base)
 
     # remove individual bcf files
     if (cleanup) {
@@ -389,7 +408,7 @@ calc_tree <- function(matrix) {
                    sep = "\t") %>%
         tibble::rownames_to_column("sample_1") %>%
         tidyr::pivot_longer(names_to = "sample_2",
-                            values_to = "dist",
+                            values_to = "snp_dist",
                             -sample_1) %>%
         dplyr::filter(!is.na(snp_dist)) %>%
         dplyr::group_by(sample_1) %>%

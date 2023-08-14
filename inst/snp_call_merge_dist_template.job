@@ -24,7 +24,8 @@ bcftools merge \
         --threads 30 \
         -O u \
         placeholder_bcf_dir/*.bcf \
-    | bcftools filter \
+    | bcftools view \
+        -i 'GT[*]="alt"' \
         -O b \
         --output placeholder_bcf_out
 

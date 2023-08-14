@@ -11,6 +11,7 @@ merge_bcfs(
   submit = TRUE,
   account = "gdrobertslab",
   slurm_out = "slurmOut_merge-\%j.txt",
+  sbatch_base = "sbatch_",
   cleanup = TRUE
 )
 }

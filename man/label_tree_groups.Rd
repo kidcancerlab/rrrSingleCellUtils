@@ -8,7 +8,7 @@ label_tree_groups(
   sobject,
   dist_tree,
   group_col_name = "used_clusters",
-  control_group,
+  normal_groups,
   cut_n_groups = NULL,
   cut_dist = NULL
 )
@@ -21,14 +21,14 @@ label_tree_groups(
 \item{group_col_name}{The name of the column in the Seurat object that was
 used when assigning cells to groups for get_snp_tree()}
 
-\item{control_group}{The name of the control group. If this is not NULL,
-then the group containing the control will be labeled "normal" and the
-other group(s) will be labeled "tumor".}
-
 \item{cut_n_groups}{The number of groups to cut the tree into.}
 
 \item{cut_dist}{The distance to cut the tree at. This can be derived from the
 y-axis of plotting the output from get_snp_tree().}
+
+\item{control_group}{The name of the control group. If this is not NULL,
+then the group containing the control will be labeled "normal" and the
+other group(s) will be labeled "tumor".}
 }
 \value{
 A Seurat object with a new columns in the metadata slot called

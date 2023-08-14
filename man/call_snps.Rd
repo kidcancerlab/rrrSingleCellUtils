@@ -10,6 +10,7 @@ call_snps(
   sam_dir,
   bcf_dir,
   slurm_base = paste0(getwd(), "/slurmOut_call-\%j.txt"),
+  sbatch_base = "sbatch_",
   account = "gdrobertslab",
   ploidy,
   ref_fasta,
