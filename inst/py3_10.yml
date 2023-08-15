@@ -1,4 +1,4 @@
-name: py3_10
+name: rrrSingleCellUtils_py3_10
 channels:
   - bioconda
   - r
@@ -90,4 +90,3 @@ dependencies:
     - pyyaml==6.0
     - pyzmq==25.0.1
     - tornado==6.2
-prefix: /home/gdrobertslab/mvc002/.conda/envs/py3_10

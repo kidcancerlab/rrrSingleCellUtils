@@ -24,7 +24,7 @@
 get_snp_tree <- function(cellid_bam_table,
                          temp_dir = tempdir(),
                          slurm_base = paste0(getwd(), "/slurmOut"),
-                         sbatch_base = "sbatch_",
+                         sbatch_base = paste0(temp_dir, "/sbatch_"),
                          account = "gdrobertslab",
                          ploidy,
                          ref_fasta,
@@ -33,11 +33,11 @@ get_snp_tree <- function(cellid_bam_table,
                          cleanup = TRUE) {
     check_cellid_bam_table(cellid_bam_table)
 
-    # Check that conda environment py3_10 exists, and if not, create it
+    # Check that conda environment rrrSingleCellUtils_py3_10 exists, and if not, create it
     ## Check that the conda command is available
     check_cmd("conda")
-    if (system("conda env list | grep py3_10", ignore.stdout = TRUE) != 0) {
-        message("Creating required conda environment py3_10")
+    if (system("conda env list | grep rrrSingleCellUtils_py3_10", ignore.stdout = TRUE) != 0) {
+        message("Creating required conda environment rrrSingleCellUtils_py3_10")
         system("conda env create -f environment.yml py3_10.yml")
     }
 
@@ -275,7 +275,7 @@ call_snps <- function(cellid_bam_table,
                             warning_label = "Bam splitting",
                             submit = submit,
                             file_dir = ".",
-                            temp_prefix = sbatch_base)
+                            temp_prefix = paste0(sbatch_base, "split_"))
 
     ploidy <- pick_ploidy(ploidy)
 
@@ -304,7 +304,8 @@ call_snps <- function(cellid_bam_table,
                             "snp_call_mpileup_template.job",
                             warning_label = "Calling SNPs",
                             submit = submit,
-                            file_dir = ".")
+                            file_dir = ".",
+                            temp_prefix = paste0(sbatch_base, "mpileup_"))
 
     # Delete contents of the split_sams folder
     if (cleanup) {
@@ -385,7 +386,7 @@ merge_bcfs <- function(bcf_in_dir,
                             warning_label = "Calling SNPs",
                             submit = submit,
                             file_dir = ".",
-                            temp_prefix = sbatch_base)
+                            temp_prefix = paste0(sbatch_base, "merge_"))
 
     # remove individual bcf files
     if (cleanup) {
@@ -400,6 +401,7 @@ merge_bcfs <- function(bcf_in_dir,
 #'
 #' @return A hclust object
 calc_tree <- function(matrix) {
+
     # read in the distance matrix and make a tree
     dist_tree <-
         read.table(matrix,
