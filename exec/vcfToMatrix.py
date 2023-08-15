@@ -11,13 +11,17 @@ np.seterr(invalid='ignore')
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--vcf',
                     type=str,
-                    default='test.bcf',
+                    default='/gpfs0/scratch/mvc002/testMouse/merged_B6_Balb_10.bcf',
                     help='VCF file with multiple samples as columns')
 parser.add_argument('--out_base',
                     '-o',
                     type = str,
                     default = 'out_dist',
                     help='output tsv file name')
+parser.add_argument('--max_prop_missing',
+                    type = float,
+                    default = 1.0,
+                    help='max proportion of missing data allowed at a single locus')
 parser.add_argument('--verbose',
                     action='store_true',
                     help='print out extra information')
@@ -55,13 +59,18 @@ def process_line(vcf_line):
     vcf_list = [re.sub(':.+', '', x) for x in vcf_line.strip().split('\t')]
     # Kick out any SNP with multiple alt calls
     if ',' not in vcf_list[4]:
-        # replace all instances of dist_key_dict keys with the values
-        vcf_list = [dist_key_dict.get(ele, np.nan) for ele in vcf_list[9:]]
-        dist = abs(np.array(vcf_list) - np.array(vcf_list).reshape(-1, 1))
-        # Need to multiply by 2 since we're comparing two alleles at each locus
-        count = (np.isnan(dist) == False).astype('float64') * 2
+        # Count the number of missing calls
+        prop_missing = vcf_list[9:].count('./.') / len(vcf_list[9:])
+        if prop_missing <= args.max_prop_missing:
+            # replace all instances of dist_key_dict keys with the values
+            vcf_list = [dist_key_dict.get(ele, np.nan) for ele in vcf_list[9:]]
+            dist = abs(np.array(vcf_list) - np.array(vcf_list).reshape(-1, 1))
+            # Need to multiply by 2 since we're comparing two alleles at each locus
+            count = (np.isnan(dist) == False).astype('float64') * 2
 
-        return(np.array([np.nan_to_num(dist, 0), count]))
+            return(np.array([np.nan_to_num(dist, 0), count]))
+        else:
+            return(empty_array)
     else:
         return(empty_array)
 
