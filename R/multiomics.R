@@ -37,8 +37,8 @@ merge_atac <- function(peak_beds,
 
     # filter out peaks that are too small or too large
     reduced_peaks <- reduced_peaks[
-        BiocGenerics::width(reduced_peaks) >= min_peak_width &
-        BiocGenerics::width(reduced_peaks) <= max_peak_width
+        reduced_peaks@ranges[1:3]@width >= min_peak_width &
+        reduced_peaks@ranges[1:3]@width <= max_peak_width
                                 ]
 
     # Function to get fragment files, count and make Seurat object
@@ -273,7 +273,7 @@ process_seurat_atac <- function(sobject,
 #     sys_cmd <- paste0("python scripts/calcFragSize.py --fragFile ",
 #                       )
 #     if (verbose) {
-        
+
 #     }
 # }
 # for sample in S0150 S0152 S0166 S0167 S0168 S0169 S0170
