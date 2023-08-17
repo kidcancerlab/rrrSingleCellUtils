@@ -103,7 +103,10 @@ annotate_atac <- function(sobject, gtf) {
         read.table(text = ., header = TRUE) %>%
         dplyr::full_join(tibble::tibble(tx_name = annotations$tx_name,
                                         tx_id = annotations$tx_id)) %>%
-        dplyr::arrange(tx_id)
+        dplyr::arrange(tx_id) %>%
+        dplyr::filter(tx_name %in% annotations@elementMetadata$tx_name)
+        # the filter accounts for any transcripts that are dropped while
+        # creating the "annotations" object
 
     # "This should all be TRUE"
     if (all(gene_info$tx_name == annotations$tx_name)) {
