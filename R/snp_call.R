@@ -16,6 +16,10 @@
 #'  a cell_group to be included in the tree.
 #' @param submit Whether to submit the sbatch jobs to the cluster or not.
 #'
+#' @details for ploidy, GRCh37 is hg19, GRCh38 is hg38, X, Y, 1, mm10_hg19 is
+#'  our mixed species reference with species prefixes on chromosomes, mm10 is
+#'  mm10
+#'
 #' @return A hclust tree
 #' @export
 #'

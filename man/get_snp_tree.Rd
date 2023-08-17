@@ -50,6 +50,11 @@ A hclust tree
 \description{
 Generate a tree using SNPs derived from single cell clusters
 }
+\details{
+for ploidy, GRCh37 is hg19, GRCh38 is hg38, X, Y, 1, mm10_hg19 is
+ our mixed species reference with species prefixes on chromosomes, mm10 is
+ mm10
+}
 \examples{
 \dontrun{
 placeholder for now
