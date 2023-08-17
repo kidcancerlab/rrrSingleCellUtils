@@ -13,6 +13,7 @@ get_snp_tree(
   ploidy,
   ref_fasta,
   min_depth = 5,
+  min_sites_covered = 500,
   submit = TRUE,
   cleanup = TRUE
 )
@@ -37,6 +38,9 @@ the ploidy.}
 \item{ref_fasta}{The path to the reference fasta file.}
 
 \item{min_depth}{The minimum depth to use when calling SNPs.}
+
+\item{min_sites_covered}{The minimum number of sites that must be covered by
+a cell_group to be included in the tree.}
 
 \item{submit}{Whether to submit the sbatch jobs to the cluster or not.}
 }

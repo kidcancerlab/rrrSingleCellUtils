@@ -4,10 +4,15 @@
 \alias{calc_tree}
 \title{Calculate a tree from a distance matrix output from merge_bcfs()}
 \usage{
-calc_tree(matrix)
+calc_tree(matrix_file, counts_file, min_sites = 500)
 }
 \arguments{
-\item{matrix}{The path to the distance matrix output from merge_bcfs()}
+\item{matrix_file}{The path to the distance matrix output from merge_bcfs().}
+
+\item{counts_file}{The path to the counts file output from merge_bcfs().}
+
+\item{min_sites}{The minimum number of sites that must be covered by a
+cell_group to be included in the tree.}
 }
 \value{
 A hclust object

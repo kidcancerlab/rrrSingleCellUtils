@@ -81,7 +81,8 @@ use_sbatch_template <- function(replace_tibble,
 check_cmd <- function(cmd) {
     if (Sys.which(cmd) == "") {
         stop(paste(cmd,
-                   "command not found, do you need to load a module?"))
+                   "command not found, do you need to load a module or add",
+                   " this to your PATH?"))
     }
     return(0)
 }

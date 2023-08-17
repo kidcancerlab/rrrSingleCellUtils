@@ -12,6 +12,8 @@
 #'  the ploidy.
 #' @param ref_fasta The path to the reference fasta file.
 #' @param min_depth The minimum depth to use when calling SNPs.
+#' @param min_sites_covered The minimum number of sites that must be covered by
+#'  a cell_group to be included in the tree.
 #' @param submit Whether to submit the sbatch jobs to the cluster or not.
 #'
 #' @return A hclust tree
@@ -24,22 +26,21 @@
 get_snp_tree <- function(cellid_bam_table,
                          temp_dir = tempdir(),
                          slurm_base = paste0(getwd(), "/slurmOut"),
-                         sbatch_base = paste0(temp_dir, "/sbatch_"),
+                         sbatch_base = "sbatch_",
                          account = "gdrobertslab",
                          ploidy,
                          ref_fasta,
                          min_depth = 5,
+                         min_sites_covered = 500,
                          submit = TRUE,
                          cleanup = TRUE) {
     check_cellid_bam_table(cellid_bam_table)
 
-    # Check that conda environment rrrSingleCellUtils_py3_10 exists, and if not, create it
     ## Check that the conda command is available
     check_cmd("conda")
-    if (system("conda env list | grep rrrSingleCellUtils_py3_10", ignore.stdout = TRUE) != 0) {
-        message("Creating required conda environment rrrSingleCellUtils_py3_10")
-        system("conda env create -f environment.yml py3_10.yml")
-    }
+    # Check that conda environment rrrSingleCellUtils_py3_10 exists, and if not,
+    # create it
+    confirm_conda_env()
 
     # Check that temp_dir exists, and if not, create it
     if (!dir.exists(temp_dir)) {
@@ -96,7 +97,10 @@ get_snp_tree <- function(cellid_bam_table,
                cleanup = cleanup)
 
     # Read in the distance matrix and make a tree
-    dist_tree <- calc_tree(matrix = paste0(temp_dir, "/distances.tsv"))
+    dist_tree <-
+        calc_tree(matrix_file = paste0(temp_dir, "/distances.tsv"),
+                  counts_file = paste0(temp_dir, "/distances_tot_count.tsv"),
+                  min_sites = min_sites_covered)
 
     return(dist_tree)
 }
@@ -160,6 +164,20 @@ label_tree_groups <- function(sobject,
     return(sobj_out)
 }
 
+#' Confirm conda environment and create it if it doesn't exist
+confirm_conda_env <- function() {
+    if (system("conda env list | grep rrrSingleCellUtils_py3_10",
+               ignore.stdout = TRUE) != 0) {
+        conda_yml_file <-
+            paste0(find.package("rrrSingleCellUtils"),
+                   "/py3_10.yml")
+        message("Creating required conda environment rrrSingleCellUtils_py3_10")
+        system(paste0("conda env create -n rrrSingleCellUtils_py3_10 --file ",
+                      conda_yml_file))
+    }
+    return()
+}
+
 #' Check that the cellid_bam_table input is of the proper format
 #'
 #' @param cellid_bam_table the cellid_bam_table to check
@@ -214,7 +232,7 @@ check_cellid_bam_table <- function(cellid_bam_table) {
 #' @param bam_to_use The bam file to use
 #' @param sam_dir The directory to write the sam files to
 #' @param bcf_dir The directory to write the bcf files to
-#' @param slurm_base The base name for the slurm output files
+#' @param slurm_base The base name for the slurm output files. Don't include path
 #' @param account The hpc account to use in slurm scripts
 #' @param ploidy The ploidy of the organism. See details for more information
 #' @param ref_fasta The reference fasta file to use
@@ -397,14 +415,31 @@ merge_bcfs <- function(bcf_in_dir,
 
 #' Calculate a tree from a distance matrix output from merge_bcfs()
 #'
-#' @param matrix The path to the distance matrix output from merge_bcfs()
+#' @param matrix_file The path to the distance matrix output from merge_bcfs().
+#' @param counts_file The path to the counts file output from merge_bcfs().
+#' @param min_sites The minimum number of sites that must be covered by a
+#'  cell_group to be included in the tree.
+#'
+#' @export
 #'
 #' @return A hclust object
-calc_tree <- function(matrix) {
+calc_tree <- function(matrix_file,
+                      counts_file,
+                      min_sites = 500) {
+    # filter out any clusters with too few SNP sites
+    high_counts <-
+        read.table(counts_file,
+                   header = TRUE,
+                   row.names = 1,
+                   sep = "\t") %>%
+        as.matrix() %>%
+        diag() %>%
+        purrr::keep(~.x > min_sites) %>%
+        names()
 
     # read in the distance matrix and make a tree
     dist_tree <-
-        read.table(matrix,
+        read.table(matrix_file,
                    header = TRUE,
                    row.names = 1,
                    sep = "\t") %>%
@@ -412,7 +447,9 @@ calc_tree <- function(matrix) {
         tidyr::pivot_longer(names_to = "sample_2",
                             values_to = "snp_dist",
                             -sample_1) %>%
-        dplyr::filter(!is.na(snp_dist)) %>%
+        dplyr::filter(!is.na(snp_dist) &
+                      sample_1 %in% high_counts &
+                      sample_2 %in% high_counts) %>%
         dplyr::group_by(sample_1) %>%
         dplyr::mutate(group_count = dplyr::n()) %>%
         dplyr::filter(group_count > 1) %>%

@@ -28,7 +28,7 @@ call_snps(
 
 \item{bcf_dir}{The directory to write the bcf files to}
 
-\item{slurm_base}{The base name for the slurm output files}
+\item{slurm_base}{The base name for the slurm output files. Don't include path}
 
 \item{account}{The hpc account to use in slurm scripts}
 
