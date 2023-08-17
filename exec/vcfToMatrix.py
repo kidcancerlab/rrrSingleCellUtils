@@ -10,29 +10,29 @@ np.seterr(invalid='ignore')
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--vcf',
-                    type=str,
-                    default='/gpfs0/scratch/mvc002/testMouse/merged_B6_Balb_10.bcf',
-                    help='VCF file with multiple samples as columns')
+                    type = str,
+                    default=  '/gpfs0/scratch/mvc002/testMouse/merged_B6_Balb_10.bcf',
+                    help = 'VCF file with multiple samples as columns')
 parser.add_argument('--out_base',
                     '-o',
                     type = str,
                     default = 'out_dist',
-                    help='output tsv file name')
+                    help = 'output tsv file name')
 parser.add_argument('--max_prop_missing',
                     type = float,
                     default = 1.0,
-                    help='max proportion of missing data allowed at a single locus')
+                    help = 'max proportion of missing data allowed at a single locus')
 parser.add_argument('--verbose',
-                    action='store_true',
-                    help='print out extra information')
+                    action = 'store_true',
+                    help = 'print out extra information')
 parser.add_argument('--trim_path',
-                    action='store_true',
-                    help='trim path from sample names')
+                    action = 'store_true',
+                    help = 'trim path from sample names')
 parser.add_argument('--processes',
                     '-p',
                     type = int,
-                    default=1,
-                    help='number of processes to use for parallel processing')
+                    default = 1,
+                    help = 'number of processes to use for parallel processing')
 
 args = parser.parse_args()
 
