@@ -47,21 +47,21 @@ samtools view \
         --threads 3 \
         --max-depth 8000 \
         -a FORMAT/DP \
-        -Ou \
+        -O u \
         -f placeholder_ref_fasta \
         -s "${orig_samp_name} ${label}" \
         - \
     | bcftools call \
         --threads 3 \
         -f GQ \
-        -Ou \
+        -O u \
         -m \
         placeholder_ploidy \
     | bcftools filter \
         --threads 3 \
         -g 10 \
         -e "FORMAT/DP<placeholder_min_depth" \
-        -Ou \
+        -O u \
     | bcftools view \
         --threads 3 \
         --exclude-types indels \
