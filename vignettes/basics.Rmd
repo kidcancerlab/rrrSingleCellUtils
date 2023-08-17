@@ -47,6 +47,13 @@ cell_assign <-
                                    imm_cells$label.main,
                                    blueprint$label.main))
 
+two_sobj$cell_type <-
+    cell_assign$labels
+
+two_sobj$cell_score <-
+    cell_assign$scores %>%
+    apply(MARGIN = 1, function(x) max(x, na.rm = TRUE))
+
 control_celltypes <- c("Monocytes", "Macrophages")
 
 # Figure out which clusters are more than 50% control celltypes
@@ -72,9 +79,18 @@ snp_tree <-
                  ploidy = "GRCh37",
                  ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-human/fasta/genome.fa",
                  min_depth = 5,
-                 temp_dir = "/gpfs0/scratch/mvc002")
+                 temp_dir = "/gpfs0/scratch/mvc002/test_two_sobj",
+                 sbatch_base = "two_sobj",
+                 slurm_base = "/gpfs0/scratch/mvc002/test_two_sobj/two_sobj",
+                 min_sites_covered = 1000,
+                 cleanup = FALSE)
 
+png("output/figures/testTwoSobjOutput1.png",
+    width = 2500,
+    height = 2500,
+    res = 300)
 plot(snp_tree)
+dev.off()
 
 cut_n_groups <- 2
 
@@ -82,13 +98,18 @@ new_two_sobj <-
     label_tree_groups(sobject = two_sobj,
                       dist_tree = snp_tree,
                       group_col_name = "used_clusters",
-                      control_group = control_clusters,
+                      normal_groups = normal_clusters,
                       cut_n_groups = cut_n_groups)
 
+png("testTwoSobjOutput2.png",
+    width = 7000,
+    height = 2500,
+    res = 300)
 DimPlot(new_two_sobj,
-        group.by = c("used_clusters",
-                     "snp_tumor_call",
-                     "cell_type")) +
+        group.by = c("snp_tumor_call",
+                     "cell_type"),
+        label = TRUE,
+        repel = TRUE) +
     NoLegend()
-
+dev.off()
 ```
