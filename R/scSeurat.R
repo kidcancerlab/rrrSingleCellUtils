@@ -1,6 +1,7 @@
 #' Load 10X data
 #'
 #' @param path_10x Path to 10X RNAseq data "filtered_feature_bc_matrix" folder
+#' @param h5_file Path to 10X h5 file
 #' @param min_cells Passed to CreateSeuratObject: Include features detected in
 #'     at least this many cells. Will subset the counts matrix as well. To
 #'     reintroduce excluded features, create a new object with a lower cutoff.
@@ -11,7 +12,7 @@
 #'     (eg, "^hg19-MT-" or "^hg19-MT-|^mm10-mt-")
 #' @param species_pattern Pattern used to select only reads from a single
 #'     species (eg, "^mm10-" or "^hg19-")
-#' @param exp_type Experiment type (eg, "GEX", "ATAC", "GEX+ATAC")
+#' @param exp_type Experiment type (one of "GEX", "ATAC" or "GEX+ATAC")
 #' @param violin_plot If TRUE (default), produces a violin plot
 #' @param remove_species_pattern Specifies if want to remove species_pattern
 #'     prefix from gene names. If TRUE (default), removes species_pattern
@@ -25,7 +26,11 @@
 #' \dontrun{
 #' seurat_obj <- tenXLoadQC("path/to/10X/data/", species_pattern = "^mm9-")
 #' }
-tenx_load_qc <- function(path_10x,
+tenx_load_qc <- function(path_10x = "",
+                         h5_file = "",
+                         frag_file = stringr::str_replace(h5_file,
+                                                          "filtered_feature_bc_matrix.h5",
+                                                          "atac_fragments.tsv.gz"),
                          min_cells = 5,
                          min_features = 800,
                          mt_pattern = "^mt-|^MT-",
@@ -35,112 +40,108 @@ tenx_load_qc <- function(path_10x,
                          violin_plot = TRUE,
                          sample_name = path_10x) {
 
+    check_load_inputs(remove_species_pattern,
+                      species_pattern,
+                      mt_pattern,
+                      path_10x,
+                      h5_file,
+                      exp_type)
 
-    # If removing species names and species pattern is in mt_pattern
-    if (remove_species_pattern == TRUE &
-        grepl(species_pattern %>% stringr::str_remove_all("\\^"),
-              mt_pattern) &
-        species_pattern != "") {
-        warning("\nDon't put species prefix in mt_pattern when
-                remove_species_pattern == TRUE\n",
-                immediate. = TRUE)
-        stop()
+    # Load in the data using either the 5h file or the 10x folder
+    if (h5_file != "") {
+        raw_data <- suppressWarnings(Seurat::Read10X_h5(h5_file))
+        if ("Peaks" %in% names(raw_data)) {
+            atac_raw_data <- raw_data$Peaks
+        }
+        if ("Gene Expression" %in% names(raw_data)) {
+            rna_raw_data <- raw_data$`Gene Expression`
+        } else {
+            rna_raw_data <- raw_data
+        }
+    } else {
+        rna_raw_data <- Seurat::Read10X(path_10x)
+        if ("Gene Expression" %in% names(rna_raw_data)) {
+            rna_raw_data <- rna_raw_data[["Gene Expression"]]
+        }
     }
 
-    # If not removing species names and species pattern not in mt_pattern
-    if (remove_species_pattern == FALSE &
-        grepl(species_pattern %>% stringr::str_remove_all("\\^"),
-            mt_pattern) == FALSE) {
-        warning("\nMake sure your mt_pattern have species prefixes in it when
-                remove_species_pattern == FALSE
-                mt_pattern should look like: ^hg19-MT-\n",
-                immediate. = TRUE)
-        stop()
+    if (exp_type == "GEX+ATAC" && min_features != 0) {
+        min_features <- 0
+        message("Setting min_features to 0 to load both GEX and ATAC data.\n",
+                "Carefully filter your data downstream.")
     }
 
     if (grepl("GEX", exp_type)) {
-        raw_data <- Seurat::Read10X(path_10x)
-        if ("Gene Expression" %in% names(raw_data)) {
-            raw_data <- raw_data[["Gene Expression"]]
-            message("Loading gene expression data from multiomics dataset")
-        }
-
-        if (species_pattern != "") {
-            raw_data <-
-                raw_data[grep(pattern = gsub("-", "_", species_pattern),
-                              raw_data@Dimnames[[1]]), ]
-            if (remove_species_pattern == TRUE) {
-                raw_data@Dimnames[[1]] <-
-                    sub(gsub("-",
-                             "_",
-                             species_pattern),
-                        "",
-                        raw_data@Dimnames[[1]])
-            }
-        }
+        gex_orig_cells <- nrow(rna_raw_data)
+        gex_first_ten_genes <- head(rownames(rna_raw_data, 10))
+        # subset the data to only include the species of interest
+        rna_raw_data <-
+            filter_raw_data(rna_raw_data,
+                            species_pattern,
+                            remove_species_pattern)
 
         seurat <-
-            Seurat::CreateSeuratObject(raw_data,
+            Seurat::CreateSeuratObject(rna_raw_data,
                                        min.cells = min_cells,
-                                       min.features = min_features)
+                                       min.features = min_features) %>%
+            Seurat::PercentageFeatureSet(pattern = gsub("_", "-", mt_pattern),
+                                         col.name = "percent.mt")
+            # Need to change all underscores to dashes due to CreateSeuratObject
+            # doing the same
 
-    # Need to change all underscores to dashes due to CreateSeuratObject doing
-    # the same
-    seurat <-
-        Seurat::PercentageFeatureSet(seurat,
-                                     pattern = gsub("_", "-", mt_pattern),
-                                     col.name = "percent.mt")
-
-    if (sum(seurat$percent.mt) == 0) {
-        warning("No mitochondrial reads found!")
-        warning("If you have a sample aligned to a mixed reference, make sure that
-                your species_pattern and mt_pattern arguments are appropriate.")
+        if (sum(seurat$percent.mt, na.rm = TRUE) == 0) {
+            warning("No mitochondrial reads found!")
+            warning("If you have a sample aligned to a mixed reference, make ",
+                    "sure that your species_pattern and mt_pattern arguments ",
+                    "are appropriate.")
+            print(paste("Potential mitochondrial genes:",
+                        rownames(seurat)[grep(rownames(seurat),
+                                         pattern = "mt",
+                                         ignore.case = TRUE)]))
         }
     }
 
     if (grepl("ATAC", exp_type)) {
-        h5_file <- paste0(path_10x, "/filtered_feature_bc_matrix.h5")
-        frag_file <- paste0(path_10x, "/atac_fragments.tsv.gz")
-        raw_data <- Seurat::Read10X_h5(h5_file)$Peaks
-
-        if (species_pattern != "") {
-            raw_data <-
-                raw_data[grep(pattern = gsub("-", "_", species_pattern),
-                              raw_data@Dimnames[[1]]), ]
-            if (remove_species_pattern) {
-                raw_data@Dimnames[[1]] <-
-                    sub(gsub("-",
-                             "_",
-                             species_pattern),
-                        "",
-                        raw_data@Dimnames[[1]])
-            }
-        }
+        # subset the data to only include the species of interest
+        atac_raw_data <-
+            filter_raw_data(atac_raw_data,
+                            species_pattern,
+                            remove_species_pattern)
 
         if (exp_type == "ATAC") {
             seurat <-
-                Signac::CreateChromatinAssay(counts = raw_data,
+                Signac::CreateChromatinAssay(counts = atac_raw_data,
                                              sep = c(":", "-"),
                                              fragments = frag_file,
                                              min.cells = min_cells) %>%
                 Seurat::CreateSeuratObject(assay = "ATAC")
         } else if (exp_type == "GEX+ATAC") {
             seurat[["ATAC"]] <-
-                Signac::CreateChromatinAssay(counts = raw_data,
+                Signac::CreateChromatinAssay(counts = atac_raw_data,
                                              sep = c(":", "-"),
                                              fragments = frag_file,
                                              min.cells = min_cells)
+        } else {
+            stop("This shouldn't be possible. I have no idea how you got here.")
         }
 
         seurat <-
             Seurat::PercentageFeatureSet(seurat,
                                          pattern = gsub("_", "-", mt_pattern),
-                                         col.name = "percent.mt",
+                                         col.name = "percent_mt_atac",
                                          assay = "ATAC")
 
     }
 
-    if (violin_plot) {
+    if (nrow(seurat) == 0) {
+        stop("!No data left in object! Check your species_pattern argument. ",
+              "Before filtering based on species_pattern there were ",
+              gex_orig_cells,
+              " cells and the first genes were ",
+              gex_first_ten_genes)
+    }
+
+    if (violin_plot && grepl("GEX", exp_type)) {
         print(Seurat::VlnPlot(seurat,
                             features = c("nFeature_RNA",
                                          "nCount_RNA",
@@ -151,6 +152,86 @@ tenx_load_qc <- function(path_10x,
     }
 
     return(seurat)
+}
+
+check_load_inputs <- function(remove_species_pattern,
+                              species_pattern,
+                              mt_pattern,
+                              path_10x,
+                              h5_file,
+                              exp_type) {
+
+    # If removing species names and species pattern is in mt_pattern
+    if (remove_species_pattern == TRUE &&
+        grepl(species_pattern %>% stringr::str_remove_all("\\^"),
+              mt_pattern) &&
+        species_pattern != "") {
+        warning("\nDon't put species prefix in mt_pattern when
+                remove_species_pattern == TRUE\n",
+                immediate. = TRUE)
+        stop()
+    }
+
+    # If not removing species names and species pattern not in mt_pattern
+    if (remove_species_pattern == FALSE &&
+        grepl(species_pattern %>% stringr::str_remove_all("\\^"),
+            mt_pattern) == FALSE) {
+        warning("\nMake sure your mt_pattern have species prefixes in it when
+                remove_species_pattern == FALSE
+                mt_pattern should look like: ^hg19-MT-\n",
+                immediate. = TRUE)
+        stop()
+    }
+
+    if (!exp_type %in% c("GEX", "ATAC", "GEX+ATAC")) {
+        warning("\nexp_type must be one of 'GEX', 'ATAC', or 'GEX+ATAC'\n",
+                immediate. = TRUE)
+        stop()
+    }
+
+    if (grepl("ATAC", exp_type) && h5_file == "") {
+        warning("\nYou need to specify a h5_file for ATAC data\n",
+                immediate. = TRUE)
+        stop()
+    }
+
+    if (path_10x != "" && h5_file != "") {
+        warning("\nYou can't specify both a path_10x and h5_file\n",
+                immediate. = TRUE)
+        stop()
+    }
+
+    if (h5_file != "") {
+        if (suppressWarnings(try(system("which h5pfc",
+                                        intern = TRUE,
+                                        ignore.stderr = TRUE))) %>%
+                length() == 0) {
+            warning("\nYou need to have h5pfc installed to use the h5_file ",
+                    "argument. Perhaps ml load HDF5 before you start R?\n",
+                    immediate. = TRUE)
+            stop()
+        }
+    }
+}
+
+filter_raw_data <- function(raw_data_matrix,
+                            species_pattern,
+                            remove_species_pattern) {
+    if (species_pattern != "") {
+        raw_data_matrix <-
+            raw_data_matrix[grep(pattern = gsub("-", "_", species_pattern),
+                            rownames(raw_data_matrix)), ]
+        # Then remove the species_pattern prefix from the peak names
+        if (remove_species_pattern) {
+            rownames(raw_data_matrix) <-
+                sub(gsub("-",
+                            "_",
+                            species_pattern),
+                    "",
+                    rownames(raw_data_matrix))
+        }
+    }
+    return(raw_data_matrix)
 }
 
 #' Extract cellecta barcode information from a sam or bam file

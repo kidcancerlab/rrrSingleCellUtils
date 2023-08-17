@@ -28,6 +28,70 @@ process_raw_data("/home/gdrobertslab/lab/BCLs/R0059/sampleInfoSheet_R0059.txt",
 # Enter password when prompted
 ```
 
+# Loading in raw data
+## Single species 3' GEX data
+```{r loadRaw, eval=TRUE}
+gex_3prime_data <-
+    tenx_load_qc(path_10x = "/home/gdrobertslab/lab/Counts/S0130/filtered_feature_bc_matrix")
+
+gex_3prime_data
+```
+
+## Dual species 3' GEX data, keeping both species
+```{r loadRawDual, eval=TRUE}
+gex_3prime_data_2_sp <-
+    tenx_load_qc(path_10x = "/home/gdrobertslab/lab/Counts/S0148/filtered_feature_bc_matrix",
+                 mt_pattern = "^hg19-MT-|^mm10-mt-")
+
+gex_3prime_data_2_sp
+```
+
+## Dual species 3' GEX data, keeping both species, but loading from h5 file
+```{r loadRawDualH5, eval=TRUE}
+gex_3prime_data_2_sp_h5 <-
+    tenx_load_qc(h5_file = "/home/gdrobertslab/lab/Counts/S0148/filtered_feature_bc_matrix.h5",
+                 mt_pattern = "^hg19-MT-|^mm10-mt-")
+
+gex_3prime_data_2_sp_h5
+```
+
+## Dual species 3' GEX data, keeping only human
+```{r loadRawDualHuman, eval=TRUE}
+gex_3prime_data_human <-
+    tenx_load_qc(path_10x = "/home/gdrobertslab/lab/Counts/S0148/filtered_feature_bc_matrix",
+                 species_pattern = "^hg19-")
+
+gex_3prime_data_human
+```
+
+## Multiomics GEX data with two species
+```{r loadRawMultiGex, eval=TRUE}
+multiomics_gex_data <-
+    tenx_load_qc(path_10x = "/home/gdrobertslab/lab/Counts/S0150/filtered_feature_bc_matrix",
+                 mt_pattern = "^hg19-MT-|^mm10-mt-")
+
+multiomics_gex_data
+```
+
+## Multiomics ATAC data with two species
+```{r loadRawMultiAtac, eval=TRUE}
+multiomics_atac_data <-
+    tenx_load_qc(h5_file = "/home/gdrobertslab/lab/Counts/S0150/filtered_feature_bc_matrix.h5",
+                 mt_pattern = "^hg19-MT-|^mm10-mt-",
+                 exp_type = "ATAC")
+    multiomics_atac_data
+```
+
+## Multiomics data both GEX and ATAC with two species
+```{r loadRawMultiBoth, eval=TRUE}
+multiomics_both_data <-
+    tenx_load_qc(h5_file = "/home/gdrobertslab/lab/Counts/S0150/filtered_feature_bc_matrix.h5",
+                 mt_pattern = "^hg19-MT-|^mm10-mt-",
+                 exp_type = "GEX+ATAC")
+
+multiomics_both_data
+```
+
 ## Processing a Seurat object
 Run the standard processing steps in a single command
 ```{r eval=TRUE}
