@@ -179,7 +179,7 @@ find_ligands <- function(sobject, gset, receiver, senders, gset_spec = "human",
          either `loose` or `strict`, the default being `loose`.")
   }
 
-  if (purrr::is_empty(potential_ligands)) {
+  if (length(potential_ligands) == 0) {
     stop("No potential receptor-ligand pairs are identified in these cells with
          these settings.")
   }
