@@ -25,7 +25,7 @@
     * Create a gene list containing putative targets of ligand activity
   * kill_cc()
     * Formerly killCC()
-    * Regress out cell cycle effects 
+    * Regress out cell cycle effects
   * plot_cc()
     * Plot the proportion of cells in each cell cycle stage
   * process_raw_data
@@ -52,15 +52,16 @@
   * Function to check sample sheet
   * For multiomics, make sure both atac and gex are present in sample input sheet, and not as "sample1_atac" and "sample1_gex", which will fail. Should be "sample1" and "sample2" for both.
   * Save shell scripts to current directory instead of tempdir
+  * Make optimize_silhouette warn if there are no dim reductions or clustering present
 
 ---
 
 ## Errors
 > If you run into any errors, please run the following commands and send the
 > output to me along with the error messages produced.
-> 
+>
 > ```
 > traceback()
 > sessionInfo()
 > ```
-> 
+>
