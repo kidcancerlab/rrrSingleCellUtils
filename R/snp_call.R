@@ -57,33 +57,34 @@ get_snp_tree <- function(cellid_bam_table,
 
     bam_files <- unique(cellid_bam_table$bam_file)
 
-    parallel::mclapply(seq_len(length(bam_files)),
-                       function(i) {
-        bam_name <- bam_files[i]
+    results <-
+        parallel::mclapply(seq_len(length(bam_files)),
+                           function(i) {
+            bam_name <- bam_files[i]
 
-        sub_cellid_bam_table <-
-            cellid_bam_table %>%
-            dplyr::filter(bam_file == bam_name) %>%
-            dplyr::select(cell_barcode, cell_group)
+            sub_cellid_bam_table <-
+                cellid_bam_table %>%
+                dplyr::filter(bam_file == bam_name) %>%
+                dplyr::select(cell_barcode, cell_group)
 
-        call_snps(cellid_bam_table = sub_cellid_bam_table,
-                  bam_to_use = bam_name,
-                  sam_dir = paste0(temp_dir,
-                                   "/split_sams_",
-                                   i,
-                                   "/"),
-                  bcf_dir = paste0(temp_dir,
-                                   "/split_bcfs_",
-                                   i,
-                                   "/"),
-                  slurm_base = paste0(slurm_base, "_mpileup-%j.out"),
-                  sbatch_base = sbatch_base,
-                  account = account,
-                  ploidy = ploidy,
-                  ref_fasta = ref_fasta,
-                  submit = submit,
-                  cleanup = cleanup)
-        },
+            call_snps(cellid_bam_table = sub_cellid_bam_table,
+                      bam_to_use = bam_name,
+                      sam_dir = paste0(temp_dir,
+                                       "/split_sams_",
+                                       i,
+                                       "/"),
+                      bcf_dir = paste0(temp_dir,
+                                       "/split_bcfs_",
+                                       i,
+                                       "/"),
+                      slurm_base = paste0(slurm_base, "_mpileup-%j.out"),
+                      sbatch_base = sbatch_base,
+                      account = account,
+                      ploidy = ploidy,
+                      ref_fasta = ref_fasta,
+                      submit = submit,
+                      cleanup = cleanup)
+            },
                         mc.cores = length(bam_files))
 
     # The output from the previous step is a folder for each bam file located
@@ -359,8 +360,10 @@ pick_ploidy <- function(ploidy) {
     } else if (ploidy %in% c("GRCh37", "GRCh38", "X", "Y", "1")) {
         return(paste("--ploidy", ploidy))
     } else {
-        stop("Ploidy argument not valid. Did you mean to pass a file path or ",
-             "spell something wrong?")
+        warning("Ploidy argument not valid. Did you mean to pass a file path or ",
+                "spell something wrong?",
+                immediate. = TRUE)
+        stop()
     }
 }
 
