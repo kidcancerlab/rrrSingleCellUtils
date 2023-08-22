@@ -33,7 +33,9 @@ Imports:
     Signac,
     GenomicFeatures,
     GenomicRanges,
-    SeuratObject
+    SeuratObject,
+    celldex,
+    SingleR
 Depends: R (>= 3.5.0), nichenetr
 Suggests:
     rmarkdown,
