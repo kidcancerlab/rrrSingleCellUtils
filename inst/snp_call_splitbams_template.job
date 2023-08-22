@@ -18,6 +18,8 @@ cell_file=placeholder_cell_file
 bam_file=placeholder_bam_file
 sam_dir=placeholder_sam_dir
 
+echo ${bam_file}
+
 ml purge
 ml load SAMtools/1.15
 
