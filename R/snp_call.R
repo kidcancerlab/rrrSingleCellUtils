@@ -272,7 +272,8 @@ call_snps <- function(cellid_bam_table,
     cell_file <- paste0(sam_dir, "/cell_ids.txt")
     readr::write_tsv(dplyr::select(cellid_bam_table, cell_barcode, cell_group),
                      file = cell_file,
-                     col_names = FALSE)
+                     col_names = FALSE,
+                     progress = FALSE)
 
     # call getBarcodesFromBam.py on the bam file and the cell id file by reading
     # in a template and substituting out the placeholder fields
