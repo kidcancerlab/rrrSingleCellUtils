@@ -7,10 +7,20 @@ cell reference are built by combining individual normal cell and immune
 cell reference. This function is derived from the SingleR and hence can use
 SingleR documentation for more help.}
 \usage{
-annotate(sobject, ref, labels, aggr.ref, label_type = "label.main", ...)
+annotate(
+  sobject,
+  species = "",
+  ref,
+  labels,
+  aggr_ref = FALSE,
+  label_type = "label.main",
+  ...
+)
 }
 \arguments{
 \item{sobject}{A seurat object that you would like to annotate}
+
+\item{species}{Takes "human" or "mouse" as a built in. Default is ""}
 
 \item{ref}{Pass "human" or "mouse" to annotate human or mouse cells
 respectively. You can pass your own ref if needed.}
@@ -19,13 +29,13 @@ respectively. You can pass your own ref if needed.}
 You an also pass the metadata column that has the labels
 you are interested.}
 
-\item{aggr.ref}{Arguments controlling the aggregation of the references
-prior to annotation, see trainSingleR.}
-
 \item{label_type}{Pick the label of interest from "label.main", "label.fine",
 and "label.ont". The default is "label.main".}
 
 \item{...}{for other options in SingleR}
+
+\item{aggr.ref}{Arguments controlling the aggregation of the references
+prior to annotation, see trainSingleR.}
 }
 \description{
 Annotate normal human and mouse cells in seurat object. Both human and mouse

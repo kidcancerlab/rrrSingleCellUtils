@@ -4,6 +4,7 @@
 #' SingleR documentation for more help.
 #'
 #' @param sobject A seurat object that you would like to annotate
+#' @param species Takes "human" or "mouse" as a built in. Default is ""
 #' @param ref Pass "human" or "mouse" to annotate human or mouse cells
 #'            respectively. You can pass your own ref if needed.
 #' @param labels Automatically built in and passed as label.main column.
@@ -16,12 +17,13 @@
 #' @param ... for other options in SingleR
 
 annotate <- function(sobject,
+                     species = "",
                      ref,
                      labels,
-                     aggr.ref,
+                     aggr_ref = FALSE,
                      label_type = "label.main",
                      ...) {
-    if (ref == "human") {
+    if (species == "human") {
         hpca <- celldex::HumanPrimaryCellAtlasData()
         huim <- celldex::MonacoImmuneData()
         hpca$label.main <-
@@ -35,7 +37,7 @@ annotate <- function(sobject,
                     huim)
         labels <- list(hpca[[label_type]],
                       huim[[label_type]])
-    } else if (ref == "mouse") {
+    } else if (species == "mouse") {
         mord <- celldex::MouseRNAseqData()
         moim <- celldex::ImmGenData()
         moim$label.main <-
@@ -48,15 +50,15 @@ annotate <- function(sobject,
                        moim[[label_type]])
     }
     annotation <-
-        SingleR::SingleR(test = Seurat::as.SingleCellExperiment(object),
+        SingleR::SingleR(test = Seurat::as.SingleCellExperiment(sobject),
                          ref = ref,
                          labels = labels,
-                         aggr.ref = aggr.ref,
+                         aggr.ref = aggr_ref,
                          ...)
-    object$annotations <- annotation$labels
-    object$cell_scores <-
+    sobject$annotations <- annotation$labels
+    sobject$cell_scores <-
         apply(X = annotation$scores,
               MARGIN = 1,
               function(x) max(x, na.rm = TRUE))
-    return(object)
+    return(sobject)
 }
