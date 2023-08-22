@@ -3,8 +3,10 @@ import sys
 import re
 import fcntl
 import subprocess
+import time
 import itertools
 from multiprocessing import Pool
+from multiprocessing import Lock
 
 parser = argparse.ArgumentParser(description='Get sam entries for each cell barcode.')
 parser.add_argument('--cells',
@@ -25,7 +27,7 @@ parser.add_argument('--out_base',
 parser.add_argument('--sam_batch_n',
                     '-n',
                     type = int,
-                    default=1000000,
+                    default=100000000,
                     help='number of sam entries to process at a time')
 parser.add_argument('--verbose',
                     action='store_true',
@@ -45,6 +47,7 @@ chr_list = []
 header = []
 read_names = []
 all_reads = {}
+lock = Lock()
 
 ################################################################################
 ### Code
@@ -65,6 +68,7 @@ def process_lines(chrom):
         for line in subprocess.check_output(cmd_list).\
                         decode("utf-8").\
                         splitlines():
+            line = line.strip()
             if re.compile(r'CB:Z:([ATGC]+-1)').search(line) and \
                re.compile(r'CB:Z:([ATGC]+-1)').search(line).group(1) in label_dict.keys() and \
                re.compile(r'UB:Z:([ATGC]+)').search(line):
@@ -94,22 +98,32 @@ def process_lines(chrom):
 
     def print_dict(label):
         nonlocal lines_dict
-        with open(args.out_base + label + ".sam", "a") as g:
-            fcntl.flock(g, fcntl.LOCK_EX)
-            g.writelines('\n'.join(lines_dict.get(label)) + '\n')
-            fcntl.flock(g, fcntl.LOCK_UN)
+        while True:
+            try:
+                with open(args.out_base + label + ".sam", "a") as filehandle:
+                    fcntl.flock(filehandle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    filehandle.writelines('\n'.join(lines_dict.get(label)) + '\n')
+                    fcntl.flock(filehandle, fcntl.LOCK_UN)
+                    filehandle.close()
+                    break
+            except IOError:
+                print("Error: " + label + " is locked", file = sys.stderr)
+                time.sleep(1)
         return
 
     # Print out the dictionary for each barcode
-    junk = [print_dict(label) for label in list(lines_dict.keys())]
-    # print_dict(barcode)
+    with lock:
+        junk = [print_dict(label) for label in list(lines_dict.keys())]
+
     if args.verbose:
         print(chrom + " is done.", file = sys.stderr)
 
     return
 
 def write_header(label):
-    open(args.out_base + label + ".sam", "w").writelines('\n'.join(bam_header) + '\n')
+    sam_file = open(args.out_base + label + ".sam", "w")
+    sam_file.writelines('\n'.join(bam_header) + '\n')
+    sam_file.close()
 
 def add_to_label_dict(x):
     cell, label = x.split('\t')
