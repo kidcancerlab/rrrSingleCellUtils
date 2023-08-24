@@ -37,15 +37,10 @@ process_raw_data <- function(sample_info,
                              bcl_folder = "/home/gdrobertslab/lab/BCLs",
                              fastq_folder = "/home/gdrobertslab/lab/FASTQs",
                              counts_folder = "/home/gdrobertslab/lab/Counts",
-                             ref_folder = "/home/gdrobertslab/lab/GenRef") {
-
+                             ref_folder = "/home/gdrobertslab/lab/GenRef",
+                             sobj_folder = "/home/gdrobertslab/lab/SeuratObj") {
+    # Make sure sample_info has unix line endings
     system(paste0("dos2unix ", sample_info))
-
-    sample_data <- readr::read_delim(sample_info,
-                                     delim = "\t",
-                                     col_names = TRUE,
-                                     trim_ws = TRUE,
-                                     show_col_types = FALSE)
 
     # For each sample, check if files are present to show that data are already
     # 1. Processed into a saved Seurat object
@@ -53,20 +48,30 @@ process_raw_data <- function(sample_info,
     # 3. Processed through cellranger_mkfastq
     # 4. Downloaded and md5sum checked
     # Each level negates the need to do the following levels
+    sample_data <-
+        readr::read_delim(sample_info,
+                          delim = "\t",
+                          col_names = TRUE,
+                          trim_ws = TRUE,
+                          show_col_types = FALSE) %>%
+        dplyr::filter(Abort == "N")
 
-    status_tibble <-
-        tribble(~Sample_ID, ~seurat_made, ~cellranger_count, ~cellranger_mkfastq,
-                ~downloaded)
 
+    sample_data <-
+        add_data_status(sample_data,
+                        bcl_folder = bcl_folder,
+                        fastq_folder = fastq_folder,
+                        counts_folder = counts_folder,
+                        sobj_folder = sobj_folder)
 
-    project <- sample_data$Sample_Project[1]
+    # project <- sample_data$Sample_Project[1]
 
-    dest_folder <- paste(bcl_folder, "/",
-                         project,
-                         sep = "")
+    # dest_folder <- paste(bcl_folder, "/",
+    #                      project,
+    #                      sep = "")
 
     ################################ This needs to change
-    exp_type <- sample_data$exp_type[1]
+    #exp_type <- sample_data$exp_type[1]
 
     # Sometimes we're going to have multiple download folders and multiple
     # experiment types (such as multiomics) that need to be handled separately
@@ -74,7 +79,8 @@ process_raw_data <- function(sample_info,
     # This code is going to assume that each download folder has a single exp_type
     temp_sample_info_sheets <- list()
 
-    link_exp_type <- sample_data %>%
+    link_exp_type <-
+        sample_data %>%
         dplyr::pull(link_folder) %>%
         unique()
 
@@ -644,4 +650,56 @@ cellranger_count <- function(sample_info,
   if (return_val != 0) {
     stop("Cellranger count sbatch submission failed. Error code ", return_val)
   }
+}
+
+#' Add columns to sample_info to show if data are downloaded, processed, etc.
+#'
+#' @param sample_info File with sample information
+#' @param bcl_folder Path for BCL files
+#' @param fastq_folder Path for fastq files
+#' @param counts_folder Path for counts files
+#' @param sobj_folder Path for Seurat objects
+#'
+#' @keywords internal
+#'
+#' @return sample_info with additional columns
+add_data_status <- function(sample_info,
+                            bcl_folder,
+                            fastq_folder,
+                            counts_folder,
+                            sobj_folder) {
+    # Check if Seurat object exists
+    sample_info$sobj_made <-
+        file.exists(paste0(sobj_folder, "/",
+                            sample_info$Sample_ID,
+                            ".rds"))
+
+    # Check if counts data exists
+    # Need this to be true even if sobj_made is TRUE
+    sample_info$cellranger_count_run <-
+        file.exists(paste0(counts_folder, "/",
+                           sample_info$Sample_ID, "/",
+                           "filtered_feature_bc_matrix/barcodes.tsv.gz"))
+
+    # Check if fastq data exists or if cellranger_count is TRUE
+    sample_info$cellranger_mkfastq_run <-
+        lapply(paste0(fastq_folder, "/",
+                      sample_info$Run_ID, "/",
+                      sample_info$Run_ID, "/",
+                      sample_info$Sample_ID, "/",
+                      sample_info$Sample_ID,
+                      "*R1*fastq.gz"),
+               function(x) length(Sys.glob(x)) > 0) %>%
+        unlist() |
+        sample_info$cellranger_count
+
+    # Check if bcl data exists or if cellranger_mkfastq is TRUE
+    sample_info$data_are_downloaded <-
+        (dir.exists(paste0(bcl_folder, "/",
+                          sample_info$Run_ID, "/",
+                          sample_info$link_folder)) |
+        sample_info$cellranger_mkfastq) &
+        !is.na(sample_info$link_folder)
+
+    return(sample_info)
 }
