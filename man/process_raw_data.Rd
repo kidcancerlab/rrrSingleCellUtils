@@ -9,11 +9,13 @@ process_raw_data(
   domain = "//igmdata/igm_roberts",
   email = "",
   include_introns = FALSE,
+  plots = FALSE,
   slurm_base = paste(getwd(), "/slurmOut", sep = ""),
   bcl_folder = "/home/gdrobertslab/lab/BCLs",
   fastq_folder = "/home/gdrobertslab/lab/FASTQs",
   counts_folder = "/home/gdrobertslab/lab/Counts",
-  ref_folder = "/home/gdrobertslab/lab/GenRef"
+  ref_folder = "/home/gdrobertslab/lab/GenRef",
+  sobj_folder = "/home/gdrobertslab/lab/SeuratObj"
 )
 }
 \arguments{
@@ -24,6 +26,8 @@ process_raw_data(
 \item{email}{Email for Slurm notifications}
 
 \item{include_introns}{Should intronic reads be included in counts?}
+
+\item{plots}{Should plots be generated?}
 
 \item{slurm_base}{Base name for slurm output files}
 
@@ -46,7 +50,8 @@ This is a wrapper for several functions to get and process single
  outlines the information about each sample. The data are then downloaded
  using smbclient and then md5sum checked and untar’d.
  The data are then processed with cellranger mkfastq and either cellranger
- count or cellranger-dna cnv (depending on the exp_type argument).
+ count or cellranger-dna cnv (depending on the exp_type argument). A seurat
+ object is generated as well and filtered using auto_subset().
 }
 \examples{
 \dontrun{

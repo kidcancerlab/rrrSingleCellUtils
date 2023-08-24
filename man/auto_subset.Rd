@@ -9,7 +9,8 @@ auto_subset(
   sd_down = 1,
   sd_up = 2,
   make_plots = TRUE,
-  features = c("nCount_RNA", "nFeature_RNA")
+  features = c("nCount_RNA", "nFeature_RNA"),
+  sample_name = NULL
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ auto_subset(
 \item{make_plots}{Whether to make plots of the features before and after subsetting}
 
 \item{features}{Vector of features to use for subsetting}
+
+\item{sample_name}{Name of sample to use in plot titles}
 }
 \value{
 A Seurat object
