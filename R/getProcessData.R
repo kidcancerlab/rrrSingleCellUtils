@@ -661,41 +661,52 @@ cellranger_count <- function(sample_info,
 #'
 #' @return sample_info with additional columns
 add_data_status <- function(sample_info,
-                            bcl_folder,
-                            fastq_folder,
-                            counts_folder,
-                            sobj_folder) {
+                            bcl_folder = "/home/gdrobertslab/lab/BCLs",
+                            fastq_folder = "/home/gdrobertslab/lab/FASTQs",
+                            counts_folder = "/home/gdrobertslab/lab/Counts",
+                            sobj_folder = "/home/gdrobertslab/lab/SeuratObj") {
     # Check if Seurat object exists
-    sample_info$sobj_made <-
-        file.exists(paste0(sobj_folder, "/",
+    sample_info$make_sobj <-
+        !file.exists(paste0(sobj_folder, "/",
                             sample_info$Sample_ID,
                             ".rds"))
 
     # Check if counts data exists
-    # Need this to be true even if sobj_made is TRUE
-    sample_info$cellranger_count_run <-
-        file.exists(paste0(counts_folder, "/",
+    # Need this to be TRUE even if make_sobj is FALSE
+    sample_info$run_cellranger_count <-
+        !file.exists(paste0(counts_folder, "/",
                            sample_info$Sample_ID, "/",
                            "filtered_feature_bc_matrix/barcodes.tsv.gz"))
 
-    # Check if fastq data exists or if cellranger_count is TRUE
-    sample_info$cellranger_mkfastq_run <-
+    fastq_folder_suffix <-
+        stringr::str_replace_all(sample_info$Protocol,
+                                 c("3GEX" = "",
+                                   "CNV" = "",
+                                   "^ATAC$" = "",
+                                   "CITE" = "",
+                                   "^MATAC$" = "_A",
+                                   "MGEX" = "_R"))
+
+
+    # Check if fastq data exists or if run_cellranger_count is TRUE
+    sample_info$run_cellranger_mkfastq <-
         lapply(paste0(fastq_folder, "/",
-                      sample_info$Run_ID, "/",
-                      sample_info$Run_ID, "/",
+                      sample_info$Sample_Project,
+                      fastq_folder_suffix, "/",
+                      sample_info$Sample_Project, "/",
                       sample_info$Sample_ID, "/",
                       sample_info$Sample_ID,
                       "*R1*fastq.gz"),
                function(x) length(Sys.glob(x)) > 0) %>%
-        unlist() |
-        sample_info$cellranger_count
+        unlist() &
+        sample_info$run_cellranger_count
 
     # Check if bcl data exists or if cellranger_mkfastq is TRUE
-    sample_info$data_are_downloaded <-
+    sample_info$download_data <-
         (dir.exists(paste0(bcl_folder, "/",
-                          sample_info$Run_ID, "/",
+                          sample_info$Sample_Project, "/",
                           sample_info$link_folder)) |
-        sample_info$cellranger_mkfastq) &
+        sample_info$run_cellranger_mkfastq) &
         !is.na(sample_info$link_folder)
 
     return(sample_info)
