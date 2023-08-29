@@ -672,7 +672,7 @@ add_data_status <- function(sample_info,
     sample_info$make_sobj <-
         !file.exists(paste0(sobj_folder, "/",
                             sample_info$Sample_ID,
-                            ".rds"))
+                            ".qs"))
 
     # Check if counts data exists
     # Need this to be TRUE even if make_sobj is FALSE
@@ -683,12 +683,12 @@ add_data_status <- function(sample_info,
 
     fastq_folder_suffix <-
         stringr::str_replace_all(sample_info$Protocol,
-                                 c("3GEX" = "",
-                                   "CNV" = "",
-                                   "^ATAC$" = "",
-                                   "CITE" = "",
+                                 c("3GEX"    = "",
+                                   "CNV"     = "",
+                                   "^ATAC$"  = "",
+                                   "CITE"    = "",
                                    "^MATAC$" = "_A",
-                                   "MGEX" = "_R"))
+                                   "MGEX"    = "_R"))
 
 
     # Check if fastq data exists or if run_cellranger_count is TRUE
@@ -700,7 +700,7 @@ add_data_status <- function(sample_info,
                       sample_info$Sample_ID, "/",
                       sample_info$Sample_ID,
                       "*R1*fastq.gz"),
-               function(x) length(Sys.glob(x)) > 0) %>%
+               function(x) length(Sys.glob(x)) == 0) %>%
         unlist() &
         sample_info$run_cellranger_count
 
