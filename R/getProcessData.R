@@ -34,9 +34,9 @@ process_raw_data <- function(sample_info,
                              include_introns = FALSE,
                              plots = FALSE,
                              slurm_base = paste(getwd(), "/slurmOut", sep = ""),
-                             bcl_folder = "/home/gdrobertslab/lab/BCLs",
-                             fastq_folder = "/home/gdrobertslab/lab/FASTQs",
-                             counts_folder = "/home/gdrobertslab/lab/Counts",
+                             bcl_folder = "/home/gdrobertslab/lab/BCLs_2",
+                             fastq_folder = "/home/gdrobertslab/lab/FASTQs_2",
+                             counts_folder = "/home/gdrobertslab/lab/Counts_2",
                              ref_folder = "/home/gdrobertslab/lab/GenRef",
                              sobj_folder = "/home/gdrobertslab/lab/SeuratObj") {
     # Make sure sample_info has unix line endings
@@ -54,56 +54,36 @@ process_raw_data <- function(sample_info,
                           col_names = TRUE,
                           trim_ws = TRUE,
                           show_col_types = FALSE) %>%
-        dplyr::filter(Abort == "N")
-
-
-    sample_data <-
+        dplyr::filter(Abort == "N") %>%
         add_data_status(sample_data,
                         bcl_folder = bcl_folder,
                         fastq_folder = fastq_folder,
                         counts_folder = counts_folder,
                         sobj_folder = sobj_folder)
 
-    # project <- sample_data$Sample_Project[1]
-
-    # dest_folder <- paste(bcl_folder, "/",
-    #                      project,
-    #                      sep = "")
-
-    ################################ This needs to change
-    #exp_type <- sample_data$exp_type[1]
+    #################### Download the things that need downloaded
+    to_download <-
+        dplyr::filter(sample_data,
+                      download_data == TRUE)
 
     # Sometimes we're going to have multiple download folders and multiple
     # experiment types (such as multiomics) that need to be handled separately
     # Therefore, we loop over each link_folder
-    # This code is going to assume that each download folder has a single exp_type
-    temp_sample_info_sheets <- list()
-
-    link_exp_type <-
-        sample_data %>%
-        dplyr::pull(link_folder) %>%
-        unique()
+    #temp_sample_info_sheets <- list()
 
     pw <- getPass::getPass("Password for smbclient: ")
 
-    tar_link_df <- data.frame()
-
-    # Download each of the tar files and save a df matching link to the tar file(s)
-    for (i in seq_len(length(link_exp_type))) {
-        dl_link <- link_exp_type[i]
+    for (dl_link in unique(to_download$link_folder)) {
         # Download, untar and check md5 sums of raw data
         message("Getting raw data from ", dl_link, ".")
 
         ############################### Need to handle the case in which the link is dead
 
-        tar_list <- get_raw_data(link_folder = dl_link,
-                                 dest_folder = dest_folder,
-                                 domain = domain,
-                                 .pw = pw)
-        tar_link_df <-
-            rbind(tar_link_df,
-                  data.frame(link_folder = dl_link,
-                             tar_folder = stringr::str_remove(tar_list, ".tar")))
+        tar_list <-
+            get_raw_data(link_folder = dl_link,
+                         dest_folder = dest_folder,
+                         domain = domain,
+                         .pw = pw)
     }
 
     ###
@@ -111,44 +91,50 @@ process_raw_data <- function(sample_info,
     # needs to be changed to handle multiple tar files per link_folder later
     ###
 
-    sample_data <-
-        sample_data %>%
-        dplyr::left_join(tar_link_df, by = "link_folder")
+    ############### mkfastq the things that need fastqs
+    to_mkfastq <-
+        dplyr::filter(sample_data,
+                      run_cellranger_mkfastq == TRUE)
 
     # Get unique combination of tar_folder and exp_type to use with the
     # following loop
     tar_exps <-
-        sample_data %>%
-        dplyr::select(link_folder, tar_folder, exp_type) %>%
+        to_mkfastq %>%
+        dplyr::select(link_folder, tar_folder, exp_type, Sample_Project) %>%
         dplyr::distinct()
 
     # Loop over each tar_folder and exp_type combination to run mkfastq
-    for (i in seq_len(nrow(tar_exps))) {
+    # number of cores used by mclapply doesn't matter since it's just submitting
+    # them to the cluster
+    parallel::mclapply(seq_len(nrow(tar_exps)),
+                       mc.cores = 100,
+                       function(i) {
         tar_f <- tar_exps$tar_folder[i]
-
-        # Write out subsampled sampleInfoSheet with data from one link_folder
-        temp_sample_info_sheets[[tar_f]] <-
+        # Write out subsampled sampleInfoSheet with data from one link_folder/exp_type combo
+        temp_sample_info_sheet <-
             tempfile(fileext = ".tsv")
         dplyr::left_join(tar_exps[i, ], sample_data) %>%
-            readr::write_tsv(file = temp_sample_info_sheets[[tar_f]])
+            readr::write_tsv(file = temp_sample_info_sheet)
 
         # Fix sample sheet for all folders with BCL files
         message("Fixing sample sheet in ", tar_f, ".")
-        fix_sample_sheet(sample_sheet = paste0(dest_folder, "/",
-                                               tar_f, "/SampleSheet.csv"),
-                         sample_info_sheet = temp_sample_info_sheets[[tar_f]])
+        fix_sample_sheet(sample_sheet = paste0(bcl_folder, "/",
+                                               tar_exps$Sample_Project[i], "/",
+                                               tar_exps$tar_folder[i], "/",
+                                               "/SampleSheet.csv"),
+                         sample_info_sheet = temp_sample_info_sheet)
 
         # Run cellranger mkfastq
         message("Submitting slurm command to create fastq",
                 "files using cellranger mkfastq.")
-        cellranger_mkfastq(sample_info = temp_sample_info_sheets[[tar_f]],
+        cellranger_mkfastq(sample_info = temp_sample_info_sheet,
                            email = email,
                            tar_folders = tar_f,
                            bcl_folder = bcl_folder,
                            fastq_folder = fastq_folder,
                            slurm_out = paste0(slurm_base,
                                              "_mkfastq-%j.out"))
-    }
+    })
 
     # Run cellranger count if scRNA-seq_3prime
     if (exp_type == "scRNA-seq_3prime") {
