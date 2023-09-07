@@ -35,6 +35,7 @@ cd $TMPDIR
 placeholder_cellranger_type mkfastq \
   --localcores=30 \
   --localmem=220 \
+  --delete-undetermined \
   --samplesheet=${BCLFolder}/${CommonFolderName}/${BCLFolderName}/SampleSheet.csv \
   --run=${BCLFolder}/${CommonFolderName}/${BCLFolderName}/ \placeholder_base_mask
   --output-dir $TMPDIR placeholder_filter_arg
