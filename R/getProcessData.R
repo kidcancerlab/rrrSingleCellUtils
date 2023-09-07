@@ -136,28 +136,55 @@ process_raw_data <- function(sample_info,
                                              "_mkfastq-%j.out"))
     })
 
+    ###################### Count the things that need counting
     # Run cellranger count if scRNA-seq_3prime
-    if (exp_type == "scRNA-seq_3prime") {
+    to_count <-
+        dplyr::filter(sample_data,
+                      run_cellranger_count == TRUE)
+
+    # Need to feed cellranger_count subsets of the sample_data sheet based on
+    # exp_type and Sample_Project
+    to_count_tbl_list <-
+        to_count %>%
+        dplyr::group_by(Sample_Project, exp_type) %>%
+        dplyr::group_split()
+
+    # The number of cores used here doesn't matter, since it's just submitting
+    # the jobs to the cluster
+    parallel::mclapply(to_count_tbl_list,
+                       mc.cores = 100,
+                       function(x) {
         message("Submtting slurm command to run cellranger count.\n",
                 "Slurm messages output to", paste0(slurm_base, "_count-%j.out"))
-        cellranger_count(sample_info = sample_info,
+
+        cellranger_count(sample_info = x,
                          email = email,
                          counts_folder = counts_folder,
                          fastq_folder = fastq_folder,
                          ref_folder = ref_folder,
                          include_introns = include_introns,
-                         slurm_out = paste(slurm_base, "_count-%j.out", sep = ""))
-    } else if (grepl("multiomics", exp_type)) {
-        cellranger_count(sample_info = sample_info,
-                         email = email,
-                         counts_folder = counts_folder,
-                         fastq_folder = fastq_folder,
-                         ref_folder = ref_folder,
-                         include_introns = include_introns,
-                         slurm_out = paste(slurm_base, "_count-%j.out", sep = ""))
-    } else if (exp_type == "scDNA_CNV") {
-        warning("scDNA_CNV counting not yet implimented")
-    }
+                         slurm_out = paste0(slurm_base, "_count-%j.out"))
+    })
+
+    # if (exp_type == "scRNA-seq_3prime") {
+    #     cellranger_count(sample_info = sample_info,
+    #                      email = email,
+    #                      counts_folder = counts_folder,
+    #                      fastq_folder = fastq_folder,
+    #                      ref_folder = ref_folder,
+    #                      include_introns = include_introns,
+    #                      slurm_out = paste(slurm_base, "_count-%j.out", sep = ""))
+    # } else if (grepl("multiomics", exp_type)) {
+    #     cellranger_count(sample_info = sample_info,
+    #                      email = email,
+    #                      counts_folder = counts_folder,
+    #                      fastq_folder = fastq_folder,
+    #                      ref_folder = ref_folder,
+    #                      include_introns = include_introns,
+    #                      slurm_out = paste(slurm_base, "_count-%j.out", sep = ""))
+    # } else if (exp_type == "scDNA_CNV") {
+    #     warning("scDNA_CNV counting not yet implimented")
+    # }
 
     sub_sample_data <-
         sample_data %>%
@@ -166,6 +193,8 @@ process_raw_data <- function(sample_info,
                                 "index",
                                 "index2",
                                 "link_folder")))
+
+    ############ Generate Seurat objects for the things that need Seurat objects
     # Generate Seurat objects and save to SeuratObj folder
     for (sample_name in sub_sample_data$Sample_ID) {
         s_obj <-
