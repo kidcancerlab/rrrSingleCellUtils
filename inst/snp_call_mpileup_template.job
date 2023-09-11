@@ -6,9 +6,9 @@
 #SBATCH --array=0-placeholder_array_max
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=5
-#SBATCH --partition=himem,general
-#SBATCH --time=2-00:00:00
+#SBATCH --cpus-per-task=10
+#SBATCH --partition=himem
+#SBATCH --time=4-00:00:00
 #SBATCH --wait
 
 set -e ### stops bash script if line ends with error
@@ -36,15 +36,15 @@ echo ${label} ${orig_samp_name}
 
 samtools view \
         -b \
-        --threads 3 \
+        --threads 5 \
         ${sam_file} \
     | samtools sort \
         -O BAM \
         -m 7G \
-        --threads 3 \
+        --threads 5 \
         - \
     | bcftools mpileup \
-        --threads 3 \
+        --threads 5 \
         --max-depth 8000 \
         -a FORMAT/DP \
         -O u \
@@ -52,22 +52,22 @@ samtools view \
         -s "${orig_samp_name} ${label}" \
         - \
     | bcftools call \
-        --threads 3 \
+        --threads 5 \
         -f GQ \
         -O u \
         -m \
         placeholder_ploidy \
     | bcftools filter \
-        --threads 3 \
+        --threads 5 \
         -g 10 \
         -e "FORMAT/DP<placeholder_min_depth" \
         -O u \
     | bcftools view \
-        --threads 3 \
+        --threads 5 \
         --exclude-types indels \
         -O b \
         -o placeholder_bcf_dir/${label}.bcf
 
 bcftools index \
-    --threads 5 \
+    --threads 10 \
     placeholder_bcf_dir/${label}.bcf
