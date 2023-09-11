@@ -10,6 +10,8 @@
 #' @param fastq_folder Path to write fastq files
 #' @param counts_folder Path to write counts files
 #' @param ref_folder Path to 10x reference folders
+#' @param sobj_folder Path to write Seurat objects
+#' @param proc_threads Number of threads to use for processing
 #'
 #' @details This is a wrapper for several functions to get and process single
 #'  cell data from the NCH IGM core. I have built the defaults to be specific to
@@ -38,7 +40,8 @@ process_raw_data <- function(sample_info,
                              fastq_folder = "/home/gdrobertslab/lab/FASTQs_2",
                              counts_folder = "/home/gdrobertslab/lab/Counts_2",
                              ref_folder = "/home/gdrobertslab/lab/GenRef",
-                             sobj_folder = "/home/gdrobertslab/lab/SeuratObj") {
+                             sobj_folder = "/home/gdrobertslab/lab/SeuratObj",
+                             proc_threads = 10) {
     # Make sure sample_info has unix line endings
     system(paste0("dos2unix ", sample_info))
 
@@ -48,13 +51,18 @@ process_raw_data <- function(sample_info,
     # 3. Processed through cellranger_mkfastq
     # 4. Downloaded and md5sum checked
     # Each level negates the need to do the following levels
+    # I'm filtering out aborted samples and samples that aren't scRNA-seq_3prime
+    # or multiomics for now since I don't have the code to handle others yet
     sample_data <-
         readr::read_delim(sample_info,
                           delim = "\t",
                           col_names = TRUE,
                           trim_ws = TRUE,
                           show_col_types = FALSE) %>%
-        dplyr::filter(Abort == "N") %>%
+        dplyr::filter(Abort == "N" &
+                      exp_type %in% c("MATAC",
+                                      "MGEX",
+                                      "3GEX")) %>%
         add_data_status(sample_data,
                         bcl_folder = bcl_folder,
                         fastq_folder = fastq_folder,
@@ -166,44 +174,40 @@ process_raw_data <- function(sample_info,
                          slurm_out = paste0(slurm_base, "_count-%j.out"))
     })
 
-    # if (exp_type == "scRNA-seq_3prime") {
-    #     cellranger_count(sample_info = sample_info,
-    #                      email = email,
-    #                      counts_folder = counts_folder,
-    #                      fastq_folder = fastq_folder,
-    #                      ref_folder = ref_folder,
-    #                      include_introns = include_introns,
-    #                      slurm_out = paste(slurm_base, "_count-%j.out", sep = ""))
-    # } else if (grepl("multiomics", exp_type)) {
-    #     cellranger_count(sample_info = sample_info,
-    #                      email = email,
-    #                      counts_folder = counts_folder,
-    #                      fastq_folder = fastq_folder,
-    #                      ref_folder = ref_folder,
-    #                      include_introns = include_introns,
-    #                      slurm_out = paste(slurm_base, "_count-%j.out", sep = ""))
-    # } else if (exp_type == "scDNA_CNV") {
-    #     warning("scDNA_CNV counting not yet implimented")
-    # }
-
-    sub_sample_data <-
-        sample_data %>%
-        dplyr::select(-any_of(c("PI",
-                                "Reference",
-                                "index",
-                                "index2",
-                                "link_folder")))
-
     ############ Generate Seurat objects for the things that need Seurat objects
     # Generate Seurat objects and save to SeuratObj folder
-    for (sample_name in sub_sample_data$Sample_ID) {
-        s_obj <-
-            tenx_load_qc(paste0(counts_folder, "/",
-                                sample_name,
-                                "/filtered_feature_bc_matrix"),
-                         violin_plot = FALSE) %>%
-            auto_subset()
-    }
+    to_make_sobj <-
+        dplyr::filter(sample_data,
+                      make_sobj == TRUE)
+
+    parallel::mclapply(unique(to_make_sobj$Sample_ID),
+                       mc.cores = proc_threads,
+                       function(s_id) {
+        message("Generating Seurat object for ", to_make_sobj$Sample_ID[i], ".")
+        sample_data <-
+            dplyr::filter(to_make_sobj,
+                          Sample_ID == s_id)
+
+        if ("3GEX" %in% sample_data$exp_type) {
+            s_obj <-
+                tenx_load_qc(h5_file = paste0(counts_folder, "/",
+                                            to_make_sobj$Sample_ID[i],
+                                            "/filtered_feature_bc_matrix.h5"),
+                            violin_plot = FALSE)
+            # subset data
+
+            # process data
+        }
+    })
+
+    # for (sample_name in sub_sample_data$Sample_ID) {
+    #     s_obj <-
+    #         tenx_load_qc(paste0(counts_folder, "/",
+    #                             sample_name,
+    #                             "/filtered_feature_bc_matrix"),
+    #                      violin_plot = FALSE) %>%
+    #         auto_subset()
+    # }
 
     #################################
     ### Need to add code to chmod files
