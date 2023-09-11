@@ -41,6 +41,7 @@ process_raw_data <- function(sample_info,
                              counts_folder = "/home/gdrobertslab/lab/Counts_2",
                              ref_folder = "/home/gdrobertslab/lab/GenRef",
                              sobj_folder = "/home/gdrobertslab/lab/SeuratObj",
+                             cutoff_hist_folder = "/home/gdrobertslab/lab/SeuratObj",
                              proc_threads = 10) {
     # Make sure sample_info has unix line endings
     system(paste0("dos2unix ", sample_info))
@@ -176,6 +177,7 @@ process_raw_data <- function(sample_info,
 
     ############ Generate Seurat objects for the things that need Seurat objects
     # Generate Seurat objects and save to SeuratObj folder
+    #!!!!!!!!!!!!!!! Should I save an object for each species or just one object?
     to_make_sobj <-
         dplyr::filter(sample_data,
                       make_sobj == TRUE)
@@ -184,20 +186,8 @@ process_raw_data <- function(sample_info,
                        mc.cores = proc_threads,
                        function(s_id) {
         message("Generating Seurat object for ", to_make_sobj$Sample_ID[i], ".")
-        sample_data <-
-            dplyr::filter(to_make_sobj,
-                          Sample_ID == s_id)
 
-        if ("3GEX" %in% sample_data$exp_type) {
-            s_obj <-
-                tenx_load_qc(h5_file = paste0(counts_folder, "/",
-                                            to_make_sobj$Sample_ID[i],
-                                            "/filtered_feature_bc_matrix.h5"),
-                            violin_plot = FALSE)
-            # subset data
 
-            # process data
-        }
     })
 
     # for (sample_name in sub_sample_data$Sample_ID) {
@@ -729,4 +719,155 @@ add_data_status <- function(sample_info,
         !is.na(sample_info$link_folder)
 
     return(sample_info)
+}
+
+#' Get the experiment type from a vector of exp_types
+#'
+#' Input can be one of "MATAC" "MGEX"  "3GEX" or "MATAC" and "MGEX"
+#' Need to return "ATAC" "GEX" "GEX" or "ATAC+GEX" if both "MATAC" and "MGEX"
+#'
+#' @param x Vector of exp_types
+#'
+#' @keywords internal
+get_exp_type <- function(x) {
+    if (all(x == "3GEX")) {
+        return("GEX")
+    } else if (all(sort(x) == c("MATAC", "MGEX"))) {
+        return("ATAC+GEX")
+    } else if (all(x == "MATAC")) {
+        return("ATAC")
+    } else if (all(x == "MGEX")) {
+        return("GEX")
+    } else {
+        stop("Unknown exp_type.")
+    }
+}
+
+#' Make a Seurat object from 10X data
+#'
+#' @param s_id Sample ID
+#' @param sample_info Sample information
+#' @param counts_folder Path to counts folder
+#' @param sobj_folder Path to Seurat object folder
+#' @param cutoff_hist_folder Path to cutoff histogram folder
+#'
+#' @keywords internal
+make_sobj <- function(s_id = s_id,
+                      sample_info = to_make_sobj,
+                      counts_folder = counts_folder,
+                      sobj_folder = sobj_folder,
+                      cutoff_hist_folder = cutoff_hist_folder) {
+
+    sample_data <-
+        dplyr::filter(sample_info,
+                      Sample_ID == s_id)
+
+    exp_type <- get_exp_type(sample_data$Protocol)
+
+    s_obj <-
+        tenx_load_qc(h5_file = paste0(counts_folder, "/",
+                                        to_make_sobj$Sample_ID[i],
+                                        "/filtered_feature_bc_matrix.h5"),
+                        violin_plot = FALSE,
+                        exp_type = exp_type)
+
+
+    # If GEX present, just process it like normal
+    if (grepl("GEX", exp_type)) {
+        s_obj <-
+            process_sobj_gex(s_obj,
+                             sample_data,
+                             cutoff_hist_folder)
+    }
+    # If ATAC data, need to do some extra stuff
+    if (grepl("ATAC", exp_type)) {
+        # subset data
+
+        # process data
+    } else if (exp_type == "ATAC+GEX") {
+        # subset data
+
+        # process data
+    }
+}
+
+#' Take a GEX seurat object, subset it down based on cutoffs and process it
+#'
+#' @param s_obj Seurat object
+#' @param sample_data Sample information
+#' @param cutoff_hist_folder Path to cutoff histogram folder
+#'
+#' @keywords internal
+#'
+#' @return Seurat object
+process_sobj_gex <- function(s_obj,
+                             sample_data,
+                             cutoff_hist_folder) {
+    Seurat::DefaultAssay(s_obj) <- "RNA"
+    # numbers to use for subsetting the data down
+    # My assumption here is that this tibble will have one row at this point
+    # since it's a single sample and just 3GEX or MGEX
+    subset_table <-
+        sample_data %>%
+        dplyr::filter(grepl("GEX", Protocol)) %>%
+        dplyr::select(dplyr::starts_with("subset_")) %>%
+        dplyr::rename_all(~stringr::str_remove(., "subset_"))
+
+    if (all(is.na(subset_table))) {
+        # No cutoffs values provided, so autocalculate them
+        png(paste0(cutoff_hist_folder, "/",
+                    sample_data$Sample_ID[i],
+                    "_cutoff_hist.png"))
+        s_obj <- auto_subset(s_obj)
+        dev.off()
+    } else {
+        # Kick out columns with all NAs
+        subset_table <-
+            subset_table %>%
+            dplyr::select_if(~!all(is.na(.)))
+
+        cutoff_table <-
+            subset_table %>%
+            tidyr::pivot_longer(names_to = "feature",
+                                values_to = "value",
+                                cols = everything()) %>%
+            dplyr::mutate(direction = stringr::str_remove(feature, ".+_") %>%
+                          paste0("_val"),
+                          feature = stringr::str_remove(feature, "_m[ai][nx]$")) %>%
+            tidyr::pivot_wider(names_from = direction,
+                               values_from = value)
+
+
+        png(paste0(cutoff_hist_folder, "/",
+                    sample_data$Sample_ID[i],
+                    "_cutoff_hist.png"))
+        feature_hist(s_obj,
+                     features = cutoff_table$feature,
+                     cutoff_table = cutoff_table)
+        dev.off()
+
+        for (column in colnames(subset_table)) {
+            descriptor <- stringr::str_remove(column, "_m[ai][nx]$")
+            direction <- stringr::str_remove(column, "^.+_")
+            cutoff_value <- subset_table[[column]][1]
+            if (direction == "min") {
+                s_obj <-
+                    Seurat::subset(s_obj,
+                                    subset = get(descriptor) > cutoff_value)
+            } else if (direction == "max") {
+                s_obj <-
+                    Seurat::subset(s_obj,
+                                    subset = get(descriptor) < cutoff_value)
+            } else {
+                print(subset_table)
+                stop("Unknown direction in subset table for ",
+                        descriptor, ".")
+            }
+        }
+    }
+
+    # process data
+    s_obj <- process_seurat(s_obj)
+
+    return(s_obj)
 }
