@@ -775,12 +775,17 @@ make_sobj <- function(s_id = s_id,
                         exp_type = exp_type)
 
     # Add metadata from sample_data to s_obj
-    #!!!!!!!!!!!!!!!!!!! Need to handle multiomics where sample_data will have two rows!!!!!!!!!!!!!!!!!!
+    # For multiomics where there are two rows, use unique and paste to keep one
+    # copy of each value
     for (colname in colnames(sample_data)) {
-        sobj[[colname]] <- sample_data[[colname]][1]
+        sobj[[colname]] <-
+            sample_data[[colname]] %>%
+            unique() %>%
+            paste(collapse = ", ")
     }
 
     # If GEX present, just process it like normal
+    # The process for 3' GEX and multiomics is the same
     if (grepl("GEX", exp_type)) {
         s_obj <-
             process_sobj_gex(s_obj,
