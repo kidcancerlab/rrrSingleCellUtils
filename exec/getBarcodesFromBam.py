@@ -27,7 +27,7 @@ parser.add_argument('--out_base',
 parser.add_argument('--sam_batch_n',
                     '-n',
                     type = int,
-                    default=100000000,
+                    default=10000000,
                     help='number of sam entries to process at a time')
 parser.add_argument('--verbose',
                     action='store_true',
