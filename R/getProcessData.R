@@ -774,6 +774,11 @@ make_sobj <- function(s_id = s_id,
                         violin_plot = FALSE,
                         exp_type = exp_type)
 
+    # Add metadata from sample_data to s_obj
+    #!!!!!!!!!!!!!!!!!!! Need to handle multiomics where sample_data will have two rows!!!!!!!!!!!!!!!!!!
+    for (colname in colnames(sample_data)) {
+        sobj[[colname]] <- sample_data[[colname]][1]
+    }
 
     # If GEX present, just process it like normal
     if (grepl("GEX", exp_type)) {
@@ -815,6 +820,7 @@ process_sobj_gex <- function(s_obj,
         dplyr::filter(grepl("GEX", Protocol)) %>%
         dplyr::select(dplyr::starts_with("subset_")) %>%
         dplyr::rename_all(~stringr::str_remove(., "subset_"))
+
 
     if (all(is.na(subset_table))) {
         # No cutoffs values provided, so autocalculate them
