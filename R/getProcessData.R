@@ -826,13 +826,15 @@ process_sobj_gex <- function(s_obj,
         dplyr::select(dplyr::starts_with("subset_")) %>%
         dplyr::rename_all(~stringr::str_remove(., "subset_"))
 
-
     if (all(is.na(subset_table))) {
         # No cutoffs values provided, so autocalculate them
         png(paste0(cutoff_hist_folder, "/",
-                    sample_data$Sample_ID[i],
+                    sample_data$Sample_ID[1],
                     "_cutoff_hist.png"))
-        s_obj <- auto_subset(s_obj)
+        s_obj <- auto_subset(s_obj,
+                             features = c("nFeature_RNA",
+                                          "nCount_RNA",
+                                          "percent.mt"))
         dev.off()
     } else {
         # Kick out columns with all NAs
@@ -844,7 +846,7 @@ process_sobj_gex <- function(s_obj,
             subset_table %>%
             tidyr::pivot_longer(names_to = "feature",
                                 values_to = "value",
-                                cols = everything()) %>%
+                                cols = dplyr::everything()) %>%
             dplyr::mutate(direction = stringr::str_remove(feature, ".+_") %>%
                           paste0("_val"),
                           feature = stringr::str_remove(feature, "_m[ai][nx]$")) %>%
@@ -853,11 +855,11 @@ process_sobj_gex <- function(s_obj,
 
 
         png(paste0(cutoff_hist_folder, "/",
-                    sample_data$Sample_ID[i],
-                    "_cutoff_hist.png"))
-        feature_hist(s_obj,
+                   sample_data$Sample_ID[1],
+                   "_cutoff_hist.png"))
+        print(feature_hist(s_obj,
                      features = cutoff_table$feature,
-                     cutoff_table = cutoff_table)
+                     cutoff_table = cutoff_table))
         dev.off()
 
         for (column in colnames(subset_table)) {
@@ -865,13 +867,13 @@ process_sobj_gex <- function(s_obj,
             direction <- stringr::str_remove(column, "^.+_")
             cutoff_value <- subset_table[[column]][1]
             if (direction == "min") {
+                # subset can't accept a variable to name the column for
+                # subsetting, so we use this approach instead
                 s_obj <-
-                    Seurat::subset(s_obj,
-                                    subset = get(descriptor) > cutoff_value)
+                    s_obj[, which(Seurat::FetchData(s_obj, vars = descriptor) >= cutoff_value)]
             } else if (direction == "max") {
                 s_obj <-
-                    Seurat::subset(s_obj,
-                                    subset = get(descriptor) < cutoff_value)
+                    s_obj[, which(Seurat::FetchData(s_obj, vars = descriptor) <= cutoff_value)]
             } else {
                 print(subset_table)
                 stop("Unknown direction in subset table for ",
@@ -882,6 +884,40 @@ process_sobj_gex <- function(s_obj,
 
     # process data
     s_obj <- process_seurat(s_obj)
+
+    return(s_obj)
+}
+
+
+
+process_sobj_atac <- function(s_obj,
+                              sample_data,
+                              cutoff_hist_folder,
+                              gtf,
+                              nucl_cutoff = 4,
+                              tss_cutoff = 2,
+                              frag_files) {
+    Seurat::DefaultAssay(s_obj) <- "ATAC"
+    # numbers to use for subsetting the data down
+    # My assumption here is that this tibble will have one row at this point
+    # since it's a single sample and just MATAC
+    subset_table <-
+        sample_data %>%
+        dplyr::filter(Protocol == "MATAC") %>%
+        dplyr::select(dplyr::starts_with("subset_")) %>%
+        dplyr::rename_all(~stringr::str_remove(., "subset_"))
+
+    # Add in ATAC specific metadata columns
+    s_obj <-
+        add_atac_metadata(s_obj,
+                          gtf = gtf,
+                          nucl_cutoff = nucl_cutoff,
+                          tss_cutoff = tss_cutoff,
+                          frag_files = frag_files)
+
+
+    # process data
+    s_obj <- process_seurat_atac(s_obj)
 
     return(s_obj)
 }
