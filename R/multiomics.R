@@ -234,6 +234,20 @@ calc_frip <- function(sobject, frag_files, verbose = FALSE) {
     return(sobject)
 }
 
+#' Add ATAC specific metadata to the Seurat object
+#'
+add_atac_metadata <- function(sobject,
+                              gtf,
+                              nucl_cutoff = 4,
+                              tss_cutoff = 2,
+                              frag_files) {
+    sobject <-
+        annotate_atac(sobject,
+                      gtf = gtf) %>%
+        add_nucleosome_signal(cutoff = nucl_cutoff) %>%
+        tss_enrichment(cutoff = tss_cutoff) %>%
+        calc_frip(frag_files = frag_files)
+}
 
 #' Process a Seurat object with ATAC data
 #'
