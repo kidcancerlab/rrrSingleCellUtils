@@ -169,7 +169,8 @@ theme_roberts <- function(axis_font_size = 5,
 #' }
 feature_hist <- function(sobject,
                          features,
-                         cutoff_table = NULL) {
+                         cutoff_table = NULL,
+                         n_x_breaks = 10) {
     temp_data <-
         Seurat::FetchData(sobject,
                           vars = features) %>%
@@ -185,7 +186,8 @@ feature_hist <- function(sobject,
                                 scales = "free",
                                 ncol = 1) +
             ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90,
-                                                               hjust = 1))
+                                                               hjust = 1)) +
+            ggplot2::scale_x_continuous(breaks = scales::pretty_breaks(n = n_x_breaks))
 
     if (!is.null(cutoff_table)) {
         # Function to add min/max lines
