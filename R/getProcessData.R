@@ -912,7 +912,12 @@ process_sobj_atac <- function(s_obj,
                           tss_cutoff = tss_cutoff,
                           frag_files = frag_files)
 
+    if (all(is.na(subset_table))) {
+        sobj <- auto_subset(s_obj,
+                            features = c("nFeature_ATAC",
+                                         "nCount_ATAC"))
 
+    }
     # process data
     s_obj <- process_seurat_atac(s_obj)
 
