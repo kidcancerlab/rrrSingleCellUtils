@@ -182,12 +182,12 @@ tss_enrichment <- function(sobject, cutoff = 2) {
 calc_frip <- function(sobject, frag_files, verbose = FALSE) {
     # Get fragments for each sample in order and add sample name to CB column
     # if only one file provided, with no name
-    if (is.null(names(frag_files)) & length(frag_files) == 1) {
+    if (is.null(names(frag_files)) && length(frag_files) == 1) {
         message("Did you mean to add a name to this list?")
         total_frag_df <- Signac::CountFragments(frag_files[[1]],
                                                 verbose = verbose)
     # if only one file provided, with a name, append name to CB column
-    } else if (!is.null(names(frag_files)) & length(frag_files) == 1) {
+    } else if (!is.null(names(frag_files)) && length(frag_files) == 1) {
         total_frag_df <-
             Signac::CountFragments(frag_files[[1]],
                                    verbose = verbose) %>%
@@ -236,17 +236,30 @@ calc_frip <- function(sobject, frag_files, verbose = FALSE) {
 
 #' Add ATAC specific metadata to the Seurat object
 #'
+#' Add nucleosome signal, TSS enrichment, and FRiP to a Seurat object
+#'
+#' @param sobject Seurat object to be processed
+#' @param gtf String of path to a gtf file.
+#' @param nucl_cutoff Cutoff for nucleosome signal
+#' @param tss_cutoff Cutoff for TSS enrichment
+#' @param frag_files Named list of fragment files. The names should be the
+#'
+#' @export
+#'
+#' @return A Seurat object
 add_atac_metadata <- function(sobject,
                               gtf,
                               nucl_cutoff = 4,
                               tss_cutoff = 2,
-                              frag_files) {
+                              frag_files,
+                              verbose = TRUE) {
     sobject <-
         annotate_atac(sobject,
                       gtf = gtf) %>%
         add_nucleosome_signal(cutoff = nucl_cutoff) %>%
         tss_enrichment(cutoff = tss_cutoff) %>%
-        calc_frip(frag_files = frag_files)
+        calc_frip(frag_files = frag_files,
+                  verbose = verbose)
 }
 
 #' Process a Seurat object with ATAC data
