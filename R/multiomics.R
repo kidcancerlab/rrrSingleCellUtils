@@ -80,10 +80,16 @@ merge_atac <- function(peak_beds,
 #' @return RETURN_DESCRIPTION
 #' @examples
 #' # ADD_EXAMPLES_HERE
-annotate_atac <- function(sobject, gtf) {
+annotate_atac <- function(sobject,
+                          gtf) {
     if (is.null(gtf)) {
         message("No gtf file provided")
         stop
+    }
+
+    if (!Seurat::DefaultAssay(sobject) %in% c("ATAC", "peaks")) {
+        warning("If your default assay isn't your ATAC data, this function",
+                "will fail. Make sure to set DefaultAssay() properly.")
     }
 
     # Create annotation to put into seurat object
@@ -137,7 +143,8 @@ annotate_atac <- function(sobject, gtf) {
 #' @return RETURN_DESCRIPTION
 #' @examples
 #' # ADD_EXAMPLES_HERE
-add_nucleosome_signal <- function(sobject, cutoff = 4) {
+add_nucleosome_signal <- function(sobject,
+                                  cutoff = 4) {
     sobject <- Signac::NucleosomeSignal(sobject)
     sobject$nucleosome_group <- ifelse(sobject$nucleosome_signal > cutoff,
                                        paste0("NS > ", cutoff),
@@ -157,7 +164,8 @@ add_nucleosome_signal <- function(sobject, cutoff = 4) {
 #' @return RETURN_DESCRIPTION
 #' @examples
 #' # ADD_EXAMPLES_HERE
-tss_enrichment <- function(sobject, cutoff = 2) {
+tss_enrichment <- function(sobject,
+                           cutoff = 2) {
     sobject <- Signac::TSSEnrichment(sobject, fast = FALSE)
     sobject$high_tss <- ifelse(sobject$TSS.enrichment > cutoff,
                                "High",
@@ -179,13 +187,22 @@ tss_enrichment <- function(sobject, cutoff = 2) {
 #' @return RETURN_DESCRIPTION
 #' @examples
 #' # ADD_EXAMPLES_HERE
-calc_frip <- function(sobject, frag_files, verbose = FALSE) {
+calc_frip <- function(sobject,
+                      frag_files,
+                      verbose = FALSE) {
     # Get fragments for each sample in order and add sample name to CB column
-    # if only one file provided, with no name
-    if (is.null(names(frag_files)) && length(frag_files) == 1) {
-        message("Did you mean to add a name to this list?")
+    # if only one file provided, with no name for the list and the cell names
+    # don't look like normal cellranger names, throw a warning
+    if (all(stringr::str_detect(colnames(sobject),
+                                        "^[ATGC]+-[0-9]+$"))) {
+        # all good, I think
         total_frag_df <- Signac::CountFragments(frag_files[[1]],
                                                 verbose = verbose)
+    } else if (is.null(names(frag_files)) &&
+                length(frag_files) == 1) {
+        message("Did you mean to add a name to this list? Your cell names ",
+                "don't look like normal cellranger names.")
+        stop()
     # if only one file provided, with a name, append name to CB column
     } else if (!is.null(names(frag_files)) && length(frag_files) == 1) {
         total_frag_df <-
