@@ -896,8 +896,9 @@ process_sobj_atac <- function(s_obj,
                               gtf,
                               nucl_cutoff = 4,
                               tss_cutoff = 2,
-                              frag_files) {
-    Seurat::DefaultAssay(s_obj) <- "ATAC"
+                              frag_files,
+                              default_assay = "ATAC") {
+    Seurat::DefaultAssay(s_obj) <- default_assay
     # numbers to use for subsetting the data down
     # My assumption here is that this tibble will have one row at this point
     # since it's a single sample and just MATAC
