@@ -81,7 +81,8 @@ merge_atac <- function(peak_beds,
 #' @examples
 #' # ADD_EXAMPLES_HERE
 annotate_atac <- function(sobject,
-                          gtf) {
+                          gtf,
+                          species_pattern) {
     if (is.null(gtf)) {
         message("No gtf file provided")
         stop
@@ -98,6 +99,27 @@ annotate_atac <- function(sobject,
                                          format = "gtf") %>%
         GenomicFeatures::transcripts(columns = c("tx_id", "tx_name"))
 
+    if (species_pattern) {
+        # Need to do brain surgery here to fix the sequence and gene names
+        # This isn't pretty but it works
+        annotations <-
+            annotations[grep(species_pattern,
+                             annotations$tx_name), ]
+
+        annotations$tx_name <-
+            stringr::str_remove(annotations$tx_name,
+                                species_pattern)
+
+        annotations@seqnames@values <-
+            stringr::str_remove(annotations@seqnames@values,
+                                species_pattern) %>%
+            as.factor()
+
+        annotations@seqinfo@seqnames <-
+            stringr::str_remove(annotations@seqinfo@seqnames,
+                                species_pattern)
+    }
+
     package_dir <- find.package("rrrSingleCellUtils")
 
     gene_info <-
@@ -108,7 +130,8 @@ annotate_atac <- function(sobject,
                intern = TRUE) %>%
         read.table(text = ., header = TRUE) %>%
         dplyr::full_join(tibble::tibble(tx_name = annotations$tx_name,
-                                        tx_id = annotations$tx_id)) %>%
+                                        tx_id = annotations$tx_id),
+                         by = "tx_name") %>%
         dplyr::arrange(tx_id) %>%
         dplyr::filter(tx_name %in% annotations@elementMetadata$tx_name)
         # the filter accounts for any transcripts that are dropped while
@@ -260,6 +283,9 @@ calc_frip <- function(sobject,
 #' @param nucl_cutoff Cutoff for nucleosome signal
 #' @param tss_cutoff Cutoff for TSS enrichment
 #' @param frag_files Named list of fragment files. The names should be the
+#'   string to be prepended to the cell barcodes.
+#' @param verbose Should functions be verbose?
+#' @param species_pattern Pattern to remove from gene names and chromosome names
 #'
 #' @export
 #'
@@ -269,10 +295,12 @@ add_atac_metadata <- function(sobject,
                               nucl_cutoff = 4,
                               tss_cutoff = 2,
                               frag_files,
-                              verbose = TRUE) {
+                              verbose = TRUE,
+                              species_pattern) {
     sobject <-
         annotate_atac(sobject,
-                      gtf = gtf) %>%
+                      gtf = gtf,
+                      species_pattern = species_pattern) %>%
         add_nucleosome_signal(cutoff = nucl_cutoff) %>%
         tss_enrichment(cutoff = tss_cutoff) %>%
         calc_frip(frag_files = frag_files,
