@@ -1,0 +1,73 @@
+#!/bin/sh
+#SBATCH --account=placeholder_account
+#SBATCH --output=placeholder_slurm_out
+#SBATCH --error=placeholder_slurm_out
+#SBATCH --job-name rrr_snp_call
+#SBATCH --array=0-placeholder_array_max
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=10
+#SBATCH --partition=himem
+#SBATCH --time=4-00:00:00
+#SBATCH --wait
+
+set -e ### stops bash script if line ends with error
+
+ml purge
+ml load GCC/9.3.0 \
+        GCCcore/9.3.0 \
+        SAMtools/1.15 \
+        BCFtools/1.11
+
+echo ${HOSTNAME} ${SLURM_ARRAY_TASK_ID}
+
+sams_array=(placeholder_sam_dir/*sam)
+sam_file=${sams_array[$SLURM_ARRAY_TASK_ID]}
+
+# the sam files are written out with the filename determined by the label in
+# your cellid_bam_table. We use this label to name the output files and to
+# change the sample name during the mpileup call so that when we merge the bcfs
+# each column will have a unique name
+label=${sam_file%%.sam}
+export label=${label##*/}
+export orig_samp_name=$(head -n 20000 ${sam_file} | grep "SM:" | head -n 1 | perl -ne '/\tSM:(.+?)\t/; print $1')
+
+echo ${label} ${orig_samp_name}
+
+samtools view \
+        -b \
+        --threads 5 \
+        ${sam_file} \
+    | samtools sort \
+        -O BAM \
+        -m 7G \
+        --threads 5 \
+        - \
+    | bcftools mpileup \
+        --threads 5 \
+        --max-depth 8000 \
+        -a FORMAT/DP \
+        -O u \
+        -f placeholder_ref_fasta \
+        -s "${orig_samp_name} ${label}" \
+        - \
+    | bcftools call \
+        --threads 5 \
+        -f GQ \
+        -O u \
+        -m \
+        placeholder_ploidy \
+    | bcftools filter \
+        --threads 5 \
+        -g 10 \
+        -e "FORMAT/DP<placeholder_min_depth" \
+        -O u \
+    | bcftools view \
+        --threads 5 \
+        --exclude-types indels \
+        -O b \
+        -o placeholder_bcf_dir/${label}.bcf
+
+bcftools index \
+    --threads 10 \
+    placeholder_bcf_dir/${label}.bcf

@@ -58,6 +58,7 @@
   * Figure out multiomic FRiP calculation and see if I need to divide by 2
     * https://support.10xgenomics.com/single-cell-multiome-atac-gex/software/pipelines/latest/algorithms/overview
   * In cellranger_mkfastq(), detect base mask based on barcode format (GA, TT, NA, etc.)
+  * Make optimize_silhouette warn if there are no dim reductions or clustering present
 
 ---
 
