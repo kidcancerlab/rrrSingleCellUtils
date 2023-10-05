@@ -372,6 +372,9 @@ cellranger_mkfastq <- function(sample_info,
   # reference it during counting
     fastq_suffix <- ""
     base_mask <- "\n  --use-bases-mask=Y28n*,I10n*,I10n*,Y90n* \\\\\\"
+    #!!!!!!!!!!!!!!!!!!!! Need to fix this for when a single index library is made
+    #!!!!!!!!!!!!!!!!!!!! If the index is SI-GA-XX, then the library is single index
+    #!!!!!!!!!!!!!!!!!!!! and the base mask needs to be Y28n*,I8n*,Y90n*
     if (sample_data$exp_type[1] == "multiomics GEX") {
         fastq_suffix <- "_R"
         base_mask <-
