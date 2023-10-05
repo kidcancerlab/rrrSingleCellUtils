@@ -1,3 +1,5 @@
+# rrrSingleCellUtils 0.9.0
+
 # rrrSingleCellUtils 0.8.0
 
 - Added the option to load in data using an h5 file, which is needed when working with multiomics data.
