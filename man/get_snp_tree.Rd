@@ -7,6 +7,7 @@
 get_snp_tree(
   cellid_bam_table,
   temp_dir = tempdir(),
+  output_dir = temp_dir,
   slurm_base = paste0(getwd(), "/slurmOut"),
   sbatch_base = "sbatch_",
   account = "gdrobertslab",
@@ -25,6 +26,8 @@ barcode, the cell_group column should contain the cluster label and the
 bam_file column should contain the path to the bam file for that cell.}
 
 \item{temp_dir}{The directory to write temporary files to.}
+
+\item{output_dir}{The directory to write output distance files to.}
 
 \item{slurm_base}{The directory to write slurm output files to.}
 

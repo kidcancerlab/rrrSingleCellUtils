@@ -5,6 +5,7 @@
 #'  barcode, the cell_group column should contain the cluster label and the
 #'  bam_file column should contain the path to the bam file for that cell.
 #' @param temp_dir The directory to write temporary files to.
+#' @param output_dir The directory to write output distance files to.
 #' @param slurm_base The directory to write slurm output files to.
 #' @param sbatch_base The prefix to use with the sbatch job file.
 #' @param account The hpc account to use.
@@ -29,6 +30,7 @@
 #' }
 get_snp_tree <- function(cellid_bam_table,
                          temp_dir = tempdir(),
+                         output_dir = temp_dir,
                          slurm_base = paste0(getwd(), "/slurmOut"),
                          sbatch_base = "sbatch_",
                          account = "gdrobertslab",
@@ -94,7 +96,7 @@ get_snp_tree <- function(cellid_bam_table,
     merge_bcfs(bcf_in_dir = paste0(temp_dir,
                                    "/split_bcfs_[0-9]*/"),
                out_bcf = paste0(temp_dir, "/merged.bcf"),
-               out_dist = paste0(temp_dir, "/distances"),
+               out_dist = paste0(output_dir, "/distances"),
                submit = submit,
                slurm_out = paste0(slurm_base, "_merge-%j.out"),
                sbatch_base = sbatch_base,
@@ -103,8 +105,8 @@ get_snp_tree <- function(cellid_bam_table,
 
     # Read in the distance matrix and make a tree
     dist_tree <-
-        calc_tree(matrix_file = paste0(temp_dir, "/distances.tsv"),
-                  counts_file = paste0(temp_dir, "/distances_tot_count.tsv"),
+        calc_tree(matrix_file = paste0(output_dir, "/distances.tsv"),
+                  counts_file = paste0(output_dir, "/distances_tot_count.tsv"),
                   min_sites = min_sites_covered)
 
     return(dist_tree)
