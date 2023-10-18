@@ -355,6 +355,7 @@ check_tar_md5 <- function(folder) {
 #' Fix sampleSheet.csv for cellranger mkfastq
 #'
 #' @param sample_sheet SampleSheet.csv from the BCL folder
+#' @param new_sample_sheet Location to write new sample sheet
 #' @param sample_info_sheet Tab delimited sheet with columns containing info to
 #'     insert into the sample sheet
 #'
@@ -383,6 +384,7 @@ fix_sample_sheet <- function(orig_sample_sheet,
 #' Run cellranger mkfastq
 #'
 #' @param sample_info File containing sample info (see details)
+#' @param sample_sheet SampleSheet.csv from the BCL folder
 #' @param tar_folders Character vector containing folders extracted from tar
 #' @param bcl_folder Path to write BCL files
 #' @param fastq_folder Path to write fastq files
@@ -396,6 +398,7 @@ fix_sample_sheet <- function(orig_sample_sheet,
 #' need example
 #' }
 cellranger_mkfastq <- function(sample_info,
+                               sample_sheet,
                                email = "",
                                tar_folders,
                                bcl_folder = "/home/gdrobertslab/lab/BCLs",
@@ -409,43 +412,40 @@ cellranger_mkfastq <- function(sample_info,
                                    trim_ws = TRUE,
                                    show_col_types = FALSE)
 
-  run_name <- sample_data$Sample_Project[1]
+    run_name <- sample_data$Sample_Project[1]
 
-  if (email != "") {
-    email <- paste("#SBATCH --mail-user=", email, "\n",
-                   "#SBATCH --mail-type=ALL\n",
-                   sep = "")
-  }
+    if (email != "") {
+    email <-
+        paste0("#SBATCH --mail-user=", email, "\n",
+               "#SBATCH --mail-type=ALL\n")
+    }
 
-  # This assumes that the sampleInfoSheet has a single exp_type.
-  # process_raw_data writes out temp sampleInfoSheets broken up by exp_type
-  if (sample_data$exp_type %>% unique %>% length() > 1) {
-      warning("cellranger_mkfastq() requires a single exp_type per run.")
-      warning("Break up sampleInfoSheet by exp_type and try again.")
-      stop()
-  }
+    # This assumes that the sampleInfoSheet has a single exp_type.
+    # process_raw_data writes out temp sampleInfoSheets broken up by exp_type
+    if (sample_data$exp_type %>% unique %>% length() > 1) {
+        warning("cellranger_mkfastq() requires a single exp_type per run.")
+        warning("Break up sampleInfoSheet by exp_type and try again.")
+        stop()
+    }
 
-  cellranger_type <- "cellranger"
-  if (grepl("multiomics", sample_data$exp_type[1])) {
-      cellranger_type <- "cellranger-arc"
-  }
+    cellranger_type <- "cellranger"
+    if (grepl("multiomics", sample_data$exp_type[1])) {
+        cellranger_type <- "cellranger-arc"
+    }
 
-  filter_arg <- ""
-  if (system(paste0("grep 'PlannedIndex2ReadCycles>0' ",
-             bcl_folder, "/",
-             sample_data$Sample_Project[1], "/",
-             tar_folders[1],
-             "/RunParameters.xml > /dev/null ")) == 0) {
-    filter_arg <- "\\\\\\\n  --force-single-index\\\n"
-  }
+    filter_arg <- ""
+    if (system(paste0("grep 'PlannedIndex2ReadCycles>0' ",
+                      bcl_folder, "/",
+                      sample_data$Sample_Project[1], "/",
+                      tar_folders[1],
+                      "/RunParameters.xml > /dev/null ")) == 0) {
+        filter_arg <- "\\\\\\\n  --force-single-index\\\n"
+    }
 
-  # Need to add a suffix to the fastq folder for the multiomics so we can
-  # reference it during counting
+    # Need to add a suffix to the fastq folder for the multiomics so we can
+    # reference it during counting
     fastq_suffix <- ""
-    base_mask <- "\n  --use-bases-mask=Y28n*,I10n*,I10n*,Y90n* \\\\\\"
-    #!!!!!!!!!!!!!!!!!!!! Need to fix this for when a single index library is made
-    #!!!!!!!!!!!!!!!!!!!! If the index is SI-GA-XX, then the library is single index
-    #!!!!!!!!!!!!!!!!!!!! and the base mask needs to be Y28n*,I8n*,Y90n*
+    base_mask <- "\n  --use-bases-mask=Y28n*,I10n*,I10n*,Y90n* \\\\\\\n"
     if (sample_data$exp_type[1] == "multiomics GEX") {
         fastq_suffix <- "_R"
         base_mask <-
@@ -456,60 +456,60 @@ cellranger_mkfastq <- function(sample_info,
             "\n  --use-bases-mask=Y50n*,I8n*,Y24n*,Y49n* \\\\\\\n  --filter-single-index \\\\"
     }
 
-  replace_tibble <-
-    tibble::tibble(find = c("placeholder_run_name",
-                            "placeholder_array_max",
-                            "placeholder_bcl_folder_array",
-                            "placeholder_bcl_path",
-                            "placeholder_fastq_folder",
-                            "placeholder_email",
-                            "placeholder_slurm_out",
-                            "placeholder_slurm_name",
-                            "placeholder_cellranger_type",
-                            "placeholder_exp_type",
-                            "placeholder_filter_arg",
-                            "placeholder_base_mask"),
-                   replace = c(run_name,
-                               length(tar_folders) - 1,
-                               paste(tar_folders, collapse = " "),
-                               bcl_folder,
-                               fastq_folder,
-                               email,
-                               slurm_out,
-                               paste("mkfastq_",
-                                     run_name,
-                                     sep = ""),
-                               cellranger_type,
-                               fastq_suffix,
-                               filter_arg,
-                               base_mask))
+    replace_tibble <-
+        tibble::tibble(find = c("placeholder_run_name",
+                                "placeholder_array_max",
+                                "placeholder_bcl_folder_array",
+                                "placeholder_bcl_path",
+                                "placeholder_fastq_folder",
+                                "placeholder_email",
+                                "placeholder_slurm_out",
+                                "placeholder_slurm_name",
+                                "placeholder_cellranger_type",
+                                "placeholder_sample_sheet",
+                                "placeholder_exp_type",
+                                "placeholder_filter_arg",
+                                "placeholder_base_mask"),
+                       replace = c(run_name,
+                                   length(tar_folders) - 1,
+                                   paste(tar_folders, collapse = " "),
+                                   bcl_folder,
+                                   fastq_folder,
+                                   email,
+                                   slurm_out,
+                                   paste0("mkfastq_", run_name),
+                                   cellranger_type,
+                                   sample_sheet,
+                                   fastq_suffix,
+                                   filter_arg,
+                                   base_mask))
 
-  package_dir <- find.package("rrrSingleCellUtils")
+    package_dir <- find.package("rrrSingleCellUtils")
 
-  sbatch_template <-
-    readr::read_file(paste(package_dir,
-                           "/cellranger_demux_template.job",
-                           sep = ""))
-
-  # Replace placeholders with real data
-  for (i in seq_len(nrow(replace_tibble))) {
     sbatch_template <-
-      stringr::str_replace_all(sbatch_template,
-                               pattern = replace_tibble$find[i],
-                               replacement = replace_tibble$replace[i])
-  }
+        readr::read_file(paste0(package_dir,
+                                "/cellranger_demux_template.job"))
 
-  temp_file <- tempfile(fileext = ".sh",
+    # Replace placeholders with real data
+    for (i in seq_len(nrow(replace_tibble))) {
+    sbatch_template <-
+        stringr::str_replace_all(sbatch_template,
+                                 pattern = replace_tibble$find[i],
+                                 replacement = replace_tibble$replace[i])
+    }
+
+    temp_file <- tempfile(fileext = ".sh",
                         pattern = "mkfastq",
                         tmpdir = getwd())
 
-  readr::write_file(sbatch_template, file = temp_file)
+    readr::write_file(sbatch_template, file = temp_file)
 
-  return_val <- system(paste("sbatch", temp_file))
+    return_val <- system(paste("sbatch", temp_file))
 
-  if (return_val != 0) {
-    stop("Cellranger mkfastq sbatch submission failed. Error code ", return_val)
-  }
+    if (return_val != 0) {
+        stop("Cellranger mkfastq sbatch submission failed. Error code ",
+             return_val)
+    }
 }
 
 #' Run cellranger count on 10X data

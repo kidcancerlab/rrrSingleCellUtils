@@ -6,6 +6,7 @@
 \usage{
 cellranger_mkfastq(
   sample_info,
+  sample_sheet,
   email = "",
   tar_folders,
   bcl_folder = "/home/gdrobertslab/lab/BCLs",
@@ -15,6 +16,8 @@ cellranger_mkfastq(
 }
 \arguments{
 \item{sample_info}{File containing sample info (see details)}
+
+\item{sample_sheet}{SampleSheet.csv from the BCL folder}
 
 \item{email}{Email for Slurm notifications}
 
