@@ -11,11 +11,13 @@ process_raw_data(
   include_introns = FALSE,
   plots = FALSE,
   slurm_base = paste(getwd(), "/slurmOut", sep = ""),
-  bcl_folder = "/home/gdrobertslab/lab/BCLs",
-  fastq_folder = "/home/gdrobertslab/lab/FASTQs",
-  counts_folder = "/home/gdrobertslab/lab/Counts",
+  bcl_folder = "/home/gdrobertslab/lab/BCLs_2",
+  fastq_folder = "/home/gdrobertslab/lab/FASTQs_2",
+  counts_folder = "/home/gdrobertslab/lab/Counts_2",
   ref_folder = "/home/gdrobertslab/lab/GenRef",
-  sobj_folder = "/home/gdrobertslab/lab/SeuratObj"
+  sobj_folder = "/home/gdrobertslab/lab/SeuratObj",
+  cutoff_hist_folder = "/home/gdrobertslab/lab/SeuratObj",
+  proc_threads = 10
 )
 }
 \arguments{
@@ -38,6 +40,10 @@ process_raw_data(
 \item{counts_folder}{Path to write counts files}
 
 \item{ref_folder}{Path to 10x reference folders}
+
+\item{sobj_folder}{Path to write Seurat objects}
+
+\item{proc_threads}{Number of threads to use for processing}
 }
 \description{
 Download and pre-process raw 10X data

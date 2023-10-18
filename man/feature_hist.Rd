@@ -4,7 +4,7 @@
 \alias{feature_hist}
 \title{Make ggplot2-based histograms of Seurat features}
 \usage{
-feature_hist(sobject, features, cutoff_table = NULL)
+feature_hist(sobject, features, cutoff_table = NULL, n_x_breaks = 10)
 }
 \arguments{
 \item{sobject}{Seurat object}

@@ -6,10 +6,10 @@
 \usage{
 add_data_status(
   sample_info,
-  bcl_folder,
-  fastq_folder,
-  counts_folder,
-  sobj_folder
+  bcl_folder = "/home/gdrobertslab/lab/BCLs",
+  fastq_folder = "/home/gdrobertslab/lab/FASTQs",
+  counts_folder = "/home/gdrobertslab/lab/Counts",
+  sobj_folder = "/home/gdrobertslab/lab/SeuratObj"
 )
 }
 \arguments{
