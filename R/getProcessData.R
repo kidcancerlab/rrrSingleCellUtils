@@ -248,73 +248,73 @@ get_raw_data <- function(link_folder,
                          user_group = "research",
                          .pw) {
 
-  if (!dir.exists(dest_folder)) {
-    system(paste("mkdir", dest_folder))
-  }
+    if (!dir.exists(dest_folder)) {
+        system(paste("mkdir", dest_folder))
+    }
 
-  # Get list of tar files to use for untaring and to return
-  # Eventually I need to avoid entering the password twice, but that is a
-  # problem for Future Matt. - good luck, Past Matt
-  tar_list <- system(paste("cd ", dest_folder, " ; ",
-                           "export LD_LIBRARY_PATH=\"\"; ",
-                           "smbclient ",
-                           domain, " ",
-                           "-U ", user,
-                           "%",
-                           .pw,
-                           " ",
-                           "-W ", user_group, " ",
-                           "-c ",
-                           "'cd ", link_folder, "; ",
-                           "ls *.tar'",
-                           sep = ""),
-                     intern = TRUE) %>%
+    # Get list of tar files to use for untaring and to return
+    # Eventually I need to avoid entering the password twice, but that is a
+    # problem for Future Matt. - good luck, Past Matt
+    tar_list <-
+        system(paste0("cd ", dest_folder, " ; ",
+                      "export LD_LIBRARY_PATH=\"\"; ",
+                      "smbclient ",
+                      domain, " ",
+                      "-U ", user,
+                      "%",
+                      .pw,
+                      " ",
+                      "-W ", user_group, " ",
+                      "-c ",
+                      "'cd ", link_folder, "; ",
+                      "ls *.tar'"),
+               intern = TRUE) %>%
     stringr::str_subset(".tar") %>%
     stringr::str_replace(" +", "") %>%
     stringr::str_remove(" .+")
 
-  # Get raw data from IGM
-  return_val <- system(paste("cd ", dest_folder, " ; ",
-                             "export LD_LIBRARY_PATH=\"\"; ",
-                             "smbclient ",
-                             domain, " ",
-                              "-U ", user,
-                             "%",
-                             .pw,
-                             " ",
-                             "-W ", user_group, " ",
-                             "-c ",
-                             "'cd ", link_folder, "; ",
-                             "mask \"\"; ",
-                             "recurse OFF; ",
-                             "prompt OFF; ",
-                             "mget *.tar *.md5'",
-                             sep = ""))
+    # Get raw data from IGM
+    return_val <-
+        system(paste0("cd ", dest_folder, " ; ",
+                      "export LD_LIBRARY_PATH=\"\"; ",
+                      "smbclient ",
+                      domain, " ",
+                      "-U ", user,
+                      "%",
+                      .pw,
+                      " ",
+                      "-W ", user_group, " ",
+                      "-c ",
+                      "'cd ", link_folder, "; ",
+                      "mask \"\"; ",
+                      "recurse OFF; ",
+                      "prompt OFF; ",
+                      "mget *.tar *.md5'"))
 
-  if (return_val != 0) {
-    stop("Data retrieval failed. Error code ", return_val)
-  }
+    if (return_val != 0) {
+        stop("Data retrieval failed. Error code ", return_val)
+    }
 
-  # Check md5 sums to see if data copied properly.
-  check_tar_md5(dest_folder)
+    # Check md5 sums to see if data copied properly.
+    check_tar_md5(dest_folder)
 
-  # Untar the downloaded data for further use
-  untar_cmd <- paste0("cd ", dest_folder, " ; ",
-                      "tar ",
-                      "--checkpoint=100000 ",
-                      "--checkpoint-action=\"echo= %T %t\" ",
-                      "-xf ",
-                      stringr::str_c(dest_folder,
-                                     tar_list,
-                                     sep = "/",
-                                     collapse = " "))
+    # Untar the downloaded data for further use
+    untar_cmd <- paste0("cd ", dest_folder, " ; ",
+                        "tar ",
+                        "--checkpoint=100000 ",
+                        "--checkpoint-action=\"echo= %T %t\" ",
+                        "-xf ",
+                        stringr::str_c(dest_folder,
+                                       tar_list,
+                                       sep = "/",
+                                       collapse = " "))
 
-  return_val <- system(untar_cmd)
+    return_val <- system(untar_cmd)
 
-  if (return_val != 0) {
-    stop("Untar failed. Error code ", return_val)
-  }
-  return(tar_list)
+    if (return_val != 0) {
+        stop("Untar failed. Error code ", return_val)
+    }
+    return(tar_list)
 }
 
 #' Check that downloaded files match the expected md5sums
@@ -324,32 +324,35 @@ get_raw_data <- function(link_folder,
 #' @keywords internal
 #'
 check_tar_md5 <- function(folder) {
-  message("Checking file md5sums.")
-# Make this use srun
-  md5_cmd <- paste("md5sum ",
-                   folder, "/*.tar",
-                   sep = "")
+    message("Checking file md5sums.")
+    # Make this use srun
+    md5_cmd <- paste0("md5sum ", folder, "/*.tar")
 
-  # Make this into a named vector for ease of comparison
-  calc_md5 <- system(md5_cmd, intern = TRUE) %>%
-    tibble::as_tibble() %>%
-    tidyr::separate(col = "value", sep = "[ ]+", into = c("md5", "file")) %>%
-    dplyr::mutate(file = stringr::str_remove(file, ".+/")) %>%
-    dplyr::select(file, md5) %>%
-    tibble::deframe()
+    # Make this into a named vector for ease of comparison
+    calc_md5 <-
+        system(md5_cmd, intern = TRUE) %>%
+        tibble::as_tibble() %>%
+        tidyr::separate(col = "value", sep = "[ ]+", into = c("md5", "file")) %>%
+        dplyr::mutate(file = stringr::str_remove(file, ".+/")) %>%
+        dplyr::select(file, md5) %>%
+        tibble::deframe()
 
-  md5_files <- list.files(path = folder, pattern = ".md5", full.names = TRUE)
+    md5_files <-
+        list.files(path = folder,
+                   pattern = ".md5",
+                   full.names = TRUE)
 
-  for (md5 in md5_files) {
-    md5_true <- readr::read_table2(md5,
-                                   col_names = c("md5", "file"),
-                                   col_types = "cc")
+    for (md5 in md5_files) {
+        md5_true <-
+            readr::read_table2(md5,
+                               col_names = c("md5", "file"),
+                               col_types = "cc")
 
-    if (md5_true$md5 != calc_md5[[md5_true$file]]) {
-      stop("md5 checksum check failed for file md5_true$file.")
+        if (md5_true$md5 != calc_md5[[md5_true$file]]) {
+            stop("md5 checksum check failed for file md5_true$file.")
+        }
     }
-  }
-  message("md5 checksums good!")
+    message("md5 checksums good!")
 }
 
 #' Fix sampleSheet.csv for cellranger mkfastq
@@ -406,18 +409,19 @@ cellranger_mkfastq <- function(sample_info,
                                slurm_out = paste(getwd(),
                                                  "/slurmOut_mkfastq-%j.out",
                                                  sep = "")) {
-  sample_data <- readr::read_delim(sample_info,
-                                   delim = "\t",
-                                   col_names = TRUE,
-                                   trim_ws = TRUE,
-                                   show_col_types = FALSE)
+    sample_data <-
+        readr::read_delim(sample_info,
+                          delim = "\t",
+                          col_names = TRUE,
+                          trim_ws = TRUE,
+                          show_col_types = FALSE)
 
     run_name <- sample_data$Sample_Project[1]
 
     if (email != "") {
-    email <-
-        paste0("#SBATCH --mail-user=", email, "\n",
-               "#SBATCH --mail-type=ALL\n")
+        email <-
+            paste0("#SBATCH --mail-user=", email, "\n",
+                   "#SBATCH --mail-type=ALL\n")
     }
 
     # This assumes that the sampleInfoSheet has a single exp_type.
@@ -543,141 +547,144 @@ cellranger_count <- function(sample_info,
                                                "/slurmOut_count-%j.out",
                                                sep = "")) {
 
-  sample_data <- readr::read_delim(sample_info,
-                                   delim = "\t",
-                                   col_names = TRUE,
-                                   trim_ws = TRUE,
-                                   show_col_types = FALSE)
-
-  run_name <- sample_data$Sample_Project[1]
-
-  fastq_folder <- paste(fastq_folder,
-                        run_name,
-                        sep = "/")
-
-  if (email != "") {
-    email <- paste0("#SBATCH --mail-user=", email, "\n",
-                    "#SBATCH --mail-type=ALL\n")
-  }
-
-  multiomic <- dplyr::if_else(grepl("multiomic", sample_data$exp_type[1]),
-                              TRUE,
-                              FALSE)
-
-  cellranger_template <- "/cellranger_count_template.job"
-  tmp_csv <- ""
-  # Need to deal with the multiomic completely differently due to cellranger-arc
-  if (multiomic) {
-    cellranger_template <- "/cellranger_count_multiomics_template.job"
-
-    tmp_csv <- tempfile(pattern = "crCount",
-                        tmpdir = getwd(),
-                        fileext = ".csv")
-
-    # Create csv that cellranger-arc can use for count - each sample will be
-    # pulled out of this csv in the job template using grep
-    sample_data %>%
-        dplyr::select(Sample_ID, exp_type) %>%
-        dplyr::mutate(suffix = dplyr::if_else(exp_type == "multiomics GEX",
-                                              "_R",
-                                              "_A"),
-                      fastqs = paste0(fastq_folder,
-                                      suffix,
-                                      "/",
-                                      run_name),
-                      exp_type = stringr::str_replace(exp_type,
-                                                      "multiomics GEX",
-                                                      "Gene Expression") %>%
-                            stringr::str_replace("multiomics ATAC",
-                                                 "Chromatin Accessibility")) %>%
-        dplyr::rename(library_type = exp_type,
-                      sample = Sample_ID) %>%
-        dplyr::select(fastqs, sample, library_type, -suffix) %>%
-        readr::write_csv(file = tmp_csv)
-  }
-
-  # Since cellranger-arc count pulls in both GEX and ATAC at the same time
-  # we don't need to run both, so only need the data from one of the two exp
-  # to pull in both, that's why I use only gex data in the replace_tibble below
-  if (multiomic) {
     sample_data <-
-        sample_data %>%
-        dplyr::filter(exp_type == "multiomics GEX")
-  }
+        readr::read_delim(sample_info,
+                          delim = "\t",
+                          col_names = TRUE,
+                          trim_ws = TRUE,
+                          show_col_types = FALSE)
 
-  # the command for including introns is different for cellranger-arc
-  intron_arg <-
+    run_name <- sample_data$Sample_Project[1]
+
+    fastq_folder <-
+        paste(fastq_folder,
+              run_name,
+              sep = "/")
+
+    if (email != "") {
+        email <-
+            paste0("#SBATCH --mail-user=", email, "\n",
+                   "#SBATCH --mail-type=ALL\n")
+    }
+
+    multiomic <- dplyr::if_else(grepl("multiomic", sample_data$exp_type[1]),
+                                TRUE,
+                                FALSE)
+
+    cellranger_template <- "/cellranger_count_template.job"
+    tmp_csv <- ""
+    # Need to deal with the multiomic completely differently due to cellranger-arc
+    if (multiomic) {
+        cellranger_template <- "/cellranger_count_multiomics_template.job"
+
+        tmp_csv <-
+            tempfile(pattern = "crCount",
+                     tmpdir = getwd(),
+                     fileext = ".csv")
+
+        # Create csv that cellranger-arc can use for count - each sample will be
+        # pulled out of this csv in the job template using grep
+        sample_data %>%
+            dplyr::select(Sample_ID, exp_type) %>%
+            dplyr::mutate(suffix = dplyr::if_else(exp_type == "multiomics GEX",
+                                                  "_R",
+                                                  "_A"),
+                          fastqs = paste0(fastq_folder,
+                                          suffix,
+                                          "/",
+                                          run_name),
+                          exp_type = stringr::str_replace(exp_type,
+                                                          "multiomics GEX",
+                                                          "Gene Expression") %>%
+                                stringr::str_replace("multiomics ATAC",
+                                                     "Chromatin Accessibility")) %>%
+            dplyr::rename(library_type = exp_type,
+                          sample = Sample_ID) %>%
+            dplyr::select(fastqs, sample, library_type, -suffix) %>%
+            readr::write_csv(file = tmp_csv)
+    }
+
+    # Since cellranger-arc count pulls in both GEX and ATAC at the same time
+    # we don't need to run both, so only need the data from one of the two exp
+    # to pull in both, that's why I use only gex data in the replace_tibble below
+    if (multiomic) {
+        sample_data <-
+            sample_data %>%
+            dplyr::filter(exp_type == "multiomics GEX")
+    }
+
+    # the command for including introns is different for cellranger-arc
+    intron_arg <-
     dplyr::if_else(include_introns,
                    "",
                    dplyr::if_else(multiomic,
                                   "\n --gex-exclude-introns \\\\\\",
                                   "\n --include-introns false \\\\\\"))
 
-  # Need very different arguments for cellranger/cellranger-arc
-  # Using separate template
-  # The Cell Ranger ARC pipeline can only analyze Gene Expression and ATAC data
-  # together and the input is a csv file
-  replace_tibble <- tibble::tibble(find = c("placeholder_run_name",
-                                            "placeholder_array_max",
-                                            "placeholder_sample_array_list",
-                                            "placeholder_outdir_array_list",
-                                            "placeholder_reference_array_list",
-                                            "placeholder_num_cells_list",
-                                            "placeholder_email",
-                                            "placeholder_slurm_out",
-                                            "placeholder_reference_folder",
-                                            "placeholder_counts_folder",
-                                            "placeholder_fastq_folder",
-                                            "placeholder_slurm_name",
-                                            "placeholder_library_csv",
-                                            "placeholder_include_introns"),
-                                   replace = c(run_name,
-                                               nrow(sample_data) - 1,
-                                               paste(sample_data$Sample_ID,
-                                                     collapse = " "),
-                                               paste(paste0(sample_data$Sample_ID,
-                                                            realign_suffix),
-                                                     collapse = " "),
-                                               paste(sample_data$Reference,
-                                                     collapse = " "),
-                                               paste(sample_data$Cell_Num,
-                                                     collapse = " "),
-                                               email,
-                                               slurm_out,
-                                               ref_folder,
-                                               counts_folder,
-                                               fastq_folder,
-                                               paste("count_",
-                                                     run_name,
-                                                     sep = ""),
-                                               tmp_csv,
-                                               intron_arg))
+    # Need very different arguments for cellranger/cellranger-arc
+    # Using separate template
+    # The Cell Ranger ARC pipeline can only analyze Gene Expression and ATAC data
+    # together and the input is a csv file
+    replace_tibble <- tibble::tibble(find = c("placeholder_run_name",
+                                              "placeholder_array_max",
+                                              "placeholder_sample_array_list",
+                                              "placeholder_outdir_array_list",
+                                              "placeholder_reference_array_list",
+                                              "placeholder_num_cells_list",
+                                              "placeholder_email",
+                                              "placeholder_slurm_out",
+                                              "placeholder_reference_folder",
+                                              "placeholder_counts_folder",
+                                              "placeholder_fastq_folder",
+                                              "placeholder_slurm_name",
+                                              "placeholder_library_csv",
+                                              "placeholder_include_introns"),
+                                     replace = c(run_name,
+                                                 nrow(sample_data) - 1,
+                                                 paste(sample_data$Sample_ID,
+                                                       collapse = " "),
+                                                 paste(paste0(sample_data$Sample_ID,
+                                                              realign_suffix),
+                                                       collapse = " "),
+                                                 paste(sample_data$Reference,
+                                                       collapse = " "),
+                                                 paste(sample_data$Cell_Num,
+                                                       collapse = " "),
+                                                 email,
+                                                 slurm_out,
+                                                 ref_folder,
+                                                 counts_folder,
+                                                 fastq_folder,
+                                                 paste0("count_",
+                                                         run_name),
+                                                 tmp_csv,
+                                                 intron_arg))
 
-  package_dir <- find.package("rrrSingleCellUtils")
+    package_dir <- find.package("rrrSingleCellUtils")
 
-  sbatch_template <-
-    readr::read_file(paste0(package_dir,
-                            cellranger_template))
-
-  # Replace placeholders with real data
-  for (i in seq_len(nrow(replace_tibble))) {
     sbatch_template <-
-      stringr::str_replace_all(sbatch_template,
-                               pattern = replace_tibble$find[i],
-                               replacement = replace_tibble$replace[i])
-  }
+        readr::read_file(paste0(package_dir, cellranger_template))
 
-  temp_file <- tempfile(fileext = ".sh",
-                        pattern = "count",
-                        tmpdir = getwd())
+    # Replace placeholders with real data
+    for (i in seq_len(nrow(replace_tibble))) {
+        sbatch_template <-
+            stringr::str_replace_all(sbatch_template,
+                                     pattern = replace_tibble$find[i],
+                                     replacement = replace_tibble$replace[i])
+    }
 
-  readr::write_file(sbatch_template, file = temp_file)
+    temp_file <-
+        tempfile(fileext = ".sh",
+                 pattern = "count",
+                 tmpdir = getwd())
 
-  return_val <- system(paste("sbatch", temp_file))
+    readr::write_file(sbatch_template, file = temp_file)
 
-  if (return_val != 0) {
-    stop("Cellranger count sbatch submission failed. Error code ", return_val)
-  }
+    return_val <- system(paste("sbatch", temp_file))
+
+    if (return_val != 0) {
+        stop("Cellranger count sbatch submission failed. Error code ", return_val)
+    }
 }
 
 #' Add columns to sample_info to show if data are downloaded, processed, etc.
