@@ -88,6 +88,8 @@ process_raw_data <- function(sample_info,
 
         ############################### Need to handle the case in which the link is dead
 
+        #!!!!!!!!!!!!!!!!!!!!!!!! Do I still need the tar list since this info is now in the sample_info sheet?
+
         tar_list <-
             get_raw_data(link_folder = dl_link,
                          dest_folder = dest_folder,
@@ -116,7 +118,7 @@ process_raw_data <- function(sample_info,
     # number of cores used by mclapply doesn't matter since it's just submitting
     # them to the cluster
     parallel::mclapply(seq_len(nrow(tar_exps)),
-                       mc.cores = 100,
+                       mc.cores = 1,
                        function(i) {
         tar_f <- tar_exps$tar_folder[i]
         # Write out subsampled sampleInfoSheet with data from one link_folder/exp_type combo
@@ -125,12 +127,27 @@ process_raw_data <- function(sample_info,
         dplyr::left_join(tar_exps[i, ], sample_data) %>%
             readr::write_tsv(file = temp_sample_info_sheet)
 
+        #!!!!!!!!!!!!! Do I need to worry about two runs on the same bcl folder overwriting the sample sheet?
+        #!!!!!!!!!!!!! I should write the sample sheet to a new file for each run
+
         # Fix sample sheet for all folders with BCL files
         message("Fixing sample sheet in ", tar_f, ".")
-        fix_sample_sheet(sample_sheet = paste0(bcl_folder, "/",
-                                               tar_exps$Sample_Project[i], "/",
-                                               tar_exps$tar_folder[i], "/",
-                                               "/SampleSheet.csv"),
+
+        orig_sample_sheet <-
+            paste0(bcl_folder, "/",
+                   tar_exps$Sample_Project[i], "/",
+                   tar_exps$tar_folder[i],
+                   "/SampleSheet.csv")
+
+        new_sample_sheet <-
+            tempfile(pattern = "SampleSheet_",
+                     fileext = ".csv",
+                     tmpdir = paste0(bcl_folder, "/",
+                                     tar_exps$Sample_Project[i], "/",
+                                     tar_exps$tar_folder[i]))
+
+        fix_sample_sheet(orig_sample_sheet = orig_sample_sheet,
+                         new_sample_sheet = new_sample_sheet,
                          sample_info_sheet = temp_sample_info_sheet)
 
         # Run cellranger mkfastq
@@ -177,7 +194,7 @@ process_raw_data <- function(sample_info,
 
     ############ Generate Seurat objects for the things that need Seurat objects
     # Generate Seurat objects and save to SeuratObj folder
-    #!!!!!!!!!!!!!!! Should I save an object for each species or just one object?
+    # I should save an object for each species
     to_make_sobj <-
         dplyr::filter(sample_data,
                       make_sobj == TRUE)
@@ -343,24 +360,24 @@ check_tar_md5 <- function(folder) {
 #'
 #' @keywords internal
 #'
-fix_sample_sheet <- function(sample_sheet, sample_info_sheet) {
-  package_dir <- find.package("rrrSingleCellUtils")
+fix_sample_sheet <- function(orig_sample_sheet,
+                             new_sample_sheet,
+                             sample_info_sheet) {
+    package_dir <- find.package("rrrSingleCellUtils")
 
-  temp_file <- tempfile(fileext = ".csv")
+    system_cmd <-
+        paste0("perl ",
+               package_dir,
+               "/exec/fixSampleSheet.pl ",
+               "--sampleInfo ", sample_info_sheet, " ",
+               "--sampleSheet ", orig_sample_sheet, " ",
+               "> ", new_sample_sheet)
 
-  system_cmd <- paste0("perl ",
-                      package_dir,
-                      "/exec/fixSampleSheet.pl ",
-                      "--sampleInfo ", sample_info_sheet, " ",
-                      "--sampleSheet ", sample_sheet, " ",
-                      "> ", temp_file, "; ",
-                      "mv ", temp_file, " ", sample_sheet)
+    return_val <- return(system(system_cmd))
 
-  return_val <- return(system(system_cmd))
-
-  if (return_val != 0) {
-    stop("Sample sheet repair failed. Error code ", return_val)
-  }
+    if (return_val != 0) {
+      stop("Sample sheet repair failed. Error code ", return_val)
+    }
 }
 
 #' Run cellranger mkfastq
