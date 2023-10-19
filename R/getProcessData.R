@@ -90,11 +90,10 @@ process_raw_data <- function(sample_info,
 
         #!!!!!!!!!!!!!!!!!!!!!!!! Do I still need the tar list since this info is now in the sample_info sheet?
 
-        tar_list <-
-            get_raw_data(link_folder = dl_link,
-                         dest_folder = dest_folder,
-                         domain = domain,
-                         .pw = pw)
+        get_raw_data(link_folder = dl_link,
+                     dest_folder = dest_folder,
+                     domain = domain,
+                     .pw = pw)
     }
 
     ###
@@ -253,68 +252,98 @@ get_raw_data <- function(link_folder,
     }
 
     # Get list of tar files to use for untaring and to return
-    # Eventually I need to avoid entering the password twice, but that is a
-    # problem for Future Matt. - good luck, Past Matt
-    tar_list <-
-        system(paste0("cd ", dest_folder, " ; ",
-                      "export LD_LIBRARY_PATH=\"\"; ",
-                      "smbclient ",
-                      domain, " ",
-                      "-U ", user,
-                      "%",
-                      .pw,
-                      " ",
-                      "-W ", user_group, " ",
-                      "-c ",
-                      "'cd ", link_folder, "; ",
-                      "ls *.tar'"),
-               intern = TRUE) %>%
-    stringr::str_subset(".tar") %>%
-    stringr::str_replace(" +", "") %>%
-    stringr::str_remove(" .+")
+    # Check to make sure link_folder exists in the domain
+    if (link_folder_exists(dest_folder = dest_folder,
+                           domain = domain,
+                           user = user,
+                           .pw = .pw,
+                           user_group = user_group,
+                           link_folder = link_folder)) {
 
-    # Get raw data from IGM
-    return_val <-
-        system(paste0("cd ", dest_folder, " ; ",
-                      "export LD_LIBRARY_PATH=\"\"; ",
-                      "smbclient ",
-                      domain, " ",
-                      "-U ", user,
-                      "%",
-                      .pw,
-                      " ",
-                      "-W ", user_group, " ",
-                      "-c ",
-                      "'cd ", link_folder, "; ",
-                      "mask \"\"; ",
-                      "recurse OFF; ",
-                      "prompt OFF; ",
-                      "mget *.tar *.md5'"))
+        # Get raw data from IGM
+        return_val <-
+            system(paste0("cd ", dest_folder, " ; ",
+                        "export LD_LIBRARY_PATH=\"\"; ",
+                        "smbclient ",
+                        domain, " ",
+                        "-U ", user,
+                        "%",
+                        .pw,
+                        " ",
+                        "-W ", user_group, " ",
+                        "-c ",
+                        "'cd ", link_folder, "; ",
+                        "mask \"\"; ",
+                        "recurse OFF; ",
+                        "prompt OFF; ",
+                        "mget *.tar *.md5'"))
 
-    if (return_val != 0) {
-        stop("Data retrieval failed. Error code ", return_val)
+        if (return_val != 0) {
+            stop("Data retrieval failed. Error code ", return_val)
+        }
+
+        # Check md5 sums to see if data copied properly.
+        check_tar_md5(dest_folder)
+
+        # Untar the downloaded data for further use
+        untar_cmd <- paste0("cd ", dest_folder, " ; ",
+                            "tar ",
+                            "--checkpoint=100000 ",
+                            "--checkpoint-action=\"echo= %T %t\" ",
+                            "-xf ",
+                            stringr::str_c(dest_folder,
+                                        tar_list,
+                                        sep = "/",
+                                        collapse = " "))
+
+        return_val <- system(untar_cmd)
+
+        if (return_val != 0) {
+            stop("Untar failed. Error code ", return_val)
+        }
+        return(TRUE)
+    } else {
+        return(FALSE)
     }
+}
 
-    # Check md5 sums to see if data copied properly.
-    check_tar_md5(dest_folder)
-
-    # Untar the downloaded data for further use
-    untar_cmd <- paste0("cd ", dest_folder, " ; ",
-                        "tar ",
-                        "--checkpoint=100000 ",
-                        "--checkpoint-action=\"echo= %T %t\" ",
-                        "-xf ",
-                        stringr::str_c(dest_folder,
-                                       tar_list,
-                                       sep = "/",
-                                       collapse = " "))
-
-    return_val <- system(untar_cmd)
-
-    if (return_val != 0) {
-        stop("Untar failed. Error code ", return_val)
+#' Check that link_folder exists in the domain
+#'
+#' @inheritParams get_raw_data
+link_folder_exists <- function(dest_folder,
+                               domain,
+                               user,
+                               .pw,
+                               user_group,
+                               link_folder) {
+    result <-
+        tryCatch(
+            {
+                junk <-
+                    system(paste0("cd ", dest_folder, " ; ",
+                                  "export LD_LIBRARY_PATH=\"\"; ",
+                                  "smbclient ",
+                                  domain, " ",
+                                  "-U ", user,
+                                  "%",
+                                  .pw,
+                                  " ",
+                                  "-W ", user_group, " ",
+                                  "-c ",
+                                  "'ls ", link_folder, "'"),
+                           intern = TRUE)
+            },
+            warning = function(w) {
+                warning("When trying to download from link folder ",
+                        link_folder,
+                        " the folder was not found in  not found.")
+                return(FALSE)
+            })
+    if (result == FALSE) {
+        return(FALSE)
+    } else {
+        return(TRUE)
     }
-    return(tar_list)
 }
 
 #' Check that downloaded files match the expected md5sums
