@@ -81,6 +81,7 @@ get_snp_tree <- function(cellid_bam_table,
                       sbatch_base = sbatch_base,
                       account = account,
                       ploidy = ploidy,
+                      min_depth = min_depth,
                       ref_fasta = ref_fasta,
                       submit = submit,
                       cleanup = cleanup)
