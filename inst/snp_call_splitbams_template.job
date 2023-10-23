@@ -5,7 +5,8 @@
 #SBATCH --error=placeholder_slurm_out
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=30
+#SBATCH --cpus-per-task=2
+#SBATCH --mem=200G
 #SBATCH --partition=general,himem
 #SBATCH --wait
 #SBATCH --time=1-00:00:00
@@ -16,7 +17,12 @@ echo ${HOSTNAME}
 
 cell_file=placeholder_cell_file
 bam_file=placeholder_bam_file
-sam_dir=placeholder_sam_dir
+bam_dir=placeholder_bam_dir
+
+if [ ! -d ${sam_dir} ]
+then
+    mkdir -p ${sam_dir}
+fi
 
 echo ${bam_file}
 
@@ -29,6 +35,5 @@ conda activate rrrSingleCellUtils_py3_10
 
 python placeholder_py_file \
     --cells ${cell_file} \
-    --out_base ${sam_dir} \
-    -p 20 \
+    --out_base ${bam_dir}/split \
     --bam ${bam_file}

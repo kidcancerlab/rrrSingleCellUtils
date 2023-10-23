@@ -71,14 +71,13 @@ get_snp_tree <- function(cellid_bam_table,
 
             call_snps(cellid_bam_table = sub_cellid_bam_table,
                       bam_to_use = bam_name,
-                      sam_dir = paste0(temp_dir,
-                                       "/split_sams_",
+                      bam_out_dir = paste0(temp_dir,
+                                       "/split_bams_",
                                        i,
                                        "/"),
                       bcf_dir = paste0(temp_dir,
                                        "/split_bcfs_",
-                                       i,
-                                       "/"),
+                                       i),
                       slurm_base = paste0(slurm_base, "_mpileup-%j.out"),
                       sbatch_base = sbatch_base,
                       account = account,
@@ -91,26 +90,47 @@ get_snp_tree <- function(cellid_bam_table,
                         mc.cores = length(bam_files))
 
     # The output from the previous step is a folder for each bam file located
-    # in temp_dir/split_bcfs/. Next merge all the bcf files and calculate a
-    # distance matrix using my slow python script
+    # in temp_dir/split_bcfs_{i}_c{min_depth}/. Next merge all the bcf files and
+    # calculate a distance matrix using my slow python script
+    # We do this separately for each min_depth provided
 
-    merge_bcfs(bcf_in_dir = paste0(temp_dir,
-                                   "/split_bcfs_[0-9]*/"),
-               out_bcf = paste0(temp_dir, "/merged.bcf"),
-               out_dist = paste0(output_dir, "/distances"),
-               submit = submit,
-               slurm_out = paste0(slurm_base, "_merge-%j.out"),
-               sbatch_base = sbatch_base,
-               account = account,
-               cleanup = cleanup)
+    parallel::mclapply(min_depth,
+                       mc.cores = 100,
+                       function(this_min_depth) {
+        merge_bcfs(bcf_in_dir = paste0(temp_dir,
+                                      "/split_bcfs_[0-9]*_c",
+                                      this_min_depth,
+                                      "/"),
+                   out_bcf = paste0(temp_dir,
+                                    "/merged_c",
+                                    this_min_depth,
+                                    ".bcf"),
+                   out_dist = paste0(output_dir,
+                                     "/distances_c",
+                                     this_min_depth),
+                   submit = submit,
+                   slurm_out = paste0(slurm_base, "_merge-%j.out"),
+                   sbatch_base = sbatch_base,
+                   account = account,
+                   cleanup = cleanup)
+        })
 
-    # Read in the distance matrix and make a tree
-    dist_tree <-
-        calc_tree(matrix_file = paste0(output_dir, "/distances.tsv"),
-                  counts_file = paste0(output_dir, "/distances_tot_count.tsv"),
-                  min_sites = min_sites_covered)
+    # Read in the distance matrix and make a tree for each min_depth
+    dist_trees <- list()
+    for (this_min_depth in min_depth) {
+        dist_trees[[paste0("min_depth_", this_min_depth)]] <-
+            calc_tree(matrix_file = paste0(output_dir,
+                                           "/distances_c",
+                                           this_min_depth,
+                                           ".tsv"),
+                      counts_file = paste0(output_dir,
+                                           "/distances_c",
+                                           this_min_depth,
+                                           "_tot_count.tsv"),
+                      min_sites = min_sites_covered)
+    }
 
-    return(dist_tree)
+    return(dist_trees)
 }
 
 #' Use the output from get_snp_tree to label cells
@@ -238,7 +258,7 @@ check_cellid_bam_table <- function(cellid_bam_table) {
 #'
 #' @param cellid_bam_table A table with columns cell_id, cell_group and bam_file
 #' @param bam_to_use The bam file to use
-#' @param sam_dir The directory to write the sam files to
+#' @param bam_out_dir The directory to write the bam files to
 #' @param bcf_dir The directory to write the bcf files to
 #' @param slurm_base The base name for the slurm output files. Don't include path
 #' @param account The hpc account to use in slurm scripts
@@ -246,7 +266,7 @@ check_cellid_bam_table <- function(cellid_bam_table) {
 #' @param ref_fasta The reference fasta file to use
 #' @param min_depth The minimum depth to use when calling snps
 #' @param submit Whether or not to submit the slurm scripts
-#' @param cleanup Whether or not to clean up the sam files afterwards
+#' @param cleanup Whether or not to clean up the bam files afterwards
 #'
 #' @return 0 if the snps were called successfully
 #'
@@ -254,7 +274,7 @@ check_cellid_bam_table <- function(cellid_bam_table) {
 #'
 call_snps <- function(cellid_bam_table,
                       bam_to_use,
-                      sam_dir,
+                      bam_out_dir,
                       bcf_dir,
                       slurm_base = paste0(getwd(), "/slurmOut_call-%j.txt"),
                       sbatch_base = "sbatch_",
@@ -264,15 +284,13 @@ call_snps <- function(cellid_bam_table,
                       min_depth = 5,
                       submit = TRUE,
                       cleanup = TRUE) {
-    # Check that the sam and bcf directories exist, and if not, create them
-    if (!dir.exists(sam_dir)) {
-        dir.create(sam_dir)
+    # Check that the bam and bcf directories exist, and if not, create them
+    if (!dir.exists(bam_out_dir)) {
+        dir.create(bam_out_dir)
     }
-    if (!dir.exists(bcf_dir)) {
-        dir.create(bcf_dir)
-    }
+
     # write out the cell ids to a file with two columns: cell_id, cell_group
-    cell_file <- paste0(sam_dir, "/cell_ids.txt")
+    cell_file <- paste0(bam_out_dir, "/cell_ids.txt")
     readr::write_tsv(dplyr::select(cellid_bam_table, cell_barcode, cell_group),
                      file = cell_file,
                      col_names = FALSE,
@@ -292,10 +310,13 @@ call_snps <- function(cellid_bam_table,
             "placeholder_slurm_out",    slurm_base,
             "placeholder_cell_file",    cell_file,
             "placeholder_bam_file",     bam_to_use,
-            "placeholder_sam_dir",      paste0(sam_dir, "/"),
+            "placeholder_bam_dir",      paste0(bam_out_dir, "/"),
             "placeholder_py_file",      py_file
         )
 
+    # We're going to split the bam file and store the output in
+    # bam_out_dir/split_bams/. We'll then call mpileup on each of these
+    # bam_out_dir is passed by get_snp_tree() and is the temp_dir/split_bams_{i}/
     result <-
         use_sbatch_template(replace_tibble_split,
                             "snp_call_splitbams_template.job",
@@ -307,36 +328,46 @@ call_snps <- function(cellid_bam_table,
     ploidy <- pick_ploidy(ploidy)
 
     array_max <-
-        list.files(path = sam_dir, pattern = ".sam") %>%
-        length()  - 1
+        list.files(path = bam_out_dir, pattern = ".bam") %>%
+        length() - 1
 
-    replace_tibble_snp <-
-        dplyr::tribble(
-            ~find,                      ~replace,
-            "placeholder_account",      account,
-            "placeholder_slurm_out",    slurm_base,
-            "placeholder_array_max",    as.character(array_max),
-            "placeholder_sam_dir",      sam_dir,
-            "placeholder_ref_fasta",    ref_fasta,
-            "placeholder_ploidy",       ploidy,
-            "placeholder_bam_file",     bam_to_use,
-            "placeholder_bcf_dir",      bcf_dir,
-            "placeholder_min_depth",    as.character(min_depth)
-        )
+    # Since min_depth can be a vector of unknown length, we are going to loop
+    # through each element and call mpileup on each split_bams folder
+    # Due to this, we need to append the min_depth used to the output bcf folder
+    # Since this is just submitting slurm jobs, we don't need to worry about
+    # how many cores we use
+    parallel::mclapply(min_depth,
+                       mc.cores = 100,
+                       function(this_min_depth){
 
-    # Call mpileup on each split_bams folder using a template and substituting
-    # out the placeholder fields and index the individual bcf files
-    result <-
-        use_sbatch_template(replace_tibble_snp,
-                            "snp_call_mpileup_template.job",
-                            warning_label = "Calling SNPs",
-                            submit = submit,
-                            file_dir = ".",
-                            temp_prefix = paste0(sbatch_base, "mpileup_"))
+        replace_tibble_snp <-
+            dplyr::tribble(
+                ~find,                      ~replace,
+                "placeholder_account",      account,
+                "placeholder_slurm_out",    slurm_base,
+                "placeholder_array_max",    as.character(array_max),
+                "placeholder_bam_dir",      bam_out_dir,
+                "placeholder_ref_fasta",    ref_fasta,
+                "placeholder_ploidy",       ploidy,
+                "placeholder_bam_file",     bam_to_use,
+                "placeholder_bcf_dir",      paste0(bcf_dir, "_c", this_min_depth),
+                "placeholder_min_depth",    as.character(this_min_depth)
+            )
 
-    # Delete contents of the split_sams folder
+        # Call mpileup on each split_bams folder using a template and substituting
+        # out the placeholder fields and index the individual bcf files
+        result <-
+            use_sbatch_template(replace_tibble_snp,
+                                "snp_call_mpileup_template.job",
+                                warning_label = "Calling SNPs",
+                                submit = submit,
+                                file_dir = ".",
+                                temp_prefix = paste0(sbatch_base, "mpileup_"))
+        })
+    # Delete contents of the split_bams folder
+    # I should change how I do this, this may be a bit dangerous
     if (cleanup) {
-        unlink(sam_dir, recursive = TRUE)
+        unlink(bam_out_dir, recursive = TRUE)
     }
     return(0)
 }

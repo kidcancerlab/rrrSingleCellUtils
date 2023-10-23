@@ -21,23 +21,28 @@ ml load GCC/9.3.0 \
 
 echo ${HOSTNAME} ${SLURM_ARRAY_TASK_ID}
 
-sams_array=(placeholder_sam_dir/*sam)
-sam_file=${sams_array[$SLURM_ARRAY_TASK_ID]}
+bams_array=(placeholder_bam_dir/*bam)
+bam_file=${bams_array[$SLURM_ARRAY_TASK_ID]}
 
-# the sam files are written out with the filename determined by the label in
+if [ ! -d placeholder_bcf_dir ]
+then
+    mkdir -p placeholder_bcf_dir
+fi
+
+# the bam files are written out with the filename determined by the label in
 # your cellid_bam_table. We use this label to name the output files and to
 # change the sample name during the mpileup call so that when we merge the bcfs
 # each column will have a unique name
-label=${sam_file%%.sam}
+label=${bam_file%%.bam}
 export label=${label##*/}
-export orig_samp_name=$(head -n 20000 ${sam_file} | grep "SM:" | head -n 1 | perl -ne '/\tSM:(.+?)\t/; print $1')
+export orig_samp_name=$(samtools view -H ${bam_file} | grep "SM:" | head -n 1 | perl -ne '/\tSM:(.+?)\t/; print $1')
 
 echo ${label} ${orig_samp_name}
 
 samtools view \
         -b \
         --threads 5 \
-        ${sam_file} \
+        ${bam_file} \
     | samtools sort \
         -O BAM \
         -m 7G \
