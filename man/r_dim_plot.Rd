@@ -4,7 +4,14 @@
 \alias{r_dim_plot}
 \title{Roberts lab Seurat::DimPlot default changes}
 \usage{
-r_dim_plot(object, title = NULL, label = TRUE, pt.size = 1, ...)
+r_dim_plot(
+  object,
+  title = NULL,
+  label = TRUE,
+  pt.size = 1,
+  pt_alpha = 0.6,
+  ...
+)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -14,6 +21,8 @@ r_dim_plot(object, title = NULL, label = TRUE, pt.size = 1, ...)
 \item{label}{Whether to label the clusters}
 
 \item{pt.size}{Adjust point size for plotting}
+
+\item{pt_alpha}{Transparency of points (should be between 0 and 1)}
 
 \item{...}{Other arguments to pass to Seurat::DimPlot}
 }
@@ -26,9 +35,6 @@ Roberts lab Seurat::DimPlot default changes
 }
 \examples{
 \dontrun{
-cid_lt <- gen_cellecta_bc_data(file = "path/to/file.bam",
-                               verbose = TRUE,
-                               samtools_module = "GCC/9.3.0 SAMtools/1.10")
-output <- process_ltbc(sobject, cid_lt = cid_lt, histogram = TRUE)
+r_dim_plot(object = sobject)
 }
 }
