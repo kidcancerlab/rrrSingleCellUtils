@@ -8,7 +8,7 @@
 #SBATCH --cpus-per-task=30
 #SBATCH --partition=himem,general
 #SBATCH --wait
-#SBATCH --time=2-00:00:00
+#SBATCH --time=1-00:00:00
 
 set -e ### stops bash script if line ends with error
 
