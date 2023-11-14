@@ -87,13 +87,21 @@ process_raw_data <- function(sample_info,
         message("Getting raw data from ", dl_link, ".")
 
         ############################### Need to handle the case in which the link is dead
+        # If the link is dead the function will return FALSE and we will....
+        data_downloaded <-
+            get_raw_data(link_folder = dl_link,
+                         dest_folder = paste0(bcl_folder,
+                                              "/",
+                                              to_download$Sample_Project[1],
+                                              "/",
+                                              dl_link),
+                         domain = domain,
+                         .pw = pw)
 
-        #!!!!!!!!!!!!!!!!!!!!!!!! Do I still need the tar list since this info is now in the sample_info sheet?
-
-        get_raw_data(link_folder = dl_link,
-                     dest_folder = dest_folder,
-                     domain = domain,
-                     .pw = pw)
+        if (!data_downloaded) {
+            # need to log failures out to a file
+            # perhaps use {logr}?
+        }
     }
 
     ###
@@ -227,7 +235,8 @@ process_raw_data <- function(sample_info,
 #' Retrieve sequencing data and store it in
 #'
 #' @param link_folder Folder containing raw data
-#' @param dest_folder Location to store files
+#' @param dest_folder Parent folder to store BCL files
+#' @param tar_folder Folder containing tar files
 #' @param domain Where the raw files are hosted
 #' @param user Username to pass to smbclient
 #' @param user_group Group the user belongs to
@@ -242,11 +251,18 @@ process_raw_data <- function(sample_info,
 #' }
 get_raw_data <- function(link_folder,
                          dest_folder,
+                         tar_folder,
                          domain = "//igmdata/igm_roberts",
                          user = Sys.info()[["user"]],
                          user_group = "research",
                          .pw) {
 
+    if (missing(.pw)) {
+        .pw <- getPass::getPass("Password for smbclient: ")
+    }
+
+    # This needs to be before the if statement below so that the dest_folder
+    # is created if it doesn't exist
     if (!dir.exists(dest_folder)) {
         system(paste("mkdir", dest_folder))
     }
@@ -279,27 +295,34 @@ get_raw_data <- function(link_folder,
                         "mget *.tar *.md5'"))
 
         if (return_val != 0) {
-            stop("Data retrieval failed. Error code ", return_val)
+            warning("Data retrieval failed. Error code ", return_val)
+            return(FALSE)
         }
 
         # Check md5 sums to see if data copied properly.
-        check_tar_md5(dest_folder)
+        md5_good <- check_tar_md5(dest_folder)
+        if (!md5_good) {
+            message("md5 checksums failed for ", link_folder, ".")
+            return(FALSE)
+        }
 
         # Untar the downloaded data for further use
-        untar_cmd <- paste0("cd ", dest_folder, " ; ",
-                            "tar ",
-                            "--checkpoint=100000 ",
-                            "--checkpoint-action=\"echo= %T %t\" ",
-                            "-xf ",
-                            stringr::str_c(dest_folder,
-                                        tar_list,
-                                        sep = "/",
-                                        collapse = " "))
+        untar_cmd <-
+            paste0("cd ", dest_folder, " ; ",
+                   "tar ",
+                   "--checkpoint=1000000 ",
+                   "--checkpoint-action=\"echo= %T %t\" ",
+                   "-xf ",
+                   dest_folder,
+                   "/",
+                   tar_folder,
+                   ".tar")
 
         return_val <- system(untar_cmd)
 
         if (return_val != 0) {
-            stop("Untar failed. Error code ", return_val)
+            warning("Untar failed. Error code ", return_val)
+            return(FALSE)
         }
         return(TRUE)
     } else {
@@ -316,6 +339,10 @@ link_folder_exists <- function(dest_folder,
                                .pw,
                                user_group,
                                link_folder) {
+    if (missing(.pw)) {
+        .pw <- getPass::getPass("Password for smbclient: ")
+    }
+
     result <-
         tryCatch(
             {
@@ -336,14 +363,11 @@ link_folder_exists <- function(dest_folder,
             warning = function(w) {
                 warning("When trying to download from link folder ",
                         link_folder,
-                        " the folder was not found in  not found.")
-                return(FALSE)
+                        " the folder was not found in",
+                        dest_folder)
             })
-    if (result == FALSE) {
-        return(FALSE)
-    } else {
-        return(TRUE)
-    }
+    # return FALSE if the folder was not found, otherwise return TRUE
+    return(!grepl("folder was not found", result[1]))
 }
 
 #' Check that downloaded files match the expected md5sums
@@ -378,10 +402,12 @@ check_tar_md5 <- function(folder) {
                                col_types = "cc")
 
         if (md5_true$md5 != calc_md5[[md5_true$file]]) {
-            stop("md5 checksum check failed for file md5_true$file.")
+            warning("md5 checksum check failed for file md5_true$file.")
+            return(FALSE)
         }
     }
     message("md5 checksums good!")
+    return(TRUE)
 }
 
 #' Fix sampleSheet.csv for cellranger mkfastq
