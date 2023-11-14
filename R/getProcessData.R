@@ -20,7 +20,7 @@
 #'  outlines the information about each sample. The data are then downloaded
 #'  using smbclient and then md5sum checked and untar’d.
 #'  The data are then processed with cellranger mkfastq and either cellranger
-#'  count or cellranger-dna cnv (depending on the exp_type argument). A seurat
+#'  count or cellranger-dna cnv (depending on the Protocol argument). A seurat
 #'  object is generated as well and filtered using auto_subset().
 #'
 #' @export
@@ -61,7 +61,7 @@ process_raw_data <- function(sample_info,
                           trim_ws = TRUE,
                           show_col_types = FALSE) %>%
         dplyr::filter(Abort == "N" &
-                      exp_type %in% c("MATAC",
+                      Protocol %in% c("MATAC",
                                       "MGEX",
                                       "3GEX")) %>%
         add_data_status(sample_data,
@@ -114,30 +114,31 @@ process_raw_data <- function(sample_info,
         dplyr::filter(sample_data,
                       run_cellranger_mkfastq == TRUE)
 
-    # Get unique combination of tar_folder and exp_type to use with the
+    # Get unique combination of tar_folder and Protocol to use with the
     # following loop
     tar_exps <-
         to_mkfastq %>%
-        dplyr::select(link_folder, tar_folder, exp_type, Sample_Project) %>%
+        dplyr::select(link_folder, tar_folder, Protocol, Sample_Project) %>%
         dplyr::distinct()
 
-    # Loop over each tar_folder and exp_type combination to run mkfastq
+    # Loop over each tar_folder and Protocol combination to run mkfastq
     # number of cores used by mclapply doesn't matter since it's just submitting
     # them to the cluster
     parallel::mclapply(seq_len(nrow(tar_exps)),
                        mc.cores = 1,
                        function(i) {
         tar_f <- tar_exps$tar_folder[i]
-        # Write out subsampled sampleInfoSheet with data from one link_folder/exp_type combo
+        # Write out subsampled sampleInfoSheet with data from one link_folder/Protocol combo
         temp_sample_info_sheet <-
             tempfile(fileext = ".tsv")
+
+        # Subset sample sheet down to just current run
         dplyr::left_join(tar_exps[i, ], sample_data) %>%
             readr::write_tsv(file = temp_sample_info_sheet)
 
-        #!!!!!!!!!!!!! Do I need to worry about two runs on the same bcl folder overwriting the sample sheet?
-        #!!!!!!!!!!!!! I should write the sample sheet to a new file for each run
-
         # Fix sample sheet for all folders with BCL files
+        # I need to worry about two runs on the same bcl folder overwriting the
+        # sample sheet so I write the sample sheet to a new file for each run
         message("Fixing sample sheet in ", tar_f, ".")
 
         orig_sample_sheet <-
@@ -176,10 +177,10 @@ process_raw_data <- function(sample_info,
                       run_cellranger_count == TRUE)
 
     # Need to feed cellranger_count subsets of the sample_data sheet based on
-    # exp_type and Sample_Project
+    # Protocol and Sample_Project
     to_count_tbl_list <-
         to_count %>%
-        dplyr::group_by(Sample_Project, exp_type) %>%
+        dplyr::group_by(Sample_Project, Protocol) %>%
         dplyr::group_split()
 
     # The number of cores used here doesn't matter, since it's just submitting
@@ -479,16 +480,16 @@ cellranger_mkfastq <- function(sample_info,
                    "#SBATCH --mail-type=ALL\n")
     }
 
-    # This assumes that the sampleInfoSheet has a single exp_type.
-    # process_raw_data writes out temp sampleInfoSheets broken up by exp_type
-    if (sample_data$exp_type %>% unique %>% length() > 1) {
-        warning("cellranger_mkfastq() requires a single exp_type per run.")
-        warning("Break up sampleInfoSheet by exp_type and try again.")
+    # This assumes that the sampleInfoSheet has a single Protocol.
+    # process_raw_data writes out temp sampleInfoSheets broken up by Protocol
+    if (sample_data$Protocol %>% unique %>% length() > 1) {
+        warning("cellranger_mkfastq() requires a single Protocol per run.")
+        warning("Break up sampleInfoSheet by Protocol and try again.")
         stop()
     }
 
     cellranger_type <- "cellranger"
-    if (grepl("multiomics", sample_data$exp_type[1])) {
+    if (grepl("^M", sample_data$Protocol[1])) {
         cellranger_type <- "cellranger-arc"
     }
 
@@ -504,12 +505,18 @@ cellranger_mkfastq <- function(sample_info,
     # Need to add a suffix to the fastq folder for the multiomics so we can
     # reference it during counting
     fastq_suffix <- ""
-    base_mask <- "\n  --use-bases-mask=Y28n*,I10n*,I10n*,Y90n* \\\\\\\n"
-    if (sample_data$exp_type[1] == "multiomics GEX") {
+    # Need to change base mask based on index type (GA vs NN...)
+    if (sample_data$Protocol[1] == "3GEX" &&
+        sample_data$Index_Type[1] == "SI-TT-") {
+        base_mask <- "\n  --use-bases-mask=Y28n*,I10n*,I10n*,Y90n* \\\\\\\n"
+    } else if (sample_data$Protocol[1] == "3GEX" &&
+               sample_data$Index_Type[1] == "SI-GA-") {
+        base_mask <- "\n  --use-bases-mask=Y28n*,I8n*,Y90n* \\\\\\\n"
+    } else if (sample_data$Protocol[1] == "MGEX") {
         fastq_suffix <- "_R"
         base_mask <-
-        "\n  --use-bases-mask=Y28n*,I10n*,I10n*,Y90n* \\\\\\\n  --filter-dual-index \\\\"
-    } else if (sample_data$exp_type[1] == "multiomics ATAC") {
+            "\n  --use-bases-mask=Y28n*,I10n*,I10n*,Y90n* \\\\\\\n  --filter-dual-index \\\\"
+    } else if (sample_data$Protocol[1] == "MATAC") {
         fastq_suffix <- "_A"
         base_mask <-
             "\n  --use-bases-mask=Y50n*,I8n*,Y24n*,Y49n* \\\\\\\n  --filter-single-index \\\\"
@@ -600,14 +607,7 @@ cellranger_count <- function(sample_info,
                                                "/slurmOut_count-%j.out",
                                                sep = "")) {
 
-    sample_data <-
-        readr::read_delim(sample_info,
-                          delim = "\t",
-                          col_names = TRUE,
-                          trim_ws = TRUE,
-                          show_col_types = FALSE)
-
-    run_name <- sample_data$Sample_Project[1]
+    run_name <- sample_info$Sample_Project[1]
 
     fastq_folder <-
         paste(fastq_folder,
@@ -620,7 +620,7 @@ cellranger_count <- function(sample_info,
                    "#SBATCH --mail-type=ALL\n")
     }
 
-    multiomic <- dplyr::if_else(grepl("multiomic", sample_data$exp_type[1]),
+    multiomic <- dplyr::if_else(grepl("^M", sample_info$Protocol[1]),
                                 TRUE,
                                 FALSE)
 
@@ -637,21 +637,21 @@ cellranger_count <- function(sample_info,
 
         # Create csv that cellranger-arc can use for count - each sample will be
         # pulled out of this csv in the job template using grep
-        sample_data %>%
-            dplyr::select(Sample_ID, exp_type) %>%
-            dplyr::mutate(suffix = dplyr::if_else(exp_type == "multiomics GEX",
+        sample_info %>%
+            dplyr::select(Sample_ID, Protocol) %>%
+            dplyr::mutate(suffix = dplyr::if_else(Protocol == "MGEX",
                                                   "_R",
                                                   "_A"),
                           fastqs = paste0(fastq_folder,
                                           suffix,
                                           "/",
                                           run_name),
-                          exp_type = stringr::str_replace(exp_type,
-                                                          "multiomics GEX",
+                          Protocol = stringr::str_replace(Protocol,
+                                                          "MGEX",
                                                           "Gene Expression") %>%
-                                stringr::str_replace("multiomics ATAC",
+                                stringr::str_replace("MATAC",
                                                      "Chromatin Accessibility")) %>%
-            dplyr::rename(library_type = exp_type,
+            dplyr::rename(library_type = Protocol,
                           sample = Sample_ID) %>%
             dplyr::select(fastqs, sample, library_type, -suffix) %>%
             readr::write_csv(file = tmp_csv)
@@ -661,9 +661,9 @@ cellranger_count <- function(sample_info,
     # we don't need to run both, so only need the data from one of the two exp
     # to pull in both, that's why I use only gex data in the replace_tibble below
     if (multiomic) {
-        sample_data <-
-            sample_data %>%
-            dplyr::filter(exp_type == "multiomics GEX")
+        sample_info <-
+            sample_info %>%
+            dplyr::filter(Protocol == "multiomics GEX")
     }
 
     # the command for including introns is different for cellranger-arc
@@ -693,15 +693,15 @@ cellranger_count <- function(sample_info,
                                               "placeholder_library_csv",
                                               "placeholder_include_introns"),
                                      replace = c(run_name,
-                                                 nrow(sample_data) - 1,
-                                                 paste(sample_data$Sample_ID,
+                                                 nrow(sample_info) - 1,
+                                                 paste(sample_info$Sample_ID,
                                                        collapse = " "),
-                                                 paste(paste0(sample_data$Sample_ID,
+                                                 paste(paste0(sample_info$Sample_ID,
                                                               realign_suffix),
                                                        collapse = " "),
-                                                 paste(sample_data$Reference,
+                                                 paste(sample_info$Reference,
                                                        collapse = " "),
-                                                 paste(sample_data$Cell_Num,
+                                                 paste(sample_info$Cell_Num,
                                                        collapse = " "),
                                                  email,
                                                  slurm_out,
@@ -850,8 +850,8 @@ make_sobj <- function(s_id = s_id,
         tenx_load_qc(h5_file = paste0(counts_folder, "/",
                                         to_make_sobj$Sample_ID[i],
                                         "/filtered_feature_bc_matrix.h5"),
-                        violin_plot = FALSE,
-                        exp_type = exp_type)
+                     violin_plot = FALSE,
+                     exp_type = exp_type)
 
     # Add metadata from sample_data to s_obj
     # For multiomics where there are two rows, use unique and paste to keep one
