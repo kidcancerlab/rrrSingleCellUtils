@@ -7,6 +7,7 @@
 get_raw_data(
   link_folder,
   dest_folder,
+  tar_folder,
   domain = "//igmdata/igm_roberts",
   user = Sys.info()[["user"]],
   user_group = "research",
@@ -16,7 +17,9 @@ get_raw_data(
 \arguments{
 \item{link_folder}{Folder containing raw data}
 
-\item{dest_folder}{Location to store files}
+\item{dest_folder}{Parent folder to store BCL files}
+
+\item{tar_folder}{Folder containing tar files}
 
 \item{domain}{Where the raw files are hosted}
 
