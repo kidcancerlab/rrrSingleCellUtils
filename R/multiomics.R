@@ -259,7 +259,8 @@ calc_frip <- function(sobject,
 #' @param gtf String of path to a gtf file.
 #' @param nucl_cutoff Cutoff for nucleosome signal
 #' @param tss_cutoff Cutoff for TSS enrichment
-#' @param frag_files Named list of fragment files. The names should be the
+#' @param frag_files Named list of paths to fragment files.
+#' @param verbose Should functions be verbose?
 #'
 #' @export
 #'

@@ -56,7 +56,7 @@ This is a wrapper for several functions to get and process single
  outlines the information about each sample. The data are then downloaded
  using smbclient and then md5sum checked and untar’d.
  The data are then processed with cellranger mkfastq and either cellranger
- count or cellranger-dna cnv (depending on the exp_type argument). A seurat
+ count or cellranger-dna cnv (depending on the Protocol argument). A seurat
  object is generated as well and filtered using auto_subset().
 }
 \examples{
