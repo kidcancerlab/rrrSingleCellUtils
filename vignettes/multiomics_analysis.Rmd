@@ -19,7 +19,7 @@ library(rrrSingleCellUtils)
 ```
 
 # Multiomics data with two species, selecting human
-```{r loadRawMultiBoth, eval=TRUE}
+```{r loadRawMultiBoth, eval=FALSE}
 multiomics_hg19 <-
     tenx_load_qc(h5_file = "/home/gdrobertslab/lab/Counts/S0150/filtered_feature_bc_matrix.h5",
                  species_pattern = "^hg19-",
@@ -29,7 +29,7 @@ multiomics_hg19
 ```
 
 
-```{r annotGenesATAC, eval=TRUE}
+```{r annotGenesATAC, eval=FALSE}
 Seurat::DefaultAssay(multiomics_hg19) <- "ATAC"
 multiomics_hg19 <-
     annotate_atac(multiomics_hg19,
@@ -38,12 +38,12 @@ multiomics_hg19 <-
 ```
 
 ## Nucleosome signal
-```{r nucleosome, eval=TRUE}
+```{r nucleosome, eval=FALSE}
 multiomics_hg19 <- add_nucleosome_signal(multiomics_hg19)
 ```
 
 ## Transcription start site enrichment
-```{r tss, eval=TRUE}
+```{r tss, eval=FALSE}
 multiomics_hg19 <- tss_enrichment(multiomics_hg19)
 ```
 
