@@ -161,13 +161,16 @@ process_raw_data <- function(sample_info,
         # Run cellranger mkfastq
         message("Submitting slurm command to create fastq",
                 "files using cellranger mkfastq.")
-        cellranger_mkfastq(sample_info = temp_sample_info_sheet,
-                           email = email,
-                           tar_folders = tar_f,
-                           bcl_folder = bcl_folder,
-                           fastq_folder = fastq_folder,
-                           slurm_out = paste0(slurm_base,
-                                             "_mkfastq-%j.out"))
+        return_val <-
+            cellranger_mkfastq(sample_info = temp_sample_info_sheet,
+                               email = email,
+                               tar_folders = tar_f,
+                               bcl_folder = bcl_folder,
+                               fastq_folder = fastq_folder,
+                               slurm_out = paste0(slurm_base,
+                                                  "_mkfastq-%j.out"))
+        #!!!!!!!!!!!!!! Need to write out any failures to a file
+        return(return_val)
     })
 
     ###################### Count the things that need counting
@@ -564,18 +567,21 @@ cellranger_mkfastq <- function(sample_info,
                                  replacement = replace_tibble$replace[i])
     }
 
-    temp_file <- tempfile(fileext = ".sh",
-                        pattern = "mkfastq",
-                        tmpdir = getwd())
+    temp_file <-
+        tempfile(fileext = ".sh",
+                 pattern = "mkfastq",
+                 tmpdir = getwd())
 
     readr::write_file(sbatch_template, file = temp_file)
 
     return_val <- system(paste("sbatch", temp_file))
 
     if (return_val != 0) {
-        stop("Cellranger mkfastq sbatch submission failed. Error code ",
-             return_val)
+        warning("Cellranger mkfastq sbatch submission failed. Error code ",
+                return_val)
+        return(FALSE)
     }
+    return(TRUE)
 }
 
 #' Run cellranger count on 10X data
