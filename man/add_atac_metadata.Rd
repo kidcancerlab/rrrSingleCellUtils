@@ -22,7 +22,9 @@ add_atac_metadata(
 
 \item{tss_cutoff}{Cutoff for TSS enrichment}
 
-\item{frag_files}{Named list of fragment files. The names should be the}
+\item{frag_files}{Named list of paths to fragment files.}
+
+\item{verbose}{Should functions be verbose?}
 }
 \value{
 A Seurat object

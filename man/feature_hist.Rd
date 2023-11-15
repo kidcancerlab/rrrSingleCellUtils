@@ -15,6 +15,8 @@ feature_hist(sobject, features, cutoff_table = NULL, n_x_breaks = 10)
 This table should have columns named "feature", "min_val" and "max_val"
 where "feature" matches each element of the "features" argument, and
 "min_val" and"max_val" are numeric values. This argument is optional.}
+
+\item{n_x_breaks}{Number of x-axis breaks to use}
 }
 \value{
 A ggplot object
