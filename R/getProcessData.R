@@ -11,6 +11,7 @@
 #' @param counts_folder Path to write counts files
 #' @param ref_folder Path to 10x reference folders
 #' @param sobj_folder Path to write Seurat objects
+#' @param cutoff_hist_folder Path to write cutoff histograms
 #' @param proc_threads Number of threads to use for processing
 #'
 #' @details This is a wrapper for several functions to get and process single
@@ -64,7 +65,7 @@ process_raw_data <- function(sample_info,
                       Protocol %in% c("MATAC",
                                       "MGEX",
                                       "3GEX")) %>%
-        add_data_status(sample_data,
+        add_data_status(sample_info = .,
                         bcl_folder = bcl_folder,
                         fastq_folder = fastq_folder,
                         counts_folder = counts_folder,
@@ -73,36 +74,45 @@ process_raw_data <- function(sample_info,
     #################### Download the things that need downloaded
     to_download <-
         dplyr::filter(sample_data,
-                      download_data == TRUE)
+                      download_data == TRUE) %>%
+        dplyr::select(link_folder,
+                      Sample_Project,
+                      tar_folder) %>%
+        dplyr::distinct()
 
     # Sometimes we're going to have multiple download folders and multiple
     # experiment types (such as multiomics) that need to be handled separately
     # Therefore, we loop over each link_folder
-    #temp_sample_info_sheets <- list()
 
     pw <- getPass::getPass("Password for smbclient: ")
 
-    for (dl_link in unique(to_download$link_folder)) {
+    #for (i in seq_len(nrow(to_download))) {
+    parallel::mclapply(seq_len(nrow(to_download)),
+                       mc.cores = 5,
+                       function(i) {
         # Download, untar and check md5 sums of raw data
-        message("Getting raw data from ", dl_link, ".")
+        message("Getting raw data from ",
+                to_download$link_folder[i],
+                ".")
 
-        ############################### Need to handle the case in which the link is dead
-        # If the link is dead the function will return FALSE and we will....
+        # If the link is dead the function will return FALSE
         data_downloaded <-
-            get_raw_data(link_folder = dl_link,
+            get_raw_data(link_folder = to_download$link_folder[i],
                          dest_folder = paste0(bcl_folder,
                                               "/",
-                                              to_download$Sample_Project[1],
-                                              "/",
-                                              dl_link),
+                                              to_download$Sample_Project[i]),
+                         tar_folder = to_download$tar_folder[i],
                          domain = domain,
                          .pw = pw)
 
         if (!data_downloaded) {
+            message("Data download failed for ",
+                    to_download$link_folder[i],
+                    ". Moving on to next sample.")
             # need to log failures out to a file
             # perhaps use {logr}?
         }
-    }
+    })
 
     ###
     # For now, I am assuming there is one tar file per link_folder, but this
@@ -268,7 +278,7 @@ get_raw_data <- function(link_folder,
     # This needs to be before the if statement below so that the dest_folder
     # is created if it doesn't exist
     if (!dir.exists(dest_folder)) {
-        system(paste("mkdir", dest_folder))
+        system(paste("mkdir -p", dest_folder))
     }
 
     # Get list of tar files to use for untaring and to return
@@ -283,20 +293,22 @@ get_raw_data <- function(link_folder,
         # Get raw data from IGM
         return_val <-
             system(paste0("cd ", dest_folder, " ; ",
-                        "export LD_LIBRARY_PATH=\"\"; ",
-                        "smbclient ",
-                        domain, " ",
-                        "-U ", user,
-                        "%",
-                        .pw,
-                        " ",
-                        "-W ", user_group, " ",
-                        "-c ",
-                        "'cd ", link_folder, "; ",
-                        "mask \"\"; ",
-                        "recurse OFF; ",
-                        "prompt OFF; ",
-                        "mget *.tar *.md5'"))
+                          "export LD_LIBRARY_PATH=\"\"; ",
+                          "smbclient ",
+                          domain, " ",
+                          "-U ", user,
+                          "%",
+                          .pw,
+                          " ",
+                          "-W ", user_group, " ",
+                          "-c ",
+                          "'cd ", link_folder, "; ",
+                          "mask \"\"; ",
+                          "recurse OFF; ",
+                          "prompt OFF; ",
+                          "mget ",
+                          tar_folder,
+                          "*'"))
 
         if (return_val != 0) {
             warning("Data retrieval failed. Error code ", return_val)
@@ -389,7 +401,9 @@ check_tar_md5 <- function(folder) {
     calc_md5 <-
         system(md5_cmd, intern = TRUE) %>%
         tibble::as_tibble() %>%
-        tidyr::separate(col = "value", sep = "[ ]+", into = c("md5", "file")) %>%
+        tidyr::separate(col = "value",
+                        sep = "[ ]+",
+                        into = c("md5", "file")) %>%
         dplyr::mutate(file = stringr::str_remove(file, ".+/")) %>%
         dplyr::select(file, md5) %>%
         tibble::deframe()
@@ -632,7 +646,7 @@ cellranger_count <- function(sample_info,
 
     cellranger_template <- "/cellranger_count_template.job"
     tmp_csv <- ""
-    # Need to deal with the multiomic completely differently due to cellranger-arc
+    # Need to deal with the multiomic differently due to cellranger-arc
     if (multiomic) {
         cellranger_template <- "/cellranger_count_multiomics_template.job"
 
@@ -665,7 +679,7 @@ cellranger_count <- function(sample_info,
 
     # Since cellranger-arc count pulls in both GEX and ATAC at the same time
     # we don't need to run both, so only need the data from one of the two exp
-    # to pull in both, that's why I use only gex data in the replace_tibble below
+    # to pull in both, that's why I use only gex data in the replace_tibble
     if (multiomic) {
         sample_info <-
             sample_info %>%
@@ -682,8 +696,8 @@ cellranger_count <- function(sample_info,
 
     # Need very different arguments for cellranger/cellranger-arc
     # Using separate template
-    # The Cell Ranger ARC pipeline can only analyze Gene Expression and ATAC data
-    # together and the input is a csv file
+    # The Cell Ranger ARC pipeline can only analyze Gene Expression and ATAC
+    # data together and the input is a csv file
     replace_tibble <- tibble::tibble(find = c("placeholder_run_name",
                                               "placeholder_array_max",
                                               "placeholder_sample_array_list",
@@ -854,8 +868,8 @@ make_sobj <- function(s_id = s_id,
 
     s_obj <-
         tenx_load_qc(h5_file = paste0(counts_folder, "/",
-                                        to_make_sobj$Sample_ID[i],
-                                        "/filtered_feature_bc_matrix.h5"),
+                                      sample_info$Sample_ID[i],
+                                      "/filtered_feature_bc_matrix.h5"),
                      violin_plot = FALSE,
                      exp_type = exp_type)
 
@@ -934,7 +948,8 @@ process_sobj_gex <- function(s_obj,
                                 cols = dplyr::everything()) %>%
             dplyr::mutate(direction = stringr::str_remove(feature, ".+_") %>%
                           paste0("_val"),
-                          feature = stringr::str_remove(feature, "_m[ai][nx]$")) %>%
+                          feature = stringr::str_remove(feature,
+                                                        "_m[ai][nx]$")) %>%
             tidyr::pivot_wider(names_from = direction,
                                values_from = value)
 
@@ -955,10 +970,12 @@ process_sobj_gex <- function(s_obj,
                 # subset can't accept a variable to name the column for
                 # subsetting, so we use this approach instead
                 s_obj <-
-                    s_obj[, which(Seurat::FetchData(s_obj, vars = descriptor) >= cutoff_value)]
+                    s_obj[, which(Seurat::FetchData(s_obj,
+                                                    vars = descriptor) >= cutoff_value)]
             } else if (direction == "max") {
                 s_obj <-
-                    s_obj[, which(Seurat::FetchData(s_obj, vars = descriptor) <= cutoff_value)]
+                    s_obj[, which(Seurat::FetchData(s_obj,
+                                                    vars = descriptor) <= cutoff_value)]
             } else {
                 print(subset_table)
                 stop("Unknown direction in subset table for ",
