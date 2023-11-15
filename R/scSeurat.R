@@ -2,6 +2,7 @@
 #'
 #' @param path_10x Path to 10X RNAseq data "filtered_feature_bc_matrix" folder
 #' @param h5_file Path to 10X h5 file
+#' @param frag_file Path to 10X ATAC fragments file. Only required for ATAC data
 #' @param min_cells Passed to CreateSeuratObject: Include features detected in
 #'     at least this many cells. Will subset the counts matrix as well. To
 #'     reintroduce excluded features, create a new object with a lower cutoff.

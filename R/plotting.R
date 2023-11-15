@@ -158,6 +158,7 @@ theme_roberts <- function(axis_font_size = 5,
 #'     This table should have columns named "feature", "min_val" and "max_val"
 #'     where "feature" matches each element of the "features" argument, and
 #'     "min_val" and"max_val" are numeric values. This argument is optional.
+#' @param n_x_breaks Number of x-axis breaks to use
 #'
 #' @return A ggplot object
 #' @export
