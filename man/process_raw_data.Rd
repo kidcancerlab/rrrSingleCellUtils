@@ -43,6 +43,8 @@ process_raw_data(
 
 \item{sobj_folder}{Path to write Seurat objects}
 
+\item{cutoff_hist_folder}{Path to write cutoff histograms}
+
 \item{proc_threads}{Number of threads to use for processing}
 }
 \description{
