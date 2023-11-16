@@ -34,7 +34,7 @@ cd $TMPDIR
 ## demultiplex bcl and create fasta files
 placeholder_cellranger_type mkfastq \
   --localcores=30 \
-  --localmem=220 \
+  --localmem=200 \
   --delete-undetermined \
   --samplesheet=placeholder_sample_sheet \
   --run=${BCLFolder}/${CommonFolderName}/${BCLFolderName}/ \placeholder_base_mask
