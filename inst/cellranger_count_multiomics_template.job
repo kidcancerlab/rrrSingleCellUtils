@@ -21,6 +21,9 @@ CountsFolder=placeholder_counts_folder
 GenRefArray=(placeholder_reference_array_list)
 GenRef=${GenRefArray[${SLURM_ARRAY_TASK_ID}]}
 
+echo $OutDir
+echo $CountsFolder
+
 ## set path info
 export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-arc-2.0.2:$PATH
 export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/bcl2fastq/2.20/bin:$PATH
