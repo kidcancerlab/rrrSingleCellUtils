@@ -86,7 +86,6 @@ process_raw_data <- function(sample_info,
 
     pw <- getPass::getPass("Password for smbclient: ")
 
-    #for (i in seq_len(nrow(to_download))) {
     parallel::mclapply(seq_len(nrow(to_download)),
                        mc.cores = 5,
                        function(i) {
@@ -135,7 +134,7 @@ process_raw_data <- function(sample_info,
     # number of cores used by mclapply doesn't matter since it's just submitting
     # them to the cluster
     parallel::mclapply(seq_len(nrow(tar_exps)),
-                       mc.cores = 1,
+                       mc.cores = 100,
                        function(i) {
         tar_f <- tar_exps$tar_folder[i]
         # Write out subsampled sampleInfoSheet with data from one link_folder/Protocol combo
@@ -143,7 +142,12 @@ process_raw_data <- function(sample_info,
             tempfile(fileext = ".tsv")
 
         # Subset sample sheet down to just current run
-        dplyr::left_join(tar_exps[i, ], sample_data) %>%
+        dplyr::left_join(tar_exps[i, ],
+                         sample_data,
+                         by = c("link_folder",
+                                "tar_folder",
+                                "Protocol",
+                                "Sample_Project")) %>%
             readr::write_tsv(file = temp_sample_info_sheet)
 
         # Fix sample sheet for all folders with BCL files
@@ -164,15 +168,28 @@ process_raw_data <- function(sample_info,
                                      tar_exps$Sample_Project[i], "/",
                                      tar_exps$tar_folder[i]))
 
-        fix_sample_sheet(orig_sample_sheet = orig_sample_sheet,
-                         new_sample_sheet = new_sample_sheet,
-                         sample_info_sheet = temp_sample_info_sheet)
+        return_value <-
+            fix_sample_sheet(orig_sample_sheet = orig_sample_sheet,
+                             new_sample_sheet = new_sample_sheet,
+                             sample_info_sheet = temp_sample_info_sheet)
 
+        if (!return_value) {
+            message("Sample sheet repair failed for ",
+                    tar_f,
+                    ". Moving on to next sample.")
+            # need to log failures out to a file
+            # Might make a function for this?
+            # How would I handle the return value?
+            # log_failure(return_value, "message goes here")
+            # perhaps use {logr}?
+            return(FALSE)
+        }
         # Run cellranger mkfastq
         message("Submitting slurm command to create fastq",
                 "files using cellranger mkfastq.")
         return_val <-
             cellranger_mkfastq(sample_info = temp_sample_info_sheet,
+                               sample_sheet = new_sample_sheet,
                                email = email,
                                tar_folders = tar_f,
                                bcl_folder = bcl_folder,
@@ -223,7 +240,9 @@ process_raw_data <- function(sample_info,
     parallel::mclapply(unique(to_make_sobj$Sample_ID),
                        mc.cores = proc_threads,
                        function(s_id) {
-        message("Generating Seurat object for ", to_make_sobj$Sample_ID[i], ".")
+        message("Generating Seurat object for ",
+                to_make_sobj$Sample_ID[s_id],
+                ".")
 
 
     })
@@ -450,11 +469,13 @@ fix_sample_sheet <- function(orig_sample_sheet,
                "--sampleSheet ", orig_sample_sheet, " ",
                "> ", new_sample_sheet)
 
-    return_val <- return(system(system_cmd))
+    return_val <- system(system_cmd)
 
     if (return_val != 0) {
-      stop("Sample sheet repair failed. Error code ", return_val)
+      warning("Sample sheet repair failed. Error code ", return_val)
+      return(FALSE)
     }
+    return(TRUE)
 }
 
 #' Run cellranger mkfastq
@@ -491,6 +512,13 @@ cellranger_mkfastq <- function(sample_info,
 
     run_name <- sample_data$Sample_Project[1]
 
+    if (!dir.exists(paste0(bcl_folder, "/",
+                           sample_data$Sample_Project[1], "/",
+                           sample_data$tar_folder[1]))) {
+        warning("BCL folder does not exist. Did you download the data?")
+        return(FALSE)
+    }
+
     if (email != "") {
         email <-
             paste0("#SBATCH --mail-user=", email, "\n",
@@ -525,10 +553,10 @@ cellranger_mkfastq <- function(sample_info,
     # Need to change base mask based on index type (GA vs NN...)
     if (sample_data$Protocol[1] == "3GEX" &&
         sample_data$Index_Type[1] == "SI-TT-") {
-        base_mask <- "\n  --use-bases-mask=Y28n*,I10n*,I10n*,Y90n* \\\\\\\n"
+        base_mask <- "\n  --use-bases-mask=Y28n*,I10n*,I10n*,Y90n* \\\\"
     } else if (sample_data$Protocol[1] == "3GEX" &&
                sample_data$Index_Type[1] == "SI-GA-") {
-        base_mask <- "\n  --use-bases-mask=Y28n*,I8n*,Y90n* \\\\\\\n"
+        base_mask <- "\n  --use-bases-mask=Y28n*,I8n*,Y90n* \\\\"
     } else if (sample_data$Protocol[1] == "MGEX") {
         fastq_suffix <- "_R"
         base_mask <-
@@ -789,7 +817,7 @@ add_data_status <- function(sample_info,
                            sample_info$Sample_ID, "/",
                            "filtered_feature_bc_matrix/barcodes.tsv.gz"))
 
-    fastq_folder_suffix <-
+    sample_info$fastq_folder_suffix <-
         stringr::str_replace_all(sample_info$Protocol,
                                  c("3GEX"    = "",
                                    "CNV"     = "",
@@ -798,16 +826,28 @@ add_data_status <- function(sample_info,
                                    "^MATAC$" = "_A",
                                    "MGEX"    = "_R"))
 
+    # get appropriate pattern for fastq files for given data type
+    # The ATAC output from mkfastq has different directory structure than GEX
+    sample_info <-
+        sample_info %>%
+        dplyr::mutate(r1_path = dplyr::if_else(fastq_folder_suffix == "_A",
+                                               paste0(fastq_folder, "/",            # multiomics ATAC
+                                                      Sample_Project,
+                                                      fastq_folder_suffix, "/",
+                                                      Sample_Project, "/",
+                                                      Sample_ID, "/",
+                                                      Sample_ID,
+                                                      "*R1*fastq.gz"),
+                                               paste0(fastq_folder, "/",            # 3' data
+                                                      Sample_Project,
+                                                      fastq_folder_suffix, "/",
+                                                      Sample_Project, "/",
+                                                      Sample_ID,
+                                                      "*R1*fastq.gz")))
 
     # Check if fastq data exists or if run_cellranger_count is TRUE
     sample_info$run_cellranger_mkfastq <-
-        lapply(paste0(fastq_folder, "/",
-                      sample_info$Sample_Project,
-                      fastq_folder_suffix, "/",
-                      sample_info$Sample_Project, "/",
-                      sample_info$Sample_ID, "/",
-                      sample_info$Sample_ID,
-                      "*R1*fastq.gz"),
+        lapply(sample_info$r1_path,
                function(x) length(Sys.glob(x)) == 0) %>%
         unlist() &
         sample_info$run_cellranger_count
