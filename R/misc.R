@@ -11,6 +11,7 @@ utils::globalVariables(c(
     "database",
     "download_data",
     "exp_type",
+    "fastq_folder_suffix",
     "fastqs",
     "feature",
     "features.plot",
