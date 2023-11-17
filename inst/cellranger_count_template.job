@@ -28,6 +28,9 @@ GenRef=${GenRefArray[${SLURM_ARRAY_TASK_ID}]}
 NumCellsArray=(placeholder_num_cells_list)
 NumCells=${NumCellsArray[${SLURM_ARRAY_TASK_ID}]}
 
+echo $RunName
+echo $SampleName
+
 ## set path info
 export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-7.1.0:$PATH
 export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/bcl2fastq/2.20/bin:$PATH

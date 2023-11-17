@@ -24,6 +24,10 @@ BCLFolder=placeholder_bcl_path
 
 FASTQFolder=placeholder_fastq_folder
 
+echo $CommonFolderName
+echo $BCLFolder
+echo $ExpType
+
 ## set path info
 export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-7.1.0:$PATH
 export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-arc-2.0.2:$PATH
