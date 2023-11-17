@@ -210,7 +210,7 @@ process_raw_data <- function(sample_info,
     # Protocol and Sample_Project
     to_count_tbl_list <-
         to_count %>%
-        dplyr::group_by(Sample_Project, Protocol) %>%
+        dplyr::group_by(Sample_Project, Protocol == "3GEX") %>%
         dplyr::group_split()
 
     # The number of cores used here doesn't matter, since it's just submitting
@@ -240,9 +240,9 @@ process_raw_data <- function(sample_info,
     parallel::mclapply(unique(to_make_sobj$Sample_ID),
                        mc.cores = proc_threads,
                        function(s_id) {
-        message("Generating Seurat object for ",
+        message("Not actually Generating Seurat object for ",
                 to_make_sobj$Sample_ID[s_id],
-                ".")
+                "yet, the code isn't done.")
 
 
     })
@@ -711,16 +711,16 @@ cellranger_count <- function(sample_info,
     if (multiomic) {
         sample_info <-
             sample_info %>%
-            dplyr::filter(Protocol == "multiomics GEX")
+            dplyr::filter(Protocol == "MGEX")
     }
 
     # the command for including introns is different for cellranger-arc
     intron_arg <-
-    dplyr::if_else(include_introns,
-                   "",
-                   dplyr::if_else(multiomic,
-                                  "\n --gex-exclude-introns \\\\\\",
-                                  "\n --include-introns false \\\\\\"))
+        dplyr::if_else(include_introns,
+                       "",
+                       dplyr::if_else(multiomic,
+                                      "\n --gex-exclude-introns \\\\\\",
+                                      "\n --include-introns false \\\\\\"))
 
     # Need very different arguments for cellranger/cellranger-arc
     # Using separate template
@@ -749,7 +749,7 @@ cellranger_count <- function(sample_info,
                                                        collapse = " "),
                                                  paste(sample_info$Reference,
                                                        collapse = " "),
-                                                 paste(sample_info$Cell_Num,
+                                                 paste(sample_info$cells_targeted,
                                                        collapse = " "),
                                                  email,
                                                  slurm_out,
