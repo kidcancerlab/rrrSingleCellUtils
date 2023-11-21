@@ -47,6 +47,7 @@ utils::globalVariables(c(
     "receptors",
     "receptors_bona_fide",
     "res_vals",
+    "rm_path",
     "run_cellranger_count",
     "run_cellranger_mkfastq",
     "Sample_ID",

@@ -13,6 +13,9 @@
 #' @param sobj_folder Path to write Seurat objects
 #' @param cutoff_hist_folder Path to write cutoff histograms
 #' @param proc_threads Number of threads to use for processing
+#' @param delete_bcl_tar Delete the tar file after untarring?
+#' @param delete_bcls Delete the BCL files after mkfastq?
+#' @param delete_fastqs Delete the fastq files after count?
 #'
 #' @details This is a wrapper for several functions to get and process single
 #'  cell data from the NCH IGM core. I have built the defaults to be specific to
@@ -43,7 +46,10 @@ process_raw_data <- function(sample_info,
                              ref_folder = "/home/gdrobertslab/lab/GenRef",
                              sobj_folder = "/home/gdrobertslab/lab/SeuratObj",
                              cutoff_hist_folder = "/home/gdrobertslab/lab/SeuratObj",
-                             proc_threads = 10) {
+                             proc_threads = 10,
+                             delete_bcl_tar = FALSE,
+                             delete_bcls = FALSE,
+                             delete_fastqs = FALSE) {
     # Make sure sample_info has unix line endings
     system(paste0("dos2unix ", sample_info))
 
@@ -102,7 +108,8 @@ process_raw_data <- function(sample_info,
                                               to_download$Sample_Project[i]),
                          tar_folder = to_download$tar_folder[i],
                          domain = domain,
-                         .pw = pw)
+                         .pw = pw,
+                         delete_bcl_tar = delete_bcl_tar)
 
         if (!data_downloaded) {
             message("Data download failed for ",
@@ -137,7 +144,8 @@ process_raw_data <- function(sample_info,
                        mc.cores = 100,
                        function(i) {
         tar_f <- tar_exps$tar_folder[i]
-        # Write out subsampled sampleInfoSheet with data from one link_folder/Protocol combo
+        # Write out subsampled sampleInfoSheet with data from one
+        # link_folder/Protocol combo
         temp_sample_info_sheet <-
             tempfile(fileext = ".tsv")
 
@@ -180,14 +188,14 @@ process_raw_data <- function(sample_info,
             # need to log failures out to a file
             # Might make a function for this?
             # How would I handle the return value?
-            # log_failure(return_value, "message goes here")
+            # something like log_failure(return_value, "message goes here")
             # perhaps use {logr}?
             return(FALSE)
         }
         # Run cellranger mkfastq
         message("Submitting slurm command to create fastq",
                 "files using cellranger mkfastq.")
-        return_val <-
+        return_value <-
             cellranger_mkfastq(sample_info = temp_sample_info_sheet,
                                sample_sheet = new_sample_sheet,
                                email = email,
@@ -196,8 +204,18 @@ process_raw_data <- function(sample_info,
                                fastq_folder = fastq_folder,
                                slurm_out = paste0(slurm_base,
                                                   "_mkfastq-%j.out"))
+
+        # If mkfastq successful, delte BCLs
+        # Need to make sure nothing else is using the BCLs first
+        if (return_value && delete_bcls) {
+            message("deleting BCLs not implemented yet, but would delete ",
+                    bcl_folder, "/",
+                    tar_exps$Sample_Project[i], "/",
+                    tar_exps$tar_folder[i])
+        }
+
         #!!!!!!!!!!!!!! Need to write out any failures to a file
-        return(return_val)
+        return(return_value)
     })
 
     ###################### Count the things that need counting
@@ -221,13 +239,25 @@ process_raw_data <- function(sample_info,
         message("Submtting slurm command to run cellranger count.\n",
                 "Slurm messages output to", paste0(slurm_base, "_count-%j.out"))
 
-        cellranger_count(sample_info = x,
-                         email = email,
-                         counts_folder = counts_folder,
-                         fastq_folder = fastq_folder,
-                         ref_folder = ref_folder,
-                         include_introns = include_introns,
-                         slurm_out = paste0(slurm_base, "_count-%j.out"))
+        return_value <-
+            cellranger_count(sample_info = x,
+                             email = email,
+                             counts_folder = counts_folder,
+                             fastq_folder = fastq_folder,
+                             ref_folder = ref_folder,
+                             include_introns = include_introns,
+                             slurm_out = paste0(slurm_base, "_count-%j.out"),
+                             delete_fastqs = delete_fastqs)
+
+        if (!return_value) {
+            message("Cellranger count failed for ",
+                    x$Sample_Project[1],
+                    ". Moving on to next sample.")
+            # need to log failures out to a file
+            # perhaps use {logr}?
+        }
+
+        return(return_value)
     })
 
     ############ Generate Seurat objects for the things that need Seurat objects
@@ -274,6 +304,7 @@ process_raw_data <- function(sample_info,
 #' @param user Username to pass to smbclient
 #' @param user_group Group the user belongs to
 #' @param .pw internal use only
+#' @param delete_bcl_tar Delete the tar file after untarring?
 #'
 #' @export
 #'
@@ -288,7 +319,8 @@ get_raw_data <- function(link_folder,
                          domain = "//igmdata/igm_roberts",
                          user = Sys.info()[["user"]],
                          user_group = "research",
-                         .pw) {
+                         .pw,
+                         delete_bcl_tar = FALSE) {
 
     if (missing(.pw)) {
         .pw <- getPass::getPass("Password for smbclient: ")
@@ -310,7 +342,7 @@ get_raw_data <- function(link_folder,
                            link_folder = link_folder)) {
 
         # Get raw data from IGM
-        return_val <-
+        return_value <-
             system(paste0("cd ", dest_folder, " ; ",
                           "export LD_LIBRARY_PATH=\"\"; ",
                           "smbclient ",
@@ -329,8 +361,8 @@ get_raw_data <- function(link_folder,
                           tar_folder,
                           "*'"))
 
-        if (return_val != 0) {
-            warning("Data retrieval failed. Error code ", return_val)
+        if (return_value != 0) {
+            warning("Data retrieval failed. Error code ", return_value)
             return(FALSE)
         }
 
@@ -353,11 +385,18 @@ get_raw_data <- function(link_folder,
                    tar_folder,
                    ".tar")
 
-        return_val <- system(untar_cmd)
+        return_value <- system(untar_cmd)
 
-        if (return_val != 0) {
-            warning("Untar failed. Error code ", return_val)
+        if (return_value != 0) {
+            warning("Untar failed. Error code ", return_value)
             return(FALSE)
+        }
+
+        if (return_value && delete_bcl_tar) {
+            message("Deleting tar file for ",
+                    dest_folder, "/",
+                    tar_folder, ".tar")
+            system(paste0("rm ", dest_folder, "/", tar_folder, ".tar"))
         }
         return(TRUE)
     } else {
@@ -637,6 +676,7 @@ cellranger_mkfastq <- function(sample_info,
 #' @param fastq_folder Path to write fastq files
 #' @param ref_folder Path to 10x reference folders
 #' @param slurm_out Location to write out slurm out files
+#' @param delete_fastqs Delete fastq files after count is done?
 #'
 #' @export
 #'
@@ -653,7 +693,8 @@ cellranger_count <- function(sample_info,
                              ref_folder = "/home/gdrobertslab/lab/GenRef",
                              slurm_out = paste(getwd(),
                                                "/slurmOut_count-%j.out",
-                                               sep = "")) {
+                                               sep = ""),
+                             delete_fastqs = FALSE) {
 
     run_name <- sample_info$Sample_Project[1]
 
@@ -784,8 +825,49 @@ cellranger_count <- function(sample_info,
     return_val <- system(paste("sbatch", temp_file))
 
     if (return_val != 0) {
-        stop("Cellranger count sbatch submission failed. Error code ", return_val)
+        message("Cellranger count sbatch submission failed. Error code ",
+                return_val)
+        return(FALSE)
     }
+
+    # Delete fastq files if requested
+    if (return_val == 0) {
+        rm_cmd <-
+            sample_info %>%
+            dplyr::mutate(
+                rm_path = dplyr::if_else(
+                    Protocol == "3GEX",
+                    paste0(fastq_folder, "/",
+                           run_name, "/",
+                           run_name, "/",
+                           Sample_ID,
+                           "_S*fastq.gz"),
+                    dplyr::if_else(Protocol == "MATAC",
+                                   paste0(fastq_folder, "/",
+                                          run_name, "_A/",
+                                          run_name, "/",
+                                          Sample_ID, "/",
+                                          Sample_ID,
+                                          "_S*fastq.gz"),
+                                   paste0(fastq_folder, "/",
+                                          run_name, "_R/",
+                                          run_name, "/",
+                                          Sample_ID,
+                                          "_S*fastq.gz"))
+                )
+            ) %>%
+            dplyr::pull(rm_path) %>%
+            paste(collapse = " ") %>%
+            paste("rm", .)
+        return_value_rm <- system(rm_cmd)
+        if (!return_value_rm) {
+            message("Failed to delete fastq files for ",
+                    run_name,
+                    ". Error code ",
+                    return_value_rm)
+        }
+    }
+    return(TRUE)
 }
 
 #' Add columns to sample_info to show if data are downloaded, processed, etc.
@@ -859,6 +941,24 @@ add_data_status <- function(sample_info,
                           sample_info$link_folder)) |
         sample_info$run_cellranger_mkfastq) &
         !is.na(sample_info$link_folder)
+
+    # Check if bcl tar folder can be deleted once mkfastq is done
+    sample_info <-
+        dplyr::left_join(sample_info,
+                         sample_info %>%
+            dplyr::select(tar_folder, link_folder, Protocol, Sample_Project) %>%
+            dplyr::distinct() %>%
+            dplyr::group_by(tar_folder) %>%
+            dplyr::mutate(del_now = dplyr::n() == 1))
+
+    # Check if fastq folder can be deleted once count is done
+    # sample_info <-
+    #     dplyr::left_join(sample_info,
+    #                      sample_info %>%
+    #         dplyr::select(fastq_folder_suffix, Protocol, Sample_Project) %>%
+    #         dplyr::distinct() %>%
+    #         dplyr::group_by(fastq_folder_suffix) %>%
+    #         dplyr::mutate(del_now = dplyr::n() == 1))
 
     return(sample_info)
 }

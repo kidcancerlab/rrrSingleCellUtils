@@ -11,7 +11,8 @@ get_raw_data(
   domain = "//igmdata/igm_roberts",
   user = Sys.info()[["user"]],
   user_group = "research",
-  .pw
+  .pw,
+  delete_bcl_tar = FALSE
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ get_raw_data(
 \item{user_group}{Group the user belongs to}
 
 \item{.pw}{internal use only}
+
+\item{delete_bcl_tar}{Delete the tar file after untarring?}
 }
 \description{
 Retrieve sequencing data and store it in
