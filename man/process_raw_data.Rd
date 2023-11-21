@@ -17,7 +17,10 @@ process_raw_data(
   ref_folder = "/home/gdrobertslab/lab/GenRef",
   sobj_folder = "/home/gdrobertslab/lab/SeuratObj",
   cutoff_hist_folder = "/home/gdrobertslab/lab/SeuratObj",
-  proc_threads = 10
+  proc_threads = 10,
+  delete_bcl_tar = FALSE,
+  delete_bcls = FALSE,
+  delete_fastqs = FALSE
 )
 }
 \arguments{
@@ -46,6 +49,12 @@ process_raw_data(
 \item{cutoff_hist_folder}{Path to write cutoff histograms}
 
 \item{proc_threads}{Number of threads to use for processing}
+
+\item{delete_bcl_tar}{Delete the tar file after untarring?}
+
+\item{delete_bcls}{Delete the BCL files after mkfastq?}
+
+\item{delete_fastqs}{Delete the fastq files after count?}
 }
 \description{
 Download and pre-process raw 10X data
