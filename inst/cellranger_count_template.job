@@ -44,7 +44,9 @@ cellranger count \
   --sample ${SampleName} \
   --transcriptome ${RefFolder}/${GenRef} \
   --localcores 20 \
-  --expect-cells ${NumCells}
+  --expect-cells ${NumCells} \
+  --nosecondary \
+  --disable-ui
 
 ## copy the files over from the temporary directory
 if test -d "${CountsFolder}/${OutDir}"
