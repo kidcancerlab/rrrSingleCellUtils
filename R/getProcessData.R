@@ -90,35 +90,38 @@ process_raw_data <- function(sample_info,
     # experiment types (such as multiomics) that need to be handled separately
     # Therefore, we loop over each link_folder
 
-    pw <- getPass::getPass("Password for smbclient: ")
+    if (any(to_download$download_data)) {
+        message("Downloading data from IGM.")
+        pw <- getPass::getPass("Password for smbclient: ")
 
-    parallel::mclapply(seq_len(nrow(to_download)),
-                       mc.cores = 5,
-                       function(i) {
-        # Download, untar and check md5 sums of raw data
-        message("Getting raw data from ",
-                to_download$link_folder[i],
-                ".")
-
-        # If the link is dead the function will return FALSE
-        data_downloaded <-
-            get_raw_data(link_folder = to_download$link_folder[i],
-                         dest_folder = paste0(bcl_folder,
-                                              "/",
-                                              to_download$Sample_Project[i]),
-                         tar_folder = to_download$tar_folder[i],
-                         domain = domain,
-                         .pw = pw,
-                         delete_bcl_tar = delete_bcl_tar)
-
-        if (!data_downloaded) {
-            message("Data download failed for ",
+        parallel::mclapply(seq_len(nrow(to_download)),
+                           mc.cores = 5,
+                           function(i) {
+            # Download, untar and check md5 sums of raw data
+            message("Getting raw data from ",
                     to_download$link_folder[i],
-                    ". Moving on to next sample.")
-            # need to log failures out to a file
-            # perhaps use {logr}?
-        }
-    })
+                    ".")
+
+            # If the link is dead the function will return FALSE
+            data_downloaded <-
+                get_raw_data(link_folder = to_download$link_folder[i],
+                             dest_folder = paste0(bcl_folder,
+                                                  "/",
+                                                  to_download$Sample_Project[i]),
+                             tar_folder = to_download$tar_folder[i],
+                             domain = domain,
+                             .pw = pw,
+                             delete_bcl_tar = delete_bcl_tar)
+
+            if (!data_downloaded) {
+                message("Data download failed for ",
+                        to_download$link_folder[i],
+                        ". Moving on to next sample.")
+                # need to log failures out to a file
+                # perhaps use {logr}?
+            }
+        })
+    }
 
     ###
     # For now, I am assuming there is one tar file per link_folder, but this
@@ -270,21 +273,11 @@ process_raw_data <- function(sample_info,
     parallel::mclapply(unique(to_make_sobj$Sample_ID),
                        mc.cores = proc_threads,
                        function(s_id) {
-        message("Not actually Generating Seurat object for ",
-                to_make_sobj$Sample_ID[s_id],
-                "yet, the code isn't done.")
-
-
+        return_value <-
+            make_sobj(s_id = s_id,
+                      sample_info = to_make_sobj,
+                      sobj_folder = sobj_folder)
     })
-
-    # for (sample_name in sub_sample_data$Sample_ID) {
-    #     s_obj <-
-    #         tenx_load_qc(paste0(counts_folder, "/",
-    #                             sample_name,
-    #                             "/filtered_feature_bc_matrix"),
-    #                      violin_plot = FALSE) %>%
-    #         auto_subset()
-    # }
 
     #################################
     ### Need to add code to chmod files
@@ -975,7 +968,7 @@ get_exp_type <- function(x) {
     if (all(x == "3GEX")) {
         return("GEX")
     } else if (all(sort(x) == c("MATAC", "MGEX"))) {
-        return("ATAC+GEX")
+        return("GEX+ATAC")
     } else if (all(x == "MATAC")) {
         return("ATAC")
     } else if (all(x == "MGEX")) {
@@ -994,30 +987,57 @@ get_exp_type <- function(x) {
 #' @param cutoff_hist_folder Path to cutoff histogram folder
 #'
 #' @keywords internal
-make_sobj <- function(s_id = s_id,
-                      sample_info = to_make_sobj,
-                      counts_folder = counts_folder,
-                      sobj_folder = sobj_folder,
-                      cutoff_hist_folder = cutoff_hist_folder) {
+make_sobj <- function(s_id,
+                      sample_info,
+                      counts_folder = "/home/gdrobertslab/lab/Counts_2",
+                      sobj_folder = "/home/gdrobertslab/lab/SeuratObj",
+                      cutoff_hist_folder = "/home/gdrobertslab/lab/Counts_2/cutoff_hists",
+                      frag_file = paste0(counts_folder, "/",
+                                         s_id,
+                                         "/fragments.tsv.gz"),
+                      ref_dir = "/home/gdrobertslab/lab/GenRef",
+                      gtf,
+                      h5_file) {
 
     sample_data <-
         dplyr::filter(sample_info,
                       Sample_ID == s_id)
 
+    # Placeholder code for now until I decide to implement making a single sobj
+    # for each species
+    if (sample_data$Species == "human+mouse") {
+        mt_pattern <- "^hg38-MT-|^mm10-mt-"
+    } else {
+        mt_pattern <- "^MT-|^mt-"
+    }
+
+
+    if (missing(gtf)) {
+        gtf <-
+            paste0(ref_dir, "/",
+                   sample_data$Reference[1],
+                   "/genes/genes.gtf.gz")
+    }
+    if (missing(h5_file)) {
+        h5_file <-
+            paste0(counts_folder, "/",
+                   sample_data$Sample_ID[1],
+                   "/filtered_feature_bc_matrix.h5")
+    }
+
     exp_type <- get_exp_type(sample_data$Protocol)
 
     s_obj <-
-        tenx_load_qc(h5_file = paste0(counts_folder, "/",
-                                      sample_info$Sample_ID[i],
-                                      "/filtered_feature_bc_matrix.h5"),
+        tenx_load_qc(h5_file = h5_file,
                      violin_plot = FALSE,
-                     exp_type = exp_type)
+                     exp_type = exp_type,
+                     mt_pattern = mt_pattern)
 
     # Add metadata from sample_data to s_obj
     # For multiomics where there are two rows, use unique and paste to keep one
     # copy of each value
     for (colname in colnames(sample_data)) {
-        sobj[[colname]] <-
+        s_obj[[colname]] <-
             sample_data[[colname]] %>%
             unique() %>%
             paste(collapse = ", ")
@@ -1034,13 +1054,21 @@ make_sobj <- function(s_id = s_id,
     # If ATAC data, need to do some extra stuff
     if (grepl("ATAC", exp_type)) {
         # subset data
-
-        # process data
-    } else if (exp_type == "ATAC+GEX") {
-        # subset data
-
-        # process data
+        s_obj <-
+            process_sobj_atac(s_obj,
+                              sample_data,
+                              cutoff_hist_folder,
+                              frag_file = frag_file,
+                              gtf = gtf)
     }
+
+    if (!missing(sobj_folder)) {
+        qs::qsave(s_obj,
+                  file = paste0(sobj_folder, "/",
+                                s_id,
+                                ".qs"))
+    }
+    return(TRUE)
 }
 
 #' Take a GEX seurat object, subset it down based on cutoffs and process it
@@ -1098,8 +1126,8 @@ process_sobj_gex <- function(s_obj,
                    sample_data$Sample_ID[1],
                    "_cutoff_hist.png"))
         print(feature_hist(s_obj,
-                     features = cutoff_table$feature,
-                     cutoff_table = cutoff_table))
+                           features = cutoff_table$feature,
+                           cutoff_table = cutoff_table))
         dev.off()
 
         for (column in colnames(subset_table)) {
@@ -1132,15 +1160,36 @@ process_sobj_gex <- function(s_obj,
 
 
 
+#' Process ATAC-seq data in a Seurat object
+#'
+#' This function processes ATAC-seq data in a Seurat object by performing
+#'   various steps such as setting the assay, subsetting the data based on
+#'   metadata, adding ATAC-specific metadata columns, generating cutoff
+#'   histograms, and processing the data using the \code{process_seurat_atac}
+#'   function.
+#'
+#' @param s_obj A Seurat object containing ATAC-seq data.
+#' @param sample_data A data frame containing sample metadata.
+#' @param cutoff_hist_folder The folder path where the cutoff histograms will be saved.
+#' @param frag_file The file path to the ATAC-seq fragment file.
+#' @param gtf The file path to the GTF file containing gene annotations.
+#'
+#' @return A processed Seurat object with ATAC-seq data.
+#'
+#' @examples
+#' # Example usage of process_sobj_atac function
+#' s_obj <- process_sobj_atac(s_obj, sample_data, cutoff_hist_folder, frag_file, gtf)
+#'
 process_sobj_atac <- function(s_obj,
                               sample_data,
                               cutoff_hist_folder,
-                              gtf,
-                              nucl_cutoff = 4,
-                              tss_cutoff = 2,
-                              frag_files,
-                              default_assay = "ATAC") {
-    Seurat::DefaultAssay(s_obj) <- default_assay
+                              frag_file = paste0("/home/gdrobertslab/lab/Counts_2/",
+                                                 sample_data$Sample_ID[1],
+                                                 "/fragments.tsv.gz"),
+                              gtf = paste0("/home/gdrobertslab/lab/GenRef/",
+                                           sample_data$Reference[1],
+                                           "/genes/genes.gtf.gz")) {
+    Seurat::DefaultAssay(s_obj) <- "ATAC"
     # numbers to use for subsetting the data down
     # My assumption here is that this tibble will have one row at this point
     # since it's a single sample and just MATAC
@@ -1151,19 +1200,72 @@ process_sobj_atac <- function(s_obj,
         dplyr::rename_all(~stringr::str_remove(., "subset_"))
 
     # Add in ATAC specific metadata columns
-    s_obj <-
-        add_atac_metadata(s_obj,
-                          gtf = gtf,
-                          nucl_cutoff = nucl_cutoff,
-                          tss_cutoff = tss_cutoff,
-                          frag_files = frag_files)
+    message("ATAC metadata addition not implemented yet. Sample ",
+            sample_data$Sample_ID[1],
+            " will be processed without ATAC metadata.")
+    #!!!!!!!!!!!!! This is erroring out at TSSEnrichment(), which needs to be addressed before this can be used
+    # s_obj <-
+    #     add_atac_metadata(
+    #         s_obj,
+    #         gtf = gtf,
+    #         nucl_cutoff = subset_table$nucleosome_signal_max[1],
+    #         tss_cutoff = subset_table$tss_enrich_min[1],
+    #         frag_files = frag_file)
 
     if (all(is.na(subset_table))) {
-        sobj <- auto_subset(s_obj,
-                            features = c("nFeature_ATAC",
-                                         "nCount_ATAC"))
+        s_obj <-
+            auto_subset(s_obj,
+                        features = c("nFeature_ATAC",
+                                     "nCount_ATAC"))
+    } else {
+        # Kick out columns with all NAs
+        subset_table <-
+            subset_table %>%
+            dplyr::select_if(~!all(is.na(.)))
 
+        cutoff_table <-
+            subset_table %>%
+            tidyr::pivot_longer(names_to = "feature",
+                                values_to = "value",
+                                cols = dplyr::everything()) %>%
+            dplyr::mutate(direction = stringr::str_remove(feature, ".+_") %>%
+                          paste0("_val"),
+                          feature = stringr::str_remove(feature,
+                                                        "_m[ai][nx]$")) %>%
+            tidyr::pivot_wider(names_from = direction,
+                               values_from = value)
+
+
+        png(paste0(cutoff_hist_folder, "/",
+                   sample_data$Sample_ID[1],
+                   "atac_cutoff_hist.png"))
+        print(feature_hist(s_obj,
+                           features = cutoff_table$feature,
+                           cutoff_table = cutoff_table))
+        dev.off()
+
+        for (column in colnames(subset_table)) {
+            descriptor <- stringr::str_remove(column, "_m[ai][nx]$")
+            direction <- stringr::str_remove(column, "^.+_")
+            cutoff_value <- subset_table[[column]][1]
+            if (direction == "min") {
+                # subset can't accept a variable to name the column for
+                # subsetting, so we use this approach instead
+                s_obj <-
+                    s_obj[, which(Seurat::FetchData(s_obj,
+                                                    vars = descriptor) >= cutoff_value)]
+            } else if (direction == "max") {
+                s_obj <-
+                    s_obj[, which(Seurat::FetchData(s_obj,
+                                                    vars = descriptor) <= cutoff_value)]
+            } else {
+                print(subset_table)
+                stop("Unknown direction in subset table for ",
+                        descriptor, ".")
+            }
+        }
     }
+
     # process data
     s_obj <- process_seurat_atac(s_obj)
 

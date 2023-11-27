@@ -5,11 +5,15 @@
 \title{Make a Seurat object from 10X data}
 \usage{
 make_sobj(
-  s_id = s_id,
-  sample_info = to_make_sobj,
-  counts_folder = counts_folder,
-  sobj_folder = sobj_folder,
-  cutoff_hist_folder = cutoff_hist_folder
+  s_id,
+  sample_info,
+  counts_folder = "/home/gdrobertslab/lab/Counts_2",
+  sobj_folder = "/home/gdrobertslab/lab/SeuratObj",
+  cutoff_hist_folder = "/home/gdrobertslab/lab/Counts_2/cutoff_hists",
+  frag_file = paste0(counts_folder, "/", s_id, "/fragments.tsv.gz"),
+  ref_dir = "/home/gdrobertslab/lab/GenRef",
+  gtf,
+  h5_file
 )
 }
 \arguments{
