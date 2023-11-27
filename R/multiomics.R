@@ -310,7 +310,8 @@ process_seurat_atac <- function(sobject,
         Seurat::FindClusters(algorithm = 3, verbose = verbose) %>%
         Seurat::RunUMAP(reduction = "lsi",
                         dims = umap_dims,
-                        verbose = verbose)
+                        verbose = verbose,
+                        reduction.name = "umap_atac")
 
     # Reset active assay
     Seurat::DefaultAssay(sobject) <- old_active_ident
