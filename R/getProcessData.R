@@ -978,6 +978,33 @@ get_exp_type <- function(x) {
     }
 }
 
+#' Get the regex pattern for mitochondrial genes from a reference
+#'
+#' @param x Reference name
+#'
+#' @keywords internal
+#'
+#' @return regex pattern as a string
+ref_to_mt_pattern <- function(x) {
+    switch(x,
+           "10x-canine"                 = "^MT-",
+           "10x-canine-gardner-arc"     = "There is no mitochondrial genome?",
+           "10x-hg38_arc"               = "^MT-",
+           "10x-hg38"                   = "^MT-",
+           "10x-hg38-mm10_arc"          = "^GRCh38-MT|^mm10---mt",
+           "10x-hg38-mm10"              = "^GRCh38-MT|^mm10---mt",
+           "10x-human_arc"              = "^MT-",
+           "10x-human"                  = "^MT-",
+           "10x-mix_arc"                = "^hg19-MT|^mm10-MT",
+           "10x-mix"                    = "^hg19-MT|^mm10-MT",
+           "10x-mix_HSV1_exontest"      = "^hg19-MT|^mm10-MT",
+           "10x-mix_HSV1"               = "^hg19-MT|^mm10-MT",
+           "10x-mm10_arc"               = "^mt-",
+           "10x-mm10"                   = "^mt-",
+           "10x-mouse"                  = "^MT-",
+           "10x-rat"                    = "^MT-")
+}
+
 #' Make a Seurat object from 10X data
 #'
 #' @param s_id Sample ID
@@ -997,18 +1024,15 @@ make_sobj <- function(s_id,
                                          "/fragments.tsv.gz"),
                       ref_dir = "/home/gdrobertslab/lab/GenRef",
                       gtf,
-                      h5_file) {
+                      h5_file,
+                      mt_pattern) {
 
     sample_data <-
         dplyr::filter(sample_info,
                       Sample_ID == s_id)
 
-    # Placeholder code for now until I decide to implement making a single sobj
-    # for each species
-    if (sample_data$Species == "human+mouse") {
-        mt_pattern <- "^hg38-MT-|^mm10-mt-"
-    } else {
-        mt_pattern <- "^MT-|^mt-"
+    if (missing(mt_pattern)) {
+        mt_pattern <- ref_to_mt_pattern(sample_data$Reference[1])
     }
 
 
