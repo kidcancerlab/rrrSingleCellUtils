@@ -13,7 +13,8 @@ make_sobj(
   frag_file = paste0(counts_folder, "/", s_id, "/fragments.tsv.gz"),
   ref_dir = "/home/gdrobertslab/lab/GenRef",
   gtf,
-  h5_file
+  h5_file,
+  mt_pattern
 )
 }
 \arguments{
