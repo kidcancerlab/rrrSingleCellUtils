@@ -1288,10 +1288,14 @@ process_sobj_atac <- function(s_obj,
     #         frag_files = frag_file)
 
     if (all(is.na(subset_table))) {
+        png(paste0(cutoff_hist_folder, "/",
+                   sample_data$Sample_ID[1],
+                   "_cutoff_hist.png"))
         s_obj <-
             auto_subset(s_obj,
                         features = c("nFeature_ATAC",
                                      "nCount_ATAC"))
+        dev.off()
     } else {
         # Kick out columns with all NAs
         subset_table <-
