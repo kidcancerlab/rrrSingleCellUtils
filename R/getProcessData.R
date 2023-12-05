@@ -1196,14 +1196,17 @@ process_sobj_gex <- function(s_obj,
             tidyr::pivot_wider(names_from = direction,
                                values_from = value)
 
+        feat_plot <-
+            feature_hist(s_obj,
+                         features = cutoff_table$feature,
+                         cutoff_table = cutoff_table)
 
-        png(paste0(cutoff_hist_folder, "/",
-                   sample_data$Sample_ID[1],
-                   "_cutoff_hist.png"))
-        print(feature_hist(s_obj,
-                           features = cutoff_table$feature,
-                           cutoff_table = cutoff_table))
-        dev.off()
+        ggplot2::ggsave(filename = paste0(cutoff_hist_folder, "/",
+                                          sample_data$Sample_ID[1],
+                                          "_cutoff_hist.png"),
+                        plot = feat_plot,
+                        width = 8,
+                        height = 8)
 
         for (column in colnames(subset_table)) {
             descriptor <- stringr::str_remove(column, "_m[ai][nx]$")
