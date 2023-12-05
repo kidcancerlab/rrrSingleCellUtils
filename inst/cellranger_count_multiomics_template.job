@@ -39,6 +39,7 @@ cellranger-arc count \
   --id ${OutDir} \placeholder_include_introns
   --reference ${RefFolder}/${GenRef} \
   --libraries tempCount${OutDir}.csv \
+  --disable-ui \
   --localcores 10
 
 ## copy the files over from the temporary directory
