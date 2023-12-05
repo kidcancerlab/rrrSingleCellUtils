@@ -824,7 +824,7 @@ cellranger_count <- function(sample_info,
     }
 
     # Delete fastq files if requested
-    if (return_val == 0) {
+    if (return_val == 0 && delete_fastqs) {
         rm_cmd <-
             sample_info %>%
             dplyr::mutate(
@@ -832,18 +832,17 @@ cellranger_count <- function(sample_info,
                     Protocol == "3GEX",
                     paste0(fastq_folder, "/",
                            run_name, "/",
-                           run_name, "/",
                            Sample_ID,
                            "_S*fastq.gz"),
                     dplyr::if_else(Protocol == "MATAC",
                                    paste0(fastq_folder, "/",
-                                          run_name, "_A/",
+                                          "_A/",
                                           run_name, "/",
                                           Sample_ID, "/",
                                           Sample_ID,
                                           "_S*fastq.gz"),
                                    paste0(fastq_folder, "/",
-                                          run_name, "_R/",
+                                          "_R/",
                                           run_name, "/",
                                           Sample_ID,
                                           "_S*fastq.gz"))
