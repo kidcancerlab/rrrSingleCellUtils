@@ -32,7 +32,7 @@ echo $RunName
 echo $SampleName
 
 ## set path info
-export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-7.1.0:$PATH
+export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-7.2.0:$PATH
 export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/bcl2fastq/2.20/bin:$PATH
 
 cd $TMPDIR
