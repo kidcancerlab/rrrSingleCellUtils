@@ -147,6 +147,17 @@ process_raw_data <- function(sample_info,
                        mc.cores = 100,
                        function(i) {
         tar_f <- tar_exps$tar_folder[i]
+        tar_path <-
+            paste0(bcl_folder, "/",
+                   tar_exps$Sample_Project[i], "/",
+                   tar_f)
+
+        if (!dir.exists(tar_path)) {
+            warning("Tar folder ", tar_path, " does not exist. Skipping.",
+                    immediate. = TRUE)
+            return(FALSE)
+        }
+
         # Write out subsampled sampleInfoSheet with data from one
         # link_folder/Protocol combo
         temp_sample_info_sheet <-
@@ -239,6 +250,29 @@ process_raw_data <- function(sample_info,
     parallel::mclapply(to_count_tbl_list,
                        mc.cores = 100,
                        function(x) {
+        fastq_folders <-
+            paste0(fastq_folder, "/",
+                   x$Sample_Project,
+                   lapply(x$Protocol,
+                          function(prot) {
+                              switch(prot,
+                                     "3GEX" = "",
+                                     "MGEX" = "_R",
+                                     "MATAC" = "_A")
+                              }
+                          )
+                   ) %>%
+            unique()
+
+        if (any(!dir.exists(fastq_folders))) {
+                                   # !!!!!!!!!!!!!!!!!!!!!!!!!!!! Need to include _A or _R if needed !!!!!!!!!!!!!
+            warning("Fastq folder does not exist for project",
+                    x$Sample_Project[1],
+                    ". Skipping.",
+                    immediate. = TRUE)
+            return(FALSE)
+        }
+
         message("Submtting slurm command to run cellranger count.\n",
                 "Slurm messages output to", paste0(slurm_base, "_count-%j.out"))
 
@@ -273,6 +307,16 @@ process_raw_data <- function(sample_info,
     parallel::mclapply(unique(to_make_sobj$Sample_ID),
                        mc.cores = proc_threads,
                        function(s_id) {
+        if (!dir.exists(paste0(counts_folder, "/",
+                               s_id))) {
+            warning("Counts folder does not exist for sample",
+                    s_id,
+                    ". Skipping.",
+                    immediate. = TRUE)
+            return(FALSE)
+        }
+
+
         return_value <-
             make_sobj(s_id = s_id,
                       sample_info = to_make_sobj,
@@ -1050,6 +1094,13 @@ make_sobj <- function(s_id,
 
     exp_type <- get_exp_type(sample_data$Protocol)
 
+    if (!file.exists(h5_file)) {
+        warning("Counts h5 file does not exist for sample",
+                sample_data$Sample_ID[1],
+                ". Skipping.")
+        return(FALSE)
+    }
+
     s_obj <-
         tenx_load_qc(h5_file = h5_file,
                      violin_plot = FALSE,
@@ -1074,6 +1125,7 @@ make_sobj <- function(s_id,
                              sample_data,
                              cutoff_hist_folder)
     }
+
     # If ATAC data, need to do some extra stuff
     if (grepl("ATAC", exp_type)) {
         # subset data
