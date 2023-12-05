@@ -90,7 +90,7 @@ process_raw_data <- function(sample_info,
     # experiment types (such as multiomics) that need to be handled separately
     # Therefore, we loop over each link_folder
 
-    if (any(to_download$download_data)) {
+    if (nrow(to_download) > 0) {
         message("Downloading data from IGM.")
         pw <- getPass::getPass("Password for smbclient: ")
 
@@ -274,7 +274,7 @@ process_raw_data <- function(sample_info,
         }
 
         message("Submtting slurm command to run cellranger count.\n",
-                "Slurm messages output to", paste0(slurm_base, "_count-%j.out"))
+                "Slurm messages output to", paste0(slurm_base, "_count-*.out"))
 
         return_value <-
             cellranger_count(sample_info = x,
@@ -321,6 +321,7 @@ process_raw_data <- function(sample_info,
             make_sobj(s_id = s_id,
                       sample_info = to_make_sobj,
                       sobj_folder = sobj_folder)
+        return(return_value)
     })
 
     #################################
@@ -1077,8 +1078,6 @@ make_sobj <- function(s_id,
     if (missing(mt_pattern)) {
         mt_pattern <- ref_to_mt_pattern(sample_data$Reference[1])
     }
-
-
     if (missing(gtf)) {
         gtf <-
             paste0(ref_dir, "/",
