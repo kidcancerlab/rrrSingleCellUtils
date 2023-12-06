@@ -43,7 +43,6 @@ placeholder_cellranger_type mkfastq \
   --samplesheet=placeholder_sample_sheet \
   --run=${BCLFolder}/${CommonFolderName}/${BCLFolderName}/ \placeholder_base_mask
   --output-dir $TMPDIR placeholder_filter_arg
-#  --filter-dual-index \ #not sure we need this?
 
 ## copy the files over from the temporary directory
 if [ ! -d ${FASTQFolder}/${CommonFolderName}${ExpType} ]
