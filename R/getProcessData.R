@@ -265,7 +265,6 @@ process_raw_data <- function(sample_info,
             unique()
 
         if (any(!dir.exists(fastq_folders))) {
-                                   # !!!!!!!!!!!!!!!!!!!!!!!!!!!! Need to include _A or _R if needed !!!!!!!!!!!!!
             warning("Fastq folder does not exist for project",
                     x$Sample_Project[1],
                     ". Skipping.",
@@ -904,6 +903,34 @@ cellranger_count <- function(sample_info,
                     return_value_rm)
         }
     }
+
+    # chmod the counts folder contents to read only
+    chmod_read_only(paste0(counts_folder, "/", run_name))
+
+    return(TRUE)
+}
+
+#' Set folder permissions to read-only.
+#'
+#' This function takes a folder path as input and sets the permissions of the folder to read-only.
+#'
+#' @param folder The path to the folder.
+#' @return None
+#'
+#' @keywords internal
+chmod_read_only <- function(folder) {
+    chmod_cmd <-
+        paste0("find ",
+               folder,
+               " -type f | xargs chmod 444")
+    return_value_chmod <- system(chmod_cmd)
+    if (return_value_chmod != 0) {
+        message("Failed to chmod counts folder for ",
+                folder,
+                ". Error code ",
+                return_value_chmod)
+        return(FALSE)
+    }
     return(TRUE)
 }
 
@@ -1141,7 +1168,15 @@ make_sobj <- function(s_id,
                   file = paste0(sobj_folder, "/",
                                 s_id,
                                 ".qs"))
+    } else {
+        message("No sobj_folder provided, saving to current directory.")
+        qs::qsave(s_obj,
+                  file = paste0(s_id,
+                                ".qs"))
     }
+
+    chmod_read_only(paste0(sobj_folder, "/", s_id, ".qs"))
+
     return(TRUE)
 }
 
@@ -1194,6 +1229,12 @@ process_sobj_gex <- function(s_obj,
                                                         "_m[ai][nx]$")) %>%
             tidyr::pivot_wider(names_from = direction,
                                values_from = value)
+        if (!"min_val" %in% colnames(cutoff_table)) {
+            cutoff_table$min_val <- 0
+        }
+        if (!"max_val" %in% colnames(cutoff_table)) {
+            cutoff_table$max_val <- Inf
+        }
 
         feat_plot <-
             feature_hist(s_obj,
@@ -1202,7 +1243,7 @@ process_sobj_gex <- function(s_obj,
 
         ggplot2::ggsave(filename = paste0(cutoff_hist_folder, "/",
                                           sample_data$Sample_ID[1],
-                                          "_cutoff_hist.png"),
+                                          "_gex_cutoff_hist.png"),
                         plot = feat_plot,
                         width = 8,
                         height = 8)
