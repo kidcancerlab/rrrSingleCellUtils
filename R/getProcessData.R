@@ -905,7 +905,7 @@ cellranger_count <- function(sample_info,
     }
 
     # chmod the counts folder contents to read only
-    chmod_read_only(paste0(counts_folder, "/", run_name))
+    chmod_stuff(paste0(counts_folder, "/", run_name), "444")
 
     return(TRUE)
 }
@@ -915,14 +915,17 @@ cellranger_count <- function(sample_info,
 #' This function takes a folder path as input and sets the permissions of the folder to read-only.
 #'
 #' @param folder The path to the folder.
+#' @param code The code to use for chmod.
+#'
 #' @return None
 #'
 #' @keywords internal
-chmod_read_only <- function(folder) {
+chmod_stuff <- function(folder, code = "444") {
     chmod_cmd <-
         paste0("find ",
                folder,
-               " -type f | xargs chmod 444")
+               " -type f | xargs chmod ",
+               code)
     return_value_chmod <- system(chmod_cmd)
     if (return_value_chmod != 0) {
         message("Failed to chmod counts folder for ",
@@ -1175,7 +1178,7 @@ make_sobj <- function(s_id,
                                 ".qs"))
     }
 
-    chmod_read_only(paste0(sobj_folder, "/", s_id, ".qs"))
+    chmod_stuff(paste0(sobj_folder, "/", s_id, ".qs"), "444")
 
     return(TRUE)
 }
