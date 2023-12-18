@@ -4,12 +4,14 @@
 \alias{chmod_stuff}
 \title{Set folder permissions to read-only.}
 \usage{
-chmod_stuff(folder, code = "444")
+chmod_stuff(folder, code = "444", record_log = TRUE)
 }
 \arguments{
 \item{folder}{The path to the folder.}
 
 \item{code}{The code to use for chmod.}
+
+\item{record_log}{Record failures when processing data}
 }
 \value{
 None

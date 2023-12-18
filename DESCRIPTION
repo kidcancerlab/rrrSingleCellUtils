@@ -33,7 +33,9 @@ Imports:
     Signac,
     GenomicFeatures,
     GenomicRanges,
-    SeuratObject
+    SeuratObject,
+    logr,
+    qs
 Depends: R (>= 3.5.0), nichenetr
 Suggests:
     rmarkdown,

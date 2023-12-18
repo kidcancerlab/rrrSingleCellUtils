@@ -13,7 +13,8 @@ cellranger_count(
   fastq_folder = "/home/gdrobertslab/lab/FASTQs",
   ref_folder = "/home/gdrobertslab/lab/GenRef",
   slurm_out = paste(getwd(), "/slurmOut_count-\%j.out", sep = ""),
-  delete_fastqs = FALSE
+  delete_fastqs = FALSE,
+  record_log = TRUE
 )
 }
 \arguments{
@@ -35,6 +36,8 @@ Sample_Project, Sample_ID, Reference, Cell_Num}
 \item{slurm_out}{Location to write out slurm out files}
 
 \item{delete_fastqs}{Delete fastq files after count is done?}
+
+\item{record_log}{Record failures when processing data}
 }
 \description{
 Run cellranger count on 10X data

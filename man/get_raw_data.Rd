@@ -12,7 +12,8 @@ get_raw_data(
   user = Sys.info()[["user"]],
   user_group = "research",
   .pw,
-  delete_bcl_tar = FALSE
+  delete_bcl_tar = FALSE,
+  record_log = TRUE
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ get_raw_data(
 \item{.pw}{internal use only}
 
 \item{delete_bcl_tar}{Delete the tar file after untarring?}
+
+\item{record_log}{Record failures when processing data}
 }
 \description{
 Retrieve sequencing data and store it in

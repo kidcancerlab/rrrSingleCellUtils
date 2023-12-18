@@ -16,6 +16,7 @@
 #' @param delete_bcl_tar Delete the tar file after untarring?
 #' @param delete_bcls Delete the BCL files after mkfastq?
 #' @param delete_fastqs Delete the fastq files after count?
+#' @param record_log Record failures when processing data
 #'
 #' @details This is a wrapper for several functions to get and process single
 #'  cell data from the NCH IGM core. I have built the defaults to be specific to
@@ -49,9 +50,15 @@ process_raw_data <- function(sample_info,
                              proc_threads = 10,
                              delete_bcl_tar = FALSE,
                              delete_bcls = FALSE,
-                             delete_fastqs = FALSE) {
+                             delete_fastqs = FALSE,
+                             record_log = TRUE) {
     # Make sure sample_info has unix line endings
     system(paste0("dos2unix ", sample_info))
+
+    # log failures to run specific parts
+    if (record_log) {
+        start_log()
+    }
 
     # For each sample, check if files are present to show that data are already
     # 1. Processed into a saved Seurat object
@@ -111,14 +118,13 @@ process_raw_data <- function(sample_info,
                              tar_folder = to_download$tar_folder[i],
                              domain = domain,
                              .pw = pw,
-                             delete_bcl_tar = delete_bcl_tar)
+                             delete_bcl_tar = delete_bcl_tar,
+                             record_log = record_log)
 
             if (!data_downloaded) {
-                message("Data download failed for ",
-                        to_download$link_folder[i],
-                        ". Moving on to next sample.")
-                # need to log failures out to a file
-                # perhaps use {logr}?
+                big_problem(paste("Data download failed for ",
+                                  to_download$link_folder[i],
+                                  ". Moving on to next sample."))
             }
         })
     }
@@ -153,8 +159,9 @@ process_raw_data <- function(sample_info,
                    tar_f)
 
         if (!dir.exists(tar_path)) {
-            warning("Tar folder ", tar_path, " does not exist. Skipping.",
-                    immediate. = TRUE)
+            big_problem(paste("Tar folder ",
+                              tar_path,
+                              " does not exist. Skipping."))
             return(FALSE)
         }
 
@@ -193,17 +200,13 @@ process_raw_data <- function(sample_info,
         return_value <-
             fix_sample_sheet(orig_sample_sheet = orig_sample_sheet,
                              new_sample_sheet = new_sample_sheet,
-                             sample_info_sheet = temp_sample_info_sheet)
+                             sample_info_sheet = temp_sample_info_sheet,
+                             record_log = record_log)
 
         if (!return_value) {
-            message("Sample sheet repair failed for ",
-                    tar_f,
-                    ". Moving on to next sample.")
-            # need to log failures out to a file
-            # Might make a function for this?
-            # How would I handle the return value?
-            # something like log_failure(return_value, "message goes here")
-            # perhaps use {logr}?
+            big_problem(paste("Sample sheet repair failed for ",
+                              tar_f,
+                              ". Moving on to next sample."))
             return(FALSE)
         }
         # Run cellranger mkfastq
@@ -217,7 +220,15 @@ process_raw_data <- function(sample_info,
                                bcl_folder = bcl_folder,
                                fastq_folder = fastq_folder,
                                slurm_out = paste0(slurm_base,
-                                                  "_mkfastq-%j.out"))
+                                                  "_mkfastq-%j.out"),
+                               record_log = record_log)
+
+        if (!return_value) {
+            big_problem(paste("Cellranger mkfastq failed for ",
+                              tar_f,
+                              ". Moving on to next sample."))
+            return(FALSE)
+        }
 
         # If mkfastq successful, delte BCLs
         # Need to make sure nothing else is using the BCLs first
@@ -228,7 +239,6 @@ process_raw_data <- function(sample_info,
                     tar_exps$tar_folder[i])
         }
 
-        #!!!!!!!!!!!!!! Need to write out any failures to a file
         return(return_value)
     })
 
@@ -265,10 +275,9 @@ process_raw_data <- function(sample_info,
             unique()
 
         if (any(!dir.exists(fastq_folders))) {
-            warning("Fastq folder does not exist for project",
-                    x$Sample_Project[1],
-                    ". Skipping.",
-                    immediate. = TRUE)
+            big_problem(paste("Fastq folder does not exist for project",
+                              x$Sample_Project[1],
+                              ". Skipping."))
             return(FALSE)
         }
 
@@ -283,14 +292,13 @@ process_raw_data <- function(sample_info,
                              ref_folder = ref_folder,
                              include_introns = include_introns,
                              slurm_out = paste0(slurm_base, "_count-%j.out"),
-                             delete_fastqs = delete_fastqs)
+                             delete_fastqs = delete_fastqs,
+                             record_log = record_log)
 
         if (!return_value) {
-            message("Cellranger count failed for ",
-                    x$Sample_Project[1],
-                    ". Moving on to next sample.")
-            # need to log failures out to a file
-            # perhaps use {logr}?
+            big_problem(paste("Cellranger count failed for ",
+                              x$Sample_Project[1],
+                              ". Moving on to next sample."))
         }
 
         return(return_value)
@@ -308,18 +316,23 @@ process_raw_data <- function(sample_info,
                        function(s_id) {
         if (!dir.exists(paste0(counts_folder, "/",
                                s_id))) {
-            warning("Counts folder does not exist for sample",
-                    s_id,
-                    ". Skipping.",
-                    immediate. = TRUE)
+            big_problem(paste("Counts folder does not exist for sample",
+                              s_id,
+                              ". Skipping."))
             return(FALSE)
         }
-
 
         return_value <-
             make_sobj(s_id = s_id,
                       sample_info = to_make_sobj,
                       sobj_folder = sobj_folder)
+
+        if (!return_value) {
+            big_problem(paste("Seurat object creation failed for ",
+                              s_id,
+                              ". Moving on to next sample."))
+        }
+
         return(return_value)
     })
 
@@ -328,6 +341,9 @@ process_raw_data <- function(sample_info,
 
     #################################
     ### Clean up un-needed files
+    if (logr::log_status() == "open") {
+        logr::log_close()
+    }
 
     message("Done!")
 }
@@ -342,6 +358,7 @@ process_raw_data <- function(sample_info,
 #' @param user_group Group the user belongs to
 #' @param .pw internal use only
 #' @param delete_bcl_tar Delete the tar file after untarring?
+#' @param record_log Record failures when processing data
 #'
 #' @export
 #'
@@ -357,10 +374,16 @@ get_raw_data <- function(link_folder,
                          user = Sys.info()[["user"]],
                          user_group = "research",
                          .pw,
-                         delete_bcl_tar = FALSE) {
+                         delete_bcl_tar = FALSE,
+                         record_log = TRUE) {
 
     if (missing(.pw)) {
         .pw <- getPass::getPass("Password for smbclient: ")
+    }
+
+    # Start log if it's not already started
+    if (logr::log_status() == "closed" && record_log) {
+        start_log()
     }
 
     # This needs to be before the if statement below so that the dest_folder
@@ -399,14 +422,13 @@ get_raw_data <- function(link_folder,
                           "*'"))
 
         if (return_value != 0) {
-            warning("Data retrieval failed. Error code ", return_value)
+            big_problem(paste("Data retrieval failed. Error code ",
+                              return_value))
             return(FALSE)
         }
 
         # Check md5 sums to see if data copied properly.
-        md5_good <- check_tar_md5(dest_folder)
-        if (!md5_good) {
-            message("md5 checksums failed for ", link_folder, ".")
+        if (!check_tar_md5(dest_folder, record_log = record_log)) {
             return(FALSE)
         }
 
@@ -425,7 +447,7 @@ get_raw_data <- function(link_folder,
         return_value <- system(untar_cmd)
 
         if (return_value != 0) {
-            warning("Untar failed. Error code ", return_value)
+            big_problem(paste("Untar failed. Error code ", return_value))
             return(FALSE)
         }
 
@@ -484,10 +506,17 @@ link_folder_exists <- function(dest_folder,
 #' Check that downloaded files match the expected md5sums
 #'
 #' @param folder Folder containing .tar and .tar.md5 files
+#' @param record_log Record failures when processing data
 #'
 #' @keywords internal
 #'
-check_tar_md5 <- function(folder) {
+check_tar_md5 <- function(folder,
+                          record_log = TRUE) {
+    # Start log if it's not already started
+    if (logr::log_status() == "closed" && record_log) {
+        start_log()
+    }
+
     message("Checking file md5sums.")
     # Make this use srun
     md5_cmd <- paste0("md5sum ", folder, "/*.tar")
@@ -515,7 +544,7 @@ check_tar_md5 <- function(folder) {
                                col_types = "cc")
 
         if (md5_true$md5 != calc_md5[[md5_true$file]]) {
-            warning("md5 checksum check failed for file md5_true$file.")
+            big_problem("md5 checksum check failed for file md5_true$file.")
             return(FALSE)
         }
     }
@@ -529,12 +558,19 @@ check_tar_md5 <- function(folder) {
 #' @param new_sample_sheet Location to write new sample sheet
 #' @param sample_info_sheet Tab delimited sheet with columns containing info to
 #'     insert into the sample sheet
+#' @param record_log Record failures when processing data
 #'
 #' @keywords internal
 #'
 fix_sample_sheet <- function(orig_sample_sheet,
                              new_sample_sheet,
-                             sample_info_sheet) {
+                             sample_info_sheet,
+                             record_log = TRUE) {
+    # Start log if it's not already started
+    if (logr::log_status() == "closed" && record_log) {
+        start_log()
+    }
+
     package_dir <- find.package("rrrSingleCellUtils")
 
     system_cmd <-
@@ -548,7 +584,7 @@ fix_sample_sheet <- function(orig_sample_sheet,
     return_val <- system(system_cmd)
 
     if (return_val != 0) {
-      warning("Sample sheet repair failed. Error code ", return_val)
+      big_problem(paste("Sample sheet repair failed. Error code ", return_val))
       return(FALSE)
     }
     return(TRUE)
@@ -563,6 +599,7 @@ fix_sample_sheet <- function(orig_sample_sheet,
 #' @param fastq_folder Path to write fastq files
 #' @param email Email for Slurm notifications
 #' @param slurm_out Location to write out slurm out files
+#' @param record_log Record failures when processing data
 #'
 #' @export
 #'
@@ -578,7 +615,13 @@ cellranger_mkfastq <- function(sample_info,
                                fastq_folder = "/home/gdrobertslab/lab/FASTQs",
                                slurm_out = paste(getwd(),
                                                  "/slurmOut_mkfastq-%j.out",
-                                                 sep = "")) {
+                                                 sep = ""),
+                               record_log = TRUE) {
+    # Start log if it's not already started
+    if (logr::log_status() == "closed" && record_log) {
+        start_log()
+    }
+
     sample_data <-
         readr::read_delim(sample_info,
                           delim = "\t",
@@ -695,8 +738,8 @@ cellranger_mkfastq <- function(sample_info,
     return_val <- system(paste("sbatch", temp_file))
 
     if (return_val != 0) {
-        warning("Cellranger mkfastq sbatch submission failed. Error code ",
-                return_val)
+        big_problem(paste("Cellranger mkfastq sbatch submission failed. Error code ",
+                    return_val))
         return(FALSE)
     }
     return(TRUE)
@@ -714,6 +757,7 @@ cellranger_mkfastq <- function(sample_info,
 #' @param ref_folder Path to 10x reference folders
 #' @param slurm_out Location to write out slurm out files
 #' @param delete_fastqs Delete fastq files after count is done?
+#' @param record_log Record failures when processing data
 #'
 #' @export
 #'
@@ -731,7 +775,12 @@ cellranger_count <- function(sample_info,
                              slurm_out = paste(getwd(),
                                                "/slurmOut_count-%j.out",
                                                sep = ""),
-                             delete_fastqs = FALSE) {
+                             delete_fastqs = FALSE,
+                             record_log = TRUE) {
+    # Start log if it's not already started
+    if (logr::log_status() == "closed" && record_log) {
+        start_log()
+    }
 
     run_name <- sample_info$Sample_Project[1]
 
@@ -862,8 +911,8 @@ cellranger_count <- function(sample_info,
     return_val <- system(paste("sbatch", temp_file))
 
     if (return_val != 0) {
-        message("Cellranger count sbatch submission failed. Error code ",
-                return_val)
+        big_problem(paste("Cellranger count sbatch submission failed. Error code ",
+                    return_val))
         return(FALSE)
     }
 
@@ -916,11 +965,17 @@ cellranger_count <- function(sample_info,
 #'
 #' @param folder The path to the folder.
 #' @param code The code to use for chmod.
+#' @param record_log Record failures when processing data
 #'
 #' @return None
 #'
 #' @keywords internal
-chmod_stuff <- function(folder, code = "444") {
+chmod_stuff <- function(folder, code = "444", record_log = TRUE) {
+    # Start log if it's not already started
+    if (logr::log_status() == "closed" && record_log) {
+        start_log()
+    }
+
     chmod_cmd <-
         paste0("find ",
                folder,
@@ -928,10 +983,10 @@ chmod_stuff <- function(folder, code = "444") {
                code)
     return_value_chmod <- system(chmod_cmd)
     if (return_value_chmod != 0) {
-        message("Failed to chmod counts folder for ",
-                folder,
-                ". Error code ",
-                return_value_chmod)
+        big_problem(paste("Failed to chmod counts folder for ",
+                          folder,
+                          ". Error code ",
+                          return_value_chmod))
         return(FALSE)
     }
     return(TRUE)
@@ -1086,6 +1141,7 @@ ref_to_mt_pattern <- function(x) {
 #' @param counts_folder Path to counts folder
 #' @param sobj_folder Path to Seurat object folder
 #' @param cutoff_hist_folder Path to cutoff histogram folder
+#' @param record_log Record failures when processing data
 #'
 #' @keywords internal
 make_sobj <- function(s_id,
@@ -1099,7 +1155,12 @@ make_sobj <- function(s_id,
                       ref_dir = "/home/gdrobertslab/lab/GenRef",
                       gtf,
                       h5_file,
-                      mt_pattern) {
+                      mt_pattern,
+                      record_log = TRUE) {
+    # Start log if it's not already started
+    if (logr::log_status() == "closed" && record_log) {
+        start_log()
+    }
 
     sample_data <-
         dplyr::filter(sample_info,
@@ -1124,9 +1185,9 @@ make_sobj <- function(s_id,
     exp_type <- get_exp_type(sample_data$Protocol)
 
     if (!file.exists(h5_file)) {
-        warning("Counts h5 file does not exist for sample",
-                sample_data$Sample_ID[1],
-                ". Skipping.")
+        big_problem(paste("Counts h5 file does not exist for sample",
+                          sample_data$Sample_ID[1],
+                          ". Skipping."))
         return(FALSE)
     }
 
@@ -1279,8 +1340,6 @@ process_sobj_gex <- function(s_obj,
     return(s_obj)
 }
 
-
-
 #' Process ATAC-seq data in a Seurat object
 #'
 #' This function processes ATAC-seq data in a Seurat object by performing
@@ -1296,11 +1355,6 @@ process_sobj_gex <- function(s_obj,
 #' @param gtf The file path to the GTF file containing gene annotations.
 #'
 #' @return A processed Seurat object with ATAC-seq data.
-#'
-#' @examples
-#' # Example usage of process_sobj_atac function
-#' s_obj <- process_sobj_atac(s_obj, sample_data, cutoff_hist_folder, frag_file, gtf)
-#'
 process_sobj_atac <- function(s_obj,
                               sample_data,
                               cutoff_hist_folder,
@@ -1398,4 +1452,43 @@ process_sobj_atac <- function(s_obj,
     s_obj <- process_seurat_atac(s_obj)
 
     return(s_obj)
+}
+
+#' start_log function
+#'
+#' This function is used to start the logging process.
+#' It initializes the log file and sets up the necessary configurations.
+#'
+#' @return None
+#'
+#' @keywords internal
+start_log <- function() {
+    temp_base <-
+        paste0("rrrLog_",
+               stringr::str_replace_all(Sys.time(),
+                                        c(" " = "_",
+                                          ":" = "-")),
+               "_")
+
+    logr::log_open(tempfile(pattern = temp_base,
+                            fileext = ".txt",
+                            tmpdir = getwd()),
+                   show_notes = FALSE,
+                   compact = TRUE)
+}
+
+#' big_problem function
+#'
+#' This function prints a warning message and logs the message if the log status is open.
+#'
+#' @param x The message to be printed and logged.
+#'
+#' @return None
+#'
+#' @keywords internal
+big_problem <- function(x) {
+    warning(x, immediate. = TRUE)
+    if (logr::log_status() == "open") {
+        logr::log_print(x)
+    }
 }
