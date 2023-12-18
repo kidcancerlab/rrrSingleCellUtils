@@ -20,7 +20,8 @@ process_raw_data(
   proc_threads = 10,
   delete_bcl_tar = FALSE,
   delete_bcls = FALSE,
-  delete_fastqs = FALSE
+  delete_fastqs = FALSE,
+  record_log = TRUE
 )
 }
 \arguments{
@@ -55,6 +56,8 @@ process_raw_data(
 \item{delete_bcls}{Delete the BCL files after mkfastq?}
 
 \item{delete_fastqs}{Delete the fastq files after count?}
+
+\item{record_log}{Record failures when processing data}
 }
 \description{
 Download and pre-process raw 10X data

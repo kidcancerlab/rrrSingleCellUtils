@@ -4,10 +4,12 @@
 \alias{check_tar_md5}
 \title{Check that downloaded files match the expected md5sums}
 \usage{
-check_tar_md5(folder)
+check_tar_md5(folder, record_log = TRUE)
 }
 \arguments{
 \item{folder}{Folder containing .tar and .tar.md5 files}
+
+\item{record_log}{Record failures when processing data}
 }
 \description{
 Check that downloaded files match the expected md5sums

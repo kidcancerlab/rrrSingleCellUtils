@@ -14,7 +14,8 @@ make_sobj(
   ref_dir = "/home/gdrobertslab/lab/GenRef",
   gtf,
   h5_file,
-  mt_pattern
+  mt_pattern,
+  record_log = TRUE
 )
 }
 \arguments{
@@ -27,6 +28,8 @@ make_sobj(
 \item{sobj_folder}{Path to Seurat object folder}
 
 \item{cutoff_hist_folder}{Path to cutoff histogram folder}
+
+\item{record_log}{Record failures when processing data}
 }
 \description{
 Make a Seurat object from 10X data

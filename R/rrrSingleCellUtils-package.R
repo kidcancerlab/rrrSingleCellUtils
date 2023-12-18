@@ -9,6 +9,7 @@
 #' @importFrom grDevices pdfFonts
 #' @importFrom grDevices png
 #' @importFrom patchwork plot_annotation
+#' @importFrom qs qsave
 #' @importFrom scales alpha
 #' @importFrom utils head
 #' @importFrom utils read.table
