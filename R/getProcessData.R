@@ -38,7 +38,7 @@
 process_raw_data <- function(sample_info,
                              domain = "//igmdata/igm_roberts",
                              email = "",
-                             include_introns = FALSE,
+                             include_introns = TRUE,
                              plots = FALSE,
                              slurm_base = paste(getwd(), "/slurmOut", sep = ""),
                              bcl_folder = "/home/gdrobertslab/lab/BCLs_2",
