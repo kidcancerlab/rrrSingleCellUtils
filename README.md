@@ -55,6 +55,8 @@
   * In tenx_load_qc, check if all data is filtered out or sobj is empty
   * Figure out multiomic FRiP calculation and see if I need to divide by 2
     * https://support.10xgenomics.com/single-cell-multiome-atac-gex/software/pipelines/latest/algorithms/overview
+  * Change make_sobj to be a sbatch script
+  * in getProcessData.R, change sbatch submissions to use use_sbatch_template()
 
 ---
 
