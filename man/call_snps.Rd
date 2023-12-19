@@ -7,7 +7,7 @@
 call_snps(
   cellid_bam_table,
   bam_to_use,
-  sam_dir,
+  bam_out_dir,
   bcf_dir,
   slurm_base = paste0(getwd(), "/slurmOut_call-\%j.txt"),
   sbatch_base = "sbatch_",
@@ -24,7 +24,7 @@ call_snps(
 
 \item{bam_to_use}{The bam file to use}
 
-\item{sam_dir}{The directory to write the sam files to}
+\item{bam_out_dir}{The directory to write the bam files to}
 
 \item{bcf_dir}{The directory to write the bcf files to}
 
@@ -40,7 +40,7 @@ call_snps(
 
 \item{submit}{Whether or not to submit the slurm scripts}
 
-\item{cleanup}{Whether or not to clean up the sam files afterwards}
+\item{cleanup}{Whether or not to clean up the bam files afterwards}
 }
 \value{
 0 if the snps were called successfully
