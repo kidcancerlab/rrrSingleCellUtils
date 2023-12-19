@@ -1060,7 +1060,7 @@ add_data_status <- function(sample_info,
     sample_info$download_data <-
         (dir.exists(paste0(bcl_folder, "/",
                           sample_info$Sample_Project, "/",
-                          sample_info$link_folder)) |
+                          sample_info$tar_folder)) |
         sample_info$run_cellranger_mkfastq) &
         !is.na(sample_info$link_folder)
 
