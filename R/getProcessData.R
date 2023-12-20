@@ -46,7 +46,7 @@ process_raw_data <- function(sample_info,
                              counts_folder = "/home/gdrobertslab/lab/Counts_2",
                              ref_folder = "/home/gdrobertslab/lab/GenRef",
                              sobj_folder = "/home/gdrobertslab/lab/SeuratObj",
-                             cutoff_hist_folder = "/home/gdrobertslab/lab/SeuratObj",
+                             cutoff_hist_folder = "/home/gdrobertslab/lab/SeuratObj/cutoff_hists",
                              proc_threads = 10,
                              delete_bcl_tar = FALSE,
                              delete_bcls = FALSE,
@@ -1132,7 +1132,7 @@ make_sobj <- function(s_id,
                       sample_info,
                       counts_folder = "/home/gdrobertslab/lab/Counts_2",
                       sobj_folder = "/home/gdrobertslab/lab/SeuratObj",
-                      cutoff_hist_folder = "/home/gdrobertslab/lab/Counts_2/cutoff_hists",
+                      cutoff_hist_folder = "/home/gdrobertslab/lab/SeuratObj/cutoff_hists",
                       frag_file = paste0(counts_folder, "/",
                                          s_id,
                                          "/fragments.tsv.gz"),
@@ -1254,7 +1254,7 @@ process_sobj_gex <- function(s_obj,
         # No cutoffs values provided, so autocalculate them
         png(paste0(cutoff_hist_folder, "/",
                     sample_data$Sample_ID[1],
-                    "_cutoff_hist.png"))
+                    "_gex_cutoff_hist.png"))
         s_obj <- auto_subset(s_obj,
                              features = c("nFeature_RNA",
                                           "nCount_RNA",
@@ -1374,7 +1374,7 @@ process_sobj_atac <- function(s_obj,
     if (all(is.na(subset_table))) {
         png(paste0(cutoff_hist_folder, "/",
                    sample_data$Sample_ID[1],
-                   "_cutoff_hist.png"))
+                   "_atac_cutoff_hist.png"))
         s_obj <-
             auto_subset(s_obj,
                         features = c("nFeature_ATAC",

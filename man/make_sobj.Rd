@@ -9,7 +9,7 @@ make_sobj(
   sample_info,
   counts_folder = "/home/gdrobertslab/lab/Counts_2",
   sobj_folder = "/home/gdrobertslab/lab/SeuratObj",
-  cutoff_hist_folder = "/home/gdrobertslab/lab/Counts_2/cutoff_hists",
+  cutoff_hist_folder = "/home/gdrobertslab/lab/SeuratObj/cutoff_hists",
   frag_file = paste0(counts_folder, "/", s_id, "/fragments.tsv.gz"),
   ref_dir = "/home/gdrobertslab/lab/GenRef",
   gtf,
