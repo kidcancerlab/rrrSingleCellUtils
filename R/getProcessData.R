@@ -600,6 +600,7 @@ fix_sample_sheet <- function(orig_sample_sheet,
 #' @param email Email for Slurm notifications
 #' @param slurm_out Location to write out slurm out files
 #' @param record_log Record failures when processing data
+#' @param submit Submit the job to the cluster?
 #'
 #' @export
 #'
@@ -616,7 +617,8 @@ cellranger_mkfastq <- function(sample_info,
                                slurm_out = paste(getwd(),
                                                  "/slurmOut_mkfastq-%j.out",
                                                  sep = ""),
-                               record_log = TRUE) {
+                               record_log = TRUE,
+                               submit = TRUE) {
     # Start log if it's not already started
     if (logr::log_status() == "closed" && record_log) {
         start_log()
@@ -704,41 +706,15 @@ cellranger_mkfastq <- function(sample_info,
     )
     package_dir <- find.package("rrrSingleCellUtils")
 
-    sbatch_template <-
-        readr::read_file(paste0(package_dir,
-                                "/cellranger_demux_template.job"))
+    return_value <-
+        use_sbatch_template(replace_tibble = replace_tibble,
+                            template = "/cellranger_demux_template.job",
+                            warning_label = "Cellranger mkfastq",
+                            submit = submit,
+                            file_dir = ".",
+                            temp_prefix = "mkfastq_")
 
-    use_sbatch_template(replace_tibble = replace_tibble,
-                        template = "/cellranger_demux_template.job",
-                        file_dir = getwd(),
-                        temp_ext = ".sh",
-                        temp_prefix = "sbatch_",
-                        warning_label = "Cellranger mkfastq sbatch submission failed.",
-                        submit = TRUE)
-
-    # Replace placeholders with real data
-    for (i in seq_len(nrow(replace_tibble))) {
-    sbatch_template <-
-        stringr::str_replace_all(sbatch_template,
-                                 pattern = replace_tibble$find[i],
-                                 replacement = replace_tibble$replace[i])
-    }
-
-    temp_file <-
-        tempfile(fileext = ".sh",
-                 pattern = "mkfastq",
-                 tmpdir = getwd())
-
-    readr::write_file(sbatch_template, file = temp_file)
-
-    return_val <- system(paste("sbatch", temp_file))
-
-    if (return_val != 0) {
-        big_problem(paste("Cellranger mkfastq sbatch submission failed. Error code ",
-                    return_val))
-        return(FALSE)
-    }
-    return(TRUE)
+    return(return_value)
 }
 
 #' Run cellranger count on 10X data
@@ -872,36 +848,16 @@ cellranger_count <- function(sample_info,
         "placeholder_include_introns",      intron_arg
     )
 
-    package_dir <- find.package("rrrSingleCellUtils")
-
-    sbatch_template <-
-        readr::read_file(paste0(package_dir, cellranger_template))
-
-    # Replace placeholders with real data
-    for (i in seq_len(nrow(replace_tibble))) {
-        sbatch_template <-
-            stringr::str_replace_all(sbatch_template,
-                                     pattern = replace_tibble$find[i],
-                                     replacement = replace_tibble$replace[i])
-    }
-
-    temp_file <-
-        tempfile(fileext = ".sh",
-                 pattern = "count",
-                 tmpdir = getwd())
-
-    readr::write_file(sbatch_template, file = temp_file)
-
-    return_val <- system(paste("sbatch", temp_file))
-
-    if (return_val != 0) {
-        big_problem(paste("Cellranger count sbatch submission failed. Error code ",
-                    return_val))
-        return(FALSE)
-    }
+    return_value <-
+        use_sbatch_template(replace_tibble = replace_tibble,
+                            template = cellranger_template,
+                            warning_label = "Cellranger count",
+                            submit = TRUE,
+                            file_dir = ".",
+                            temp_prefix = "count_")
 
     # Delete fastq files if requested
-    if (return_val == 0 && delete_fastqs) {
+    if (return_value == 0 && delete_fastqs) {
         rm_cmd <-
             sample_info %>%
             dplyr::mutate(
@@ -940,7 +896,7 @@ cellranger_count <- function(sample_info,
     # chmod the counts folder contents to read only
     chmod_stuff(paste0(counts_folder, "/", run_name), "444")
 
-    return(TRUE)
+    return(return_value)
 }
 
 #' Set folder permissions to read-only.

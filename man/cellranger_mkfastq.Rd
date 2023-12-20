@@ -12,7 +12,8 @@ cellranger_mkfastq(
   bcl_folder = "/home/gdrobertslab/lab/BCLs",
   fastq_folder = "/home/gdrobertslab/lab/FASTQs",
   slurm_out = paste(getwd(), "/slurmOut_mkfastq-\%j.out", sep = ""),
-  record_log = TRUE
+  record_log = TRUE,
+  submit = TRUE
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ cellranger_mkfastq(
 \item{slurm_out}{Location to write out slurm out files}
 
 \item{record_log}{Record failures when processing data}
+
+\item{submit}{Submit the job to the cluster?}
 }
 \description{
 Run cellranger mkfastq
