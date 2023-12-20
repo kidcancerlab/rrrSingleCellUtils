@@ -686,39 +686,35 @@ cellranger_mkfastq <- function(sample_info,
             "\n  --use-bases-mask=Y50n*,I8n*,Y24n*,Y49n* \\\\\\\n  --filter-single-index \\\\"
     }
 
-    replace_tibble <-
-        tibble::tibble(find = c("placeholder_run_name",
-                                "placeholder_array_max",
-                                "placeholder_bcl_folder_array",
-                                "placeholder_bcl_path",
-                                "placeholder_fastq_folder",
-                                "placeholder_email",
-                                "placeholder_slurm_out",
-                                "placeholder_slurm_name",
-                                "placeholder_cellranger_type",
-                                "placeholder_sample_sheet",
-                                "placeholder_exp_type",
-                                "placeholder_filter_arg",
-                                "placeholder_base_mask"),
-                       replace = c(run_name,
-                                   length(tar_folders) - 1,
-                                   paste(tar_folders, collapse = " "),
-                                   bcl_folder,
-                                   fastq_folder,
-                                   email,
-                                   slurm_out,
-                                   paste0("mkfastq_", run_name),
-                                   cellranger_type,
-                                   sample_sheet,
-                                   fastq_suffix,
-                                   filter_arg,
-                                   base_mask))
-
+    replace_tibble <- tibble::tribble(
+        ~find,                          ~replace,
+        "placeholder_run_name",         run_name,
+        "placeholder_array_max",        length(tar_folders) - 1,
+        "placeholder_bcl_folder_array", paste(tar_folders, collapse = " "),
+        "placeholder_bcl_path",         bcl_folder,
+        "placeholder_fastq_folder",     fastq_folder,
+        "placeholder_email",            email,
+        "placeholder_slurm_out",        slurm_out,
+        "placeholder_slurm_name",       paste0("mkfastq_", run_name),
+        "placeholder_cellranger_type",  cellranger_type,
+        "placeholder_sample_sheet",     sample_sheet,
+        "placeholder_exp_type",         fastq_suffix,
+        "placeholder_filter_arg",       filter_arg,
+        "placeholder_base_mask",        base_mask
+    )
     package_dir <- find.package("rrrSingleCellUtils")
 
     sbatch_template <-
         readr::read_file(paste0(package_dir,
                                 "/cellranger_demux_template.job"))
+
+    use_sbatch_template(replace_tibble = replace_tibble,
+                        template = "/cellranger_demux_template.job",
+                        file_dir = getwd(),
+                        temp_ext = ".sh",
+                        temp_prefix = "sbatch_",
+                        warning_label = "Cellranger mkfastq sbatch submission failed.",
+                        submit = TRUE)
 
     # Replace placeholders with real data
     for (i in seq_len(nrow(replace_tibble))) {
@@ -853,40 +849,28 @@ cellranger_count <- function(sample_info,
     # Using separate template
     # The Cell Ranger ARC pipeline can only analyze Gene Expression and ATAC
     # data together and the input is a csv file
-    replace_tibble <- tibble::tibble(find = c("placeholder_run_name",
-                                              "placeholder_array_max",
-                                              "placeholder_sample_array_list",
-                                              "placeholder_outdir_array_list",
-                                              "placeholder_reference_array_list",
-                                              "placeholder_num_cells_list",
-                                              "placeholder_email",
-                                              "placeholder_slurm_out",
-                                              "placeholder_reference_folder",
-                                              "placeholder_counts_folder",
-                                              "placeholder_fastq_folder",
-                                              "placeholder_slurm_name",
-                                              "placeholder_library_csv",
-                                              "placeholder_include_introns"),
-                                     replace = c(run_name,
-                                                 nrow(sample_info) - 1,
-                                                 paste(sample_info$Sample_ID,
-                                                       collapse = " "),
-                                                 paste(paste0(sample_info$Sample_ID,
-                                                              realign_suffix),
-                                                       collapse = " "),
-                                                 paste(sample_info$Reference,
-                                                       collapse = " "),
-                                                 paste(sample_info$cells_targeted,
-                                                       collapse = " "),
-                                                 email,
-                                                 slurm_out,
-                                                 ref_folder,
-                                                 counts_folder,
-                                                 fastq_folder,
-                                                 paste0("count_",
-                                                         run_name),
-                                                 tmp_csv,
-                                                 intron_arg))
+    replace_tibble <- tibble::tribble(
+        ~find, ~replace,
+        "placeholder_run_name",             run_name,
+        "placeholder_array_max",            nrow(sample_info) - 1,
+        "placeholder_sample_array_list",    paste(sample_info$Sample_ID,
+                                                  collapse = " "),
+        "placeholder_outdir_array_list",    paste(paste0(sample_info$Sample_ID,
+                                                         realign_suffix),
+                                                  collapse = " "),
+        "placeholder_reference_array_list", paste(sample_info$Reference,
+                                                  collapse = " "),
+        "placeholder_num_cells_list",       paste(sample_info$cells_targeted,
+                                                  collapse = " "),
+        "placeholder_email",                email,
+        "placeholder_slurm_out",            slurm_out,
+        "placeholder_reference_folder",     ref_folder,
+        "placeholder_counts_folder",        counts_folder,
+        "placeholder_fastq_folder",         fastq_folder,
+        "placeholder_slurm_name",           paste0("count_", run_name),
+        "placeholder_library_csv",          tmp_csv,
+        "placeholder_include_introns",      intron_arg
+    )
 
     package_dir <- find.package("rrrSingleCellUtils")
 
