@@ -6,6 +6,7 @@
 #SBATCH --cpus-per-task=20
 #SBATCH --array=0-placeholder_array_max
 #SBATCH --wait
+#SBATCH --partition=general,himem
 placeholder_email
 
 set -e
