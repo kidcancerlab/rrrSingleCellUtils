@@ -60,6 +60,8 @@
   * Make optimize_silhouette warn if there are no dim reductions or clustering present
   * Try out snp calling: https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1863-4
   * In tenx_load_qc, check if all data is filtered out or sobj is empty
+  * Change make_sobj to be a sbatch script
+  * in getProcessData.R, change sbatch submissions to use use_sbatch_template()
 
 ---
 
