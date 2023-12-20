@@ -16,6 +16,7 @@
 #' @param min_sites_covered The minimum number of sites that must be covered by
 #'  a cell_group to be included in the tree.
 #' @param submit Whether to submit the sbatch jobs to the cluster or not.
+#' @param cleanup Whether to delete the temporary files after running.
 #'
 #' @details for ploidy, GRCh37 is hg19, GRCh38 is hg38, X, Y, 1, mm10_hg19 is
 #'  our mixed species reference with species prefixes on chromosomes, mm10 is
@@ -139,8 +140,8 @@ get_snp_tree <- function(cellid_bam_table,
 #' @param dist_tree A hclust tree output from get_snp_tree()
 #' @param group_col_name The name of the column in the Seurat object that was
 #'  used when assigning cells to groups for get_snp_tree()
-#' @param control_group The name of the control group. If this is not NULL,
-#'  then the group containing the control will be labeled "normal" and the
+#' @param normal_groups The name of the control group. If this is not NULL,
+#'  then the group(s) containing the control will be labeled "normal" and the
 #'  other group(s) will be labeled "tumor".
 #' @param cut_n_groups The number of groups to cut the tree into.
 #' @param cut_dist The distance to cut the tree at. This can be derived from the
@@ -261,6 +262,7 @@ check_cellid_bam_table <- function(cellid_bam_table) {
 #' @param bam_out_dir The directory to write the bam files to
 #' @param bcf_dir The directory to write the bcf files to
 #' @param slurm_base The base name for the slurm output files. Don't include path
+#' @param sbatch_base The prefix to use with the sbatch job file
 #' @param account The hpc account to use in slurm scripts
 #' @param ploidy The ploidy of the organism. See details for more information
 #' @param ref_fasta The reference fasta file to use
@@ -410,6 +412,7 @@ pick_ploidy <- function(ploidy) {
 #' @param submit Whether to submit the job to slurm
 #' @param account The cluster account to use in the slurm script
 #' @param slurm_out The name of the slurm output file
+#' @param sbatch_base The prefix to use with the sbatch job file
 #' @param cleanup Whether to delete the bcfs after merging
 #'
 #' @return 0 if successful

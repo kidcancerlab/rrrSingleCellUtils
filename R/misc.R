@@ -3,11 +3,15 @@ utils::globalVariables(c(
     "Abort",
     "avg.exp.scaled",
     "avg_log2FC",
+    "bam_file",
     "CB",
+    "cell_barcode",
+    "cell_group",
     "cid",
     "cluster",
     "Cluster",
     "col.fill",
+    "control_celltypes",
     "database",
     "download_data",
     "exp_type",
@@ -19,6 +23,7 @@ utils::globalVariables(c(
     "Freq",
     "from",
     "gene",
+    "group_count",
     "id",
     "junk",
     "label",
@@ -37,6 +42,7 @@ utils::globalVariables(c(
     "median_val",
     "method",
     "min_val",
+    "n_bams",
     "num_clusters",
     "p_val_adj",
     "pearson",
@@ -44,24 +50,29 @@ utils::globalVariables(c(
     "Phase",
     "Proportion",
     "Protocol",
+    "rainbow",
     "receptors",
     "receptors_bona_fide",
     "res_vals",
     "rm_path",
     "run_cellranger_count",
     "run_cellranger_mkfastq",
+    "sample_1",
+    "sample_2",
     "Sample_ID",
     "Sample_Project",
     "score",
     "sd_val",
     "sil_vals",
     "sil_width",
+    "snp_dist",
     "suffix",
     "sobj",
     "tar_folder",
     "test_ligand",
     "to",
     "to_make_sobj",
+    "tree_group",
     "tx_id",
     "tx_name",
     "value",
@@ -119,17 +130,24 @@ use_sbatch_template <- function(replace_tibble,
     readr::write_file(sbatch_template, file = temp_file)
 
     if (submit == TRUE) {
-        return_val <- system(paste("sbatch", temp_file))
+        return_value <- system(paste("sbatch", temp_file))
     } else {
-        return_val <- 0
+        return_value <- 0
     }
 
-    if (return_val != 0) {
-        stop(paste0(warning_label,
-                    " sbatch submission failed. Error code ",
-                    return_val))
+    if (return_value != 0) {
+        big_problem(paste0(warning_label,
+                           " sbatch submission failed. Error code ",
+                           return_value,
+                           ". Check the sbatch file ",
+                           temp_file))
     }
-    return(0)
+
+    if (return_value == 0) {
+        return(TRUE)
+    } else {
+        return(FALSE)
+    }
 }
 
 #' Check that a command is available on the system

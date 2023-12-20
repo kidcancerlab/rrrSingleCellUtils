@@ -36,7 +36,7 @@ r_dim_plot <- function(object,
                          label = label,
                          pt.size = pt.size,
                          cols = scales::alpha(c(plot_cols,
-                                                sample(rainbow(1000))),
+                                                sample(grDevices::rainbow(1000))),
                                               pt_alpha),
                          ...) +
         patchwork::plot_annotation(title = title) +

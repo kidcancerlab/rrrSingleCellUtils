@@ -704,7 +704,6 @@ cellranger_mkfastq <- function(sample_info,
         "placeholder_filter_arg",       filter_arg,
         "placeholder_base_mask",        base_mask
     )
-    package_dir <- find.package("rrrSingleCellUtils")
 
     return_value <-
         use_sbatch_template(replace_tibble = replace_tibble,

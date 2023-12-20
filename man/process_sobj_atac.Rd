@@ -35,8 +35,3 @@ This function processes ATAC-seq data in a Seurat object by performing
   histograms, and processing the data using the \code{process_seurat_atac}
   function.
 }
-\examples{
-# Example usage of process_sobj_atac function
-s_obj <- process_sobj_atac(s_obj, sample_data, cutoff_hist_folder, frag_file, gtf)
-
-}
