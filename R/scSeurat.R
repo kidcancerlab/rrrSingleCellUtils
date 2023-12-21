@@ -300,7 +300,11 @@ gen_cellecta_bc_data <- function(file, verbose = FALSE, output = tempfile(),
 
   system(system_cmd)
 
-  results <- readr::read_delim(output, delim = "\t", col_names = TRUE)
+  results <-
+    readr::read_delim(output,
+                      delim = "\t",
+                      col_names = TRUE,
+                      show_col_types = FALSE)
 
   return(results)
 }
