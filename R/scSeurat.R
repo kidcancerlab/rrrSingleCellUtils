@@ -81,6 +81,14 @@ tenx_load_qc <- function(path_10x = "",
                             species_pattern,
                             remove_species_pattern)
 
+        if (ncol(rna_raw_data) == 0) {
+            stop("!No data left in object! Check species_pattern argument. ",
+                "Before filtering gex data using species_pattern there were ",
+                gex_orig_cells,
+                " cells and the first genes were ",
+                gex_first_ten_genes)
+        }
+
         seurat <-
             Seurat::CreateSeuratObject(rna_raw_data,
                                        min.cells = min_cells,
@@ -104,10 +112,22 @@ tenx_load_qc <- function(path_10x = "",
 
     if (grepl("ATAC", exp_type)) {
         # subset the data to only include the species of interest
+        atac_orig_cells <- nrow(rna_raw_data)
+        atac_first_ten_genes <- head(rownames(rna_raw_data, 10))
+
         atac_raw_data <-
             filter_raw_data(atac_raw_data,
                             species_pattern,
                             remove_species_pattern)
+
+        if (ncol(atac_raw_data) == 0) {
+            stop("!No data left in object! Check species_pattern argument. ",
+                "Before filtering atac data using species_pattern there were ",
+                atac_orig_cells,
+                " cells and the first genes were ",
+                atac_first_ten_genes)
+        }
+
 
         if (exp_type == "ATAC") {
             seurat <-
@@ -134,13 +154,7 @@ tenx_load_qc <- function(path_10x = "",
 
     }
 
-    if (nrow(seurat) == 0) {
-        stop("!No data left in object! Check your species_pattern argument. ",
-              "Before filtering based on species_pattern there were ",
-              gex_orig_cells,
-              " cells and the first genes were ",
-              gex_first_ten_genes)
-    }
+
 
     if (violin_plot && grepl("GEX", exp_type)) {
         print(Seurat::VlnPlot(seurat,
