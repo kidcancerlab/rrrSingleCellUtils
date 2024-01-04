@@ -285,7 +285,7 @@ process_raw_data <- function(sample_info,
             return(FALSE)
         }
 
-        message("Submtting slurm command to run cellranger count.\n"))
+        message("Submtting slurm command to run cellranger count.\n")
 
         return_value <-
             cellranger_count(sample_info = x,
@@ -965,7 +965,8 @@ cellranger_count <- function(sample_info,
 
 #' Set folder permissions to read-only.
 #'
-#' This function takes a folder path as input and sets the permissions of the folder to read-only.
+#' This function takes a folder path as input and sets the permissions of the
+#'  folder to read-only.
 #'
 #' @param folder The path to the folder.
 #' @param code The code to use for chmod.
