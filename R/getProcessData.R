@@ -74,10 +74,13 @@ process_raw_data <- function(sample_info,
                           col_names = TRUE,
                           trim_ws = TRUE,
                           show_col_types = FALSE) %>%
+        # I need to split this out into a separate function to check for
+        # required columns and filter out stuff we're not doing
         dplyr::filter(Abort == "N" &
                       Protocol %in% c("MATAC",
                                       "MGEX",
-                                      "3GEX")) %>%
+                                      "3GEX") &
+                      !is.na(Sample_Project)) %>%
         add_data_status(sample_info = .,
                         bcl_folder = bcl_folder,
                         fastq_folder = fastq_folder,
@@ -143,7 +146,7 @@ process_raw_data <- function(sample_info,
     # following loop
     tar_exps <-
         to_mkfastq %>%
-        dplyr::select(link_folder, tar_folder, Protocol, Sample_Project) %>%
+        dplyr::select(tar_folder, Protocol, Sample_Project) %>%
         dplyr::distinct()
 
     # Loop over each tar_folder and Protocol combination to run mkfastq
@@ -173,8 +176,7 @@ process_raw_data <- function(sample_info,
         # Subset sample sheet down to just current run
         dplyr::left_join(tar_exps[i, ],
                          sample_data,
-                         by = c("link_folder",
-                                "tar_folder",
+                         by = c("tar_folder",
                                 "Protocol",
                                 "Sample_Project")) %>%
             readr::write_tsv(file = temp_sample_info_sheet)
@@ -220,6 +222,8 @@ process_raw_data <- function(sample_info,
                                bcl_folder = bcl_folder,
                                fastq_folder = fastq_folder,
                                slurm_out = paste0(slurm_base,
+                                                  "_",
+                                                  tar_f,
                                                   "_mkfastq-%j.out"),
                                record_log = record_log)
 
@@ -281,8 +285,7 @@ process_raw_data <- function(sample_info,
             return(FALSE)
         }
 
-        message("Submtting slurm command to run cellranger count.\n",
-                "Slurm messages output to", paste0(slurm_base, "_count-*.out"))
+        message("Submtting slurm command to run cellranger count.\n"))
 
         return_value <-
             cellranger_count(sample_info = x,
@@ -291,7 +294,10 @@ process_raw_data <- function(sample_info,
                              fastq_folder = fastq_folder,
                              ref_folder = ref_folder,
                              include_introns = include_introns,
-                             slurm_out = paste0(slurm_base, "_count-%j.out"),
+                             slurm_out = paste0(slurm_base,
+                                                "_",
+                                                x$Sample_Project[1],
+                                                "_count-%j.out"),
                              delete_fastqs = delete_fastqs,
                              record_log = record_log)
 
@@ -459,6 +465,7 @@ get_raw_data <- function(link_folder,
         }
         return(TRUE)
     } else {
+        big_problem(paste("Link folder not found for", link_folder, tar_folder))
         return(FALSE)
     }
 }
@@ -649,9 +656,12 @@ cellranger_mkfastq <- function(sample_info,
     # This assumes that the sampleInfoSheet has a single Protocol.
     # process_raw_data writes out temp sampleInfoSheets broken up by Protocol
     if (sample_data$Protocol %>% unique %>% length() > 1) {
-        warning("cellranger_mkfastq() requires a single Protocol per run.")
-        warning("Break up sampleInfoSheet by Protocol and try again.")
-        stop()
+        big_problem(paste(
+            run_name,
+            "cellranger_mkfastq() needs a single Protocol per run.",
+            "Break up sampleInfoSheet by Protocol and try again.")
+            )
+        return(FALSE)
     }
 
     cellranger_type <- "cellranger"
@@ -659,17 +669,9 @@ cellranger_mkfastq <- function(sample_info,
         cellranger_type <- "cellranger-arc"
     }
 
-    filter_arg <- ""
-    if (system(paste0("grep 'PlannedIndex2ReadCycles>0' ",
-                      bcl_folder, "/",
-                      sample_data$Sample_Project[1], "/",
-                      tar_folders[1],
-                      "/RunParameters.xml > /dev/null ")) == 0) {
-        filter_arg <- "\\\\\\\n  --force-single-index\\\n"
-    }
-
     # Need to add a suffix to the fastq folder for the multiomics so we can
     # reference it during counting
+    filter_arg <- ""
     fastq_suffix <- ""
     # Need to change base mask based on index type (GA vs NN...)
     if (sample_data$Protocol[1] == "3GEX" &&
@@ -677,7 +679,25 @@ cellranger_mkfastq <- function(sample_info,
         base_mask <- "\n  --use-bases-mask=Y28n*,I10n*,I10n*,Y90n* \\\\"
     } else if (sample_data$Protocol[1] == "3GEX" &&
                sample_data$Index_Type[1] == "SI-GA-") {
-        base_mask <- "\n  --use-bases-mask=Y28n*,I8n*,Y90n* \\\\"
+        # The GA indices are single-ended
+        filter_arg <- "\\\\\\\n  --filter-single-index\\\n"
+        # If the sequencing was done with dual indexes, we need to specify
+        # the base mask to specifically exclude I2
+        # grep_res will be 0 if sequencing was paired end
+        grep_res <-
+            system(paste0("grep 'Read Number=\"4\"' ",
+                          bcl_folder,
+                          "/",
+                          sample_data$Sample_Project[1], "/",
+                          tar_folders[1],
+                          "/RunInfo.xml"))
+        if (grep_res == 0) {
+            base_mask <- "\n  --use-bases-mask=Y28n*,I8n*,n*,Y90n* \\\\"
+        } else {
+            # If the sequencing was done only single indexed, we need to specify
+            # the base mask like this:
+            base_mask <- "\n  --use-bases-mask=Y28n*,I8n*,Y90n* \\\\"
+        }
     } else if (sample_data$Protocol[1] == "MGEX") {
         fastq_suffix <- "_R"
         base_mask <-
@@ -691,7 +711,7 @@ cellranger_mkfastq <- function(sample_info,
     replace_tibble <- tibble::tribble(
         ~find,                          ~replace,
         "placeholder_run_name",         run_name,
-        "placeholder_array_max",        length(tar_folders) - 1,
+        "placeholder_array_max",        as.character(length(tar_folders) - 1),
         "placeholder_bcl_folder_array", paste(tar_folders, collapse = " "),
         "placeholder_bcl_path",         bcl_folder,
         "placeholder_fastq_folder",     fastq_folder,
@@ -711,9 +731,52 @@ cellranger_mkfastq <- function(sample_info,
                             warning_label = "Cellranger mkfastq",
                             submit = submit,
                             file_dir = ".",
-                            temp_prefix = "mkfastq_")
+                            temp_prefix = paste0("mkfastq_", run_name, "_"))
 
     return(return_value)
+}
+
+get_base_mask <- function(protocol, index_type, bcl_folder, tar_folder) {
+    # Need to add a suffix to the fastq folder for the multiomics so we can
+    # reference it during counting
+    output <- c()
+    output$filter_arg <- ""
+    output$fastq_suffix <- ""
+    # Need to change base mask based on index type (GA vs NN...)
+    if (protocol == "3GEX" &&
+        index_type == "SI-TT-") {
+        output$base_mask <- "\n  --use-bases-mask=Y28n*,I10n*,I10n*,Y90n* \\\\"
+    } else if (protocol == "3GEX" &&
+               index_type == "SI-GA-") {
+        # The GA indices are single-ended
+        output$filter_arg <- "\\\\\\\n  --filter-single-index\\\n"
+        # If the sequencing was done with dual indexes, we need to specify
+        # the base mask to specifically exclude I2
+        # grep_res will be 0 if sequencing was paired end
+        grep_res <-
+            system(paste0("grep 'Read Number=\"4\"' ",
+                          bcl_folder,
+                          "/",
+                          protocol, "/",
+                          tar_folder,
+                          "/RunInfo.xml"))
+        if (grep_res == 0) {
+            output$base_mask <- "\n  --use-bases-mask=Y28n*,I8n*,n*,Y90n* \\\\"
+        } else {
+            # If the sequencing was done only single indexed, we need to specify
+            # the base mask like this:
+            output$base_mask <- "\n  --use-bases-mask=Y28n*,I8n*,Y90n* \\\\"
+        }
+    } else if (protocol == "MGEX") {
+        output$fastq_suffix <- "_R"
+        output$base_mask <-
+            "\n  --use-bases-mask=Y28n*,I10n*,I10n*,Y90n* \\\\\\\n  --filter-dual-index \\\\"
+    } else if (protocol == "MATAC") {
+        output$fastq_suffix <- "_A"
+        output$base_mask <-
+            "\n  --use-bases-mask=Y50n*,I8n*,Y24n*,Y49n* \\\\\\\n  --filter-single-index \\\\"
+    }
+    return(output)
 }
 
 #' Run cellranger count on 10X data
@@ -827,7 +890,7 @@ cellranger_count <- function(sample_info,
     replace_tibble <- tibble::tribble(
         ~find, ~replace,
         "placeholder_run_name",             run_name,
-        "placeholder_array_max",            nrow(sample_info) - 1,
+        "placeholder_array_max",            as.character(nrow(sample_info) - 1),
         "placeholder_sample_array_list",    paste(sample_info$Sample_ID,
                                                   collapse = " "),
         "placeholder_outdir_array_list",    paste(paste0(sample_info$Sample_ID,
@@ -853,7 +916,7 @@ cellranger_count <- function(sample_info,
                             warning_label = "Cellranger count",
                             submit = TRUE,
                             file_dir = ".",
-                            temp_prefix = "count_")
+                            temp_prefix = paste0("count_", run_name, "_"))
 
     # Delete fastq files if requested
     if (return_value == 0 && delete_fastqs) {
@@ -893,7 +956,9 @@ cellranger_count <- function(sample_info,
     }
 
     # chmod the counts folder contents to read only
-    chmod_stuff(paste0(counts_folder, "/", run_name), "444")
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! need to fix this - should not be run_name
+    #!!!!!!!!!!!!!! but instead should be each Sample_ID
+    #chmod_stuff(paste0(counts_folder, "/", run_name), "444")
 
     return(return_value)
 }
@@ -957,8 +1022,8 @@ add_data_status <- function(sample_info,
     # Need this to be TRUE even if make_sobj is FALSE
     sample_info$run_cellranger_count <-
         !file.exists(paste0(counts_folder, "/",
-                           sample_info$Sample_ID, "/",
-                           "filtered_feature_bc_matrix/barcodes.tsv.gz"))
+                            sample_info$Sample_ID, "/",
+                            "filtered_feature_bc_matrix/barcodes.tsv.gz"))
 
     sample_info$fastq_folder_suffix <-
         stringr::str_replace_all(sample_info$Protocol,
@@ -993,13 +1058,14 @@ add_data_status <- function(sample_info,
         lapply(sample_info$r1_path,
                function(x) length(Sys.glob(x)) == 0) %>%
         unlist() &
-        sample_info$run_cellranger_count
+        sample_info$run_cellranger_count &
+        !is.na(sample_info$tar_folder)
 
     # Check if bcl data exists or if cellranger_mkfastq is TRUE
     sample_info$download_data <-
-        (dir.exists(paste0(bcl_folder, "/",
+        (!dir.exists(paste0(bcl_folder, "/",
                           sample_info$Sample_Project, "/",
-                          sample_info$tar_folder)) |
+                          sample_info$tar_folder)) &
         sample_info$run_cellranger_mkfastq) &
         !is.na(sample_info$link_folder)
 
@@ -1042,7 +1108,7 @@ get_exp_type <- function(x) {
     } else if (all(x == "MGEX")) {
         return("GEX")
     } else {
-        stop("Unknown exp_type.")
+        big_problem("Unknown exp_type.")
     }
 }
 
@@ -1267,7 +1333,7 @@ process_sobj_gex <- function(s_obj,
                                                     vars = descriptor) <= cutoff_value)]
             } else {
                 print(subset_table)
-                stop("Unknown direction in subset table for ",
+                big_problem("Unknown direction in subset table for ",
                         descriptor, ".")
             }
         }
@@ -1381,7 +1447,7 @@ process_sobj_atac <- function(s_obj,
                                                     vars = descriptor) <= cutoff_value)]
             } else {
                 print(subset_table)
-                stop("Unknown direction in subset table for ",
+                big_problem("Unknown direction in subset table for ",
                         descriptor, ".")
             }
         }
