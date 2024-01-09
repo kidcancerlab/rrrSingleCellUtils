@@ -1047,10 +1047,11 @@ add_data_status <- function(sample_info,
                                                       Sample_ID, "/",
                                                       Sample_ID,
                                                       "*R1*fastq.gz"),
-                                               paste0(fastq_folder, "/",            # 3' data
+                                               paste0(fastq_folder, "/",            # GEX data
                                                       Sample_Project,
                                                       fastq_folder_suffix, "/",
                                                       Sample_Project, "/",
+                                                      Sample_ID, "/",
                                                       Sample_ID,
                                                       "*R1*fastq.gz")))
 
