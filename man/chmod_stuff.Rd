@@ -17,6 +17,7 @@ chmod_stuff(folder, code = "444", record_log = TRUE)
 None
 }
 \description{
-This function takes a folder path as input and sets the permissions of the folder to read-only.
+This function takes a folder path as input and sets the permissions of the
+ folder to read-only.
 }
 \keyword{internal}

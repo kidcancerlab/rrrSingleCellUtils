@@ -331,7 +331,10 @@ process_raw_data <- function(sample_info,
         return_value <-
             make_sobj(s_id = s_id,
                       sample_info = to_make_sobj,
-                      sobj_folder = sobj_folder)
+                      count_folder = counts_folder,
+                      sobj_folder = sobj_folder,
+                      cutoff_hist_folder = cutoff_hist_folder,
+                      record_log = record_log)
 
         if (!return_value) {
             big_problem(paste("Seurat object creation failed for ",
@@ -1143,6 +1146,7 @@ ref_to_mt_pattern <- function(x) {
 
 #' Make a Seurat object from 10X data
 #'
+#' @inheritParams get_raw_data
 #' @param s_id Sample ID
 #' @param sample_info Sample information
 #' @param counts_folder Path to counts folder
@@ -1156,9 +1160,6 @@ make_sobj <- function(s_id,
                       counts_folder = "/home/gdrobertslab/lab/Counts_2",
                       sobj_folder = "/home/gdrobertslab/lab/SeuratObj",
                       cutoff_hist_folder = "/home/gdrobertslab/lab/SeuratObj/cutoff_hists",
-                      frag_file = paste0(counts_folder, "/",
-                                         s_id,
-                                         "/fragments.tsv.gz"),
                       ref_dir = "/home/gdrobertslab/lab/GenRef",
                       gtf,
                       h5_file,
@@ -1168,6 +1169,11 @@ make_sobj <- function(s_id,
     if (logr::log_status() == "closed" && record_log) {
         start_log()
     }
+
+    frag_file <-
+        paste0(counts_folder, "/",
+               s_id,
+               "/fragments.tsv.gz")
 
     sample_data <-
         dplyr::filter(sample_info,
