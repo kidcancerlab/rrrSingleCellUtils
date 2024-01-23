@@ -94,7 +94,8 @@ process_raw_data <- function(sample_info,
         dplyr::select(link_folder,
                       Sample_Project,
                       tar_folder) %>%
-        dplyr::distinct()
+        dplyr::distinct() %>%
+        dplyr::mutate(downloaded = FALSE)
 
     # Sometimes we're going to have multiple download folders and multiple
     # experiment types (such as multiomics) that need to be handled separately
@@ -129,6 +130,7 @@ process_raw_data <- function(sample_info,
                                   to_download$link_folder[i],
                                   ". Moving on to next sample."))
             }
+            to_download$downloaded[i] <- data_downloaded
         })
     }
 
@@ -1502,6 +1504,6 @@ start_log <- function() {
 big_problem <- function(x) {
     warning(x, immediate. = TRUE)
     if (logr::log_status() == "open") {
-        logr::log_print(x)
+        logr::log_print(x, console = FALSE)
     }
 }
