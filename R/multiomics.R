@@ -308,7 +308,8 @@ merge_gex_atac <- function(gex_sobj,
                            atac_sobj,
                            atac_assay_name = "ATAC",
                            gex_pca_dims = 1:dim(Seurat::Embeddings(gex_sobj))[2],
-                           atac_pca_dims = 1:dim(Seurat::Embeddings(atac_sobj))[2],
+                           atac_pca_dims = 1:dim(Seurat::Embeddings(atac_sobj,
+                                                                    reduction = "lsi"))[2],
                            verbose = FALSE) {
     # Make seurat object from GEX keeping only cells present in ATAC
     merged_data <-
@@ -317,14 +318,17 @@ merge_gex_atac <- function(gex_sobj,
 
     # Make temporary seurat object from ATAC with cells present in GEX
     temp <-
-        atac_sobj[, colnames(atac_sobj) %in% colnames(gex_sobj)] %>%
+        atac_sobj[, colnames(atac_sobj) %in% colnames(gex_sobj)]
+
+    # Stuff it into the merged_data object and process it
+    merged_data[["ATAC"]] <- temp@assays[[atac_assay_name]]
+    Seurat::DefaultAssay(merged_data) <- "ATAC"
+    merged_data <-
+        merged_data %>%
         Signac::RunTFIDF(verbose = verbose) %>%
         Signac::FindTopFeatures(min.cutoff = "q0",
                                 verbose = verbose) %>%
         Signac::RunSVD(verbose = verbose)
-
-    # Stuff it into the merged_data object
-    merged_data[["ATAC"]] <- temp@assays[[atac_assay_name]]
 
     # Make joint UMAP
     merged_data <-
