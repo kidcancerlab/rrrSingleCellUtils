@@ -5,6 +5,8 @@
 #'    (required)
 #' @param cluster_col A column name containing the cluster assignments for cells
 #' @param dims Numeric vector of PCA dimensions to use
+#' @param reduction The reduction data used (default is "pca").
+#'
 #' @export
 #'
 #' @return A silhouette object
@@ -15,13 +17,14 @@
 #' }
 silhouette_seurat <- function(sobject,
                               cluster_col = "seurat_clusters",
-                              dims = c(1:10)) {
+                              dims = c(1:10),
+                              reduction = "pca") {
     sil_obj <- cluster::silhouette(
         x = sobject@meta.data[[cluster_col]] %>%
             as.character() %>%
             as.numeric(),
         dist = Seurat::Embeddings(sobject,
-                                  reduction = "pca")[, dims] %>%
+                                  reduction = reduction)[, dims] %>%
         stats::dist())
 
     return(sil_obj)
@@ -105,6 +108,8 @@ silhouette_plot <- function(sil_obj) {
 #'    (required)
 #' @param test_res A numeric vector of resolution values to test
 #' @param summary_plot A logical value indicating whether to plot the results
+#' @param reduction The reduction data used (default is "pca").
+#'
 #' @export
 #'
 #' @return A numeric value
@@ -116,20 +121,24 @@ silhouette_plot <- function(sil_obj) {
 #' }
 optimize_silhouette <- function(sobject,
                                 test_res = seq(0.05, 0.75, by = 0.05),
-                                summary_plot = TRUE) {
+                                summary_plot = TRUE,
+                                reduction = "pca") {
 
     if (.Platform$OS.type == "unix") {
         num_cores <- parallel::detectCores()
         output <-
             parallel::mclapply(test_res,
                                function(x) silhouette_to_df(sobject = sobject,
-                                                            res = x),
+                                                            res = x,
+                                                            reduction = reduction),
                                mc.cores = num_cores) %>%
             dplyr::bind_rows()
     } else {
         output <-
-            lapply(test_res, function(x) silhouette_to_df(sobject = sobject,
-                                                          res = x)) %>%
+            lapply(test_res,
+                   function(x) silhouette_to_df(sobject = sobject,
+                                                res = x,
+                                                reduction = reduction)) %>%
             dplyr::bind_rows()
     }
 
@@ -145,8 +154,23 @@ optimize_silhouette <- function(sobject,
     return(output)
 }
 
-# Function to use with apply in optimize_silhouette instead of a for loop
-silhouette_to_df <- function(sobject, res) {
+#' Run silhouette scoring and return a to data frame
+#'
+#' This function takes in a seurat object, runs silhouette scoring and returns
+#' a data frame. This function is to use with apply in optimize_silhouette
+#' instead of a for loop
+#'
+#' @param sobject The silhouette object to convert.
+#' @param res The resolution parameter.
+#' @param reduction The reduction method used (default is "pca").
+#' @param reduction The reduction data used (default is "pca").
+#'
+#' @return A data frame containing the silhouette values.
+#'
+#' @keywords internal
+silhouette_to_df <- function(sobject,
+                             res,
+                             reduction = "pca") {
     output <- list()
 
     output[["res_vals"]] <- res
@@ -154,7 +178,7 @@ silhouette_to_df <- function(sobject, res) {
     sobject <- sobject %>%
         Seurat::FindClusters(resolution = res, verbose = FALSE)
     if (max(as.numeric(as.character(sobject$seurat_clusters))) > 0) {
-        sil_obj <- silhouette_seurat(sobject)
+        sil_obj <- silhouette_seurat(sobject, reduction = reduction)
 
         output[["num_clusters"]] <- summary(sil_obj)$clus.avg.widths %>%
             length()

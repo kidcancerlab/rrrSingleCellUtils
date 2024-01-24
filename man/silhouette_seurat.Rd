@@ -4,7 +4,12 @@
 \alias{silhouette_seurat}
 \title{Perform silhouette scoring on a Seurat object.}
 \usage{
-silhouette_seurat(sobject, cluster_col = "seurat_clusters", dims = c(1:10))
+silhouette_seurat(
+  sobject,
+  cluster_col = "seurat_clusters",
+  dims = c(1:10),
+  reduction = "pca"
+)
 }
 \arguments{
 \item{sobject}{A Seurat object containing all of the cells for analysis
@@ -13,6 +18,8 @@ silhouette_seurat(sobject, cluster_col = "seurat_clusters", dims = c(1:10))
 \item{cluster_col}{A column name containing the cluster assignments for cells}
 
 \item{dims}{Numeric vector of PCA dimensions to use}
+
+\item{reduction}{The reduction data used (default is "pca").}
 }
 \value{
 A silhouette object
