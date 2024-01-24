@@ -103,6 +103,30 @@ pbmc_fixed <-
 Seurat::DimPlot(pbmc_fixed)
 ```
 
+## Optimizing the clustering resolution
+```{r eval=FALSE}
+test <- qs::qread("/home/gdrobertslab/lab/SeuratObj/S0090.qs")
+
+df_of_sil_scores <-
+    optimize_silhouette(test)
+```
+
+### Optimize the clustering resolution on harmony embeddings
+```{r eval=FALSE}
+test <-
+    qs::qread("/home/gdrobertslab/lab/SeuratObj/S0090.qs") %>%
+    harmony::RunHarmony(group.by.vars = "seurat_clusters") %>%
+    Seurat::RunUMAP(reduction = "harmony",
+                    dims = 1:30)
+
+DimPlot(test)
+
+df_of_sil_scores <-
+    optimize_silhouette(test,
+                        reduction = "harmony")
+
+```
+
 ## Using SNPs to define tumor clusters
 ```{r eval=FALSE}
 two_sobj <- qs::qread("/home/gdrobertslab/mvc002/analyses/roberts/dev/testSnps/output/patient_met_1/two_sobj.qs")
