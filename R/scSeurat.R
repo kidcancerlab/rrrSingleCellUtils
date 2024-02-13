@@ -92,8 +92,16 @@ tenx_load_qc <- function(path_10x = "",
         seurat <-
             Seurat::CreateSeuratObject(rna_raw_data,
                                        min.cells = min_cells,
-                                       min.features = min_features) %>%
-            Seurat::PercentageFeatureSet(pattern = gsub("_", "-", mt_pattern),
+                                       min.features = min_features)
+
+        if (ncol(seurat) == 0) {
+            stop("!No data left after applying min.cells and min.features.",
+                 " Check your data and arguments.")
+        }
+
+        seurat <-
+            Seurat::PercentageFeatureSet(seurat,
+                                         pattern = gsub("_", "-", mt_pattern),
                                          col.name = "percent.mt")
             # Need to change all underscores to dashes due to CreateSeuratObject
             # doing the same
