@@ -362,7 +362,7 @@ process_raw_data <- function(sample_info,
                       make_sobj == TRUE) %>%
         dplyr::mutate(sobj_made = FALSE)
 
-    to_make_sobj$sobj_made <-
+    sobjs_made <-
         parallel::mclapply(unique(to_make_sobj$Sample_ID),
                            mc.cores = proc_threads,
                            function(s_id) {
@@ -393,12 +393,16 @@ process_raw_data <- function(sample_info,
             return(return_value)
         }) %>%
         unlist()
+    names(sobjs_made) <- unique(to_make_sobj$Sample_ID)
+    sobjs_made <-
+        tibble::enframe(sobjs_made,
+                        name = "Sample_ID",
+                        value = "sobj_made")
 
-    shared_cols <- intersect(colnames(to_make_sobj), colnames(sample_data))
     sample_data <-
         dplyr::left_join(sample_data,
-                         to_make_sobj,
-                         by = shared_cols)
+                         sobjs_made,
+                         by = c("Sample_ID"))
 
     #################################
     ### Clean up un-needed files
