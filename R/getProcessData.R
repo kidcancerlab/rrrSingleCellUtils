@@ -1264,11 +1264,24 @@ make_sobj <- function(s_id,
         return(FALSE)
     }
 
+    # Do this in a try-catch block so that if reading in the data fails, we can
+    # fail gracefully
     s_obj <-
-        tenx_load_qc(h5_file = h5_file,
-                     violin_plot = FALSE,
-                     exp_type = exp_type,
-                     mt_pattern = mt_pattern)
+        tryCatch({
+            tenx_load_qc(h5_file = h5_file,
+                         violin_plot = FALSE,
+                         exp_type = exp_type,
+                         mt_pattern = mt_pattern)
+        }, error = function(e) {
+            big_problem(paste("Failed to load gene count data for sample",
+                              sample_data$Sample_ID[1],
+                              ". Skipping."))
+            return(FALSE)
+        })
+
+    if (class(s_obj) == "logical") {
+        return(FALSE)
+    }
 
     # Add metadata from sample_data to s_obj
     # For multiomics where there are two rows, use unique and paste to keep one
