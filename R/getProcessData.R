@@ -269,6 +269,7 @@ process_raw_data <- function(sample_info,
 
     # Merge tar_exps back into sample_data to include information on if the
     # mkfastq was successful
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!! I need to handle the case where no mkfastq runs are performed !!!!!!!!!!!!!!!!!!!!!
     shared_cols <- intersect(colnames(tar_exps), colnames(sample_data))
     sample_data <-
         dplyr::left_join(sample_data,
@@ -347,6 +348,7 @@ process_raw_data <- function(sample_info,
 
     # Merge to_count_tbl_list back into sample_data to include information on
     # if the count was successful
+    #!!!!!!!!!!!!!!! Need to handle the case where no counts are performed !!!!!!!!!!!!!!!!!
     shared_cols <- intersect(colnames(to_count_tbl_list[[1]]),
                              colnames(sample_data))
     sample_data <-
