@@ -1108,27 +1108,23 @@ add_data_status <- function(sample_info,
     # The ATAC output from mkfastq has different directory structure than GEX
     sample_info <-
         sample_info %>%
-        dplyr::mutate(r1_path = dplyr::if_else(fastq_folder_suffix == "_A",
-                                               paste0(fastq_folder, "/",            # multiomics ATAC
+        dplyr::mutate(r1_path = paste0(fastq_folder, "/",            # multiomics ATAC
                                                       Sample_Project,
                                                       fastq_folder_suffix, "/",
-                                                      Sample_Project, "/",
-                                                      Sample_ID, "/",
-                                                      Sample_ID,
-                                                      "*R1*fastq.gz"),
-                                               paste0(fastq_folder, "/",            # GEX data
-                                                      Sample_Project,
-                                                      fastq_folder_suffix, "/",
-                                                      Sample_Project, "/",
-                                                      Sample_ID, "/",
-                                                      Sample_ID,
-                                                      "*R1*fastq.gz")))
+                                                      Sample_Project, "/"),
+                      r1_file_regex = paste0(Sample_ID,
+                                             ".+R1.+fastq.gz"))
 
     # Check if fastq data exists or if run_cellranger_count is TRUE
     sample_info$run_cellranger_mkfastq <-
-        lapply(sample_info$r1_path,
-               function(x) length(Sys.glob(x)) == 0) %>%
-        unlist() &
+        apply(sample_info,
+              1,
+              function(x) {
+                  list.files(path = x[["r1_path"]],
+                                     pattern = x[["r1_file_regex"]],
+                                     recursive = TRUE) %>%
+                        length() == 0
+                        }) &
         sample_info$run_cellranger_count &
         !is.na(sample_info$tar_folder)
 
