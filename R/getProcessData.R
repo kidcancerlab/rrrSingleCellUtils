@@ -286,7 +286,7 @@ process_raw_data <- function(sample_info,
     # Protocol and Sample_Project. This is a list of tibbles.
     to_count_tbl_list <-
         to_count %>%
-        dplyr::group_by(Sample_Project, Protocol == "3GEX") %>%
+        dplyr::group_by(Sample_ID, Protocol == "3GEX") %>%
         dplyr::group_split()
 
     # The number of cores used here doesn't matter, since it's just submitting
@@ -887,7 +887,9 @@ cellranger_count <- function(sample_info,
 
     run_name <- sample_info$Sample_Project[1]
 
-    fastq_folder <-
+    # For multiomics, the data that this variable holds in the replace_tibble is
+    # not replacing anything in cellranger_count_mulitiomics_template.job
+    long_fastq_folder <-
         paste(fastq_folder,
               run_name,
               sep = "/")
@@ -916,14 +918,15 @@ cellranger_count <- function(sample_info,
         # Create csv that cellranger-arc can use for count - each sample will be
         # pulled out of this csv in the job template using grep
         sample_info %>%
-            dplyr::select(Sample_ID, Protocol) %>%
+            dplyr::select(Sample_ID, Protocol, Sample_Project) %>%
             dplyr::mutate(suffix = dplyr::if_else(Protocol == "MGEX",
                                                   "_R",
                                                   "_A"),
-                          fastqs = paste0(fastq_folder,
+                          fastqs = paste0(fastq_folder, "/",
+                                          Sample_Project,
                                           suffix,
                                           "/",
-                                          run_name),
+                                          Sample_Project),
                           Protocol = stringr::str_replace(Protocol,
                                                           "MGEX",
                                                           "Gene Expression") %>%
@@ -931,7 +934,7 @@ cellranger_count <- function(sample_info,
                                                      "Chromatin Accessibility")) %>%
             dplyr::rename(library_type = Protocol,
                           sample = Sample_ID) %>%
-            dplyr::select(fastqs, sample, library_type, -suffix) %>%
+            dplyr::select(fastqs, sample, library_type) %>%
             readr::write_csv(file = tmp_csv)
     }
 
@@ -957,8 +960,8 @@ cellranger_count <- function(sample_info,
     # The Cell Ranger ARC pipeline can only analyze Gene Expression and ATAC
     # data together and the input is a csv file
     replace_tibble <- tibble::tribble(
-        ~find, ~replace,
-        "placeholder_run_name",             run_name,
+        ~find,                              ~replace,
+        "placeholder_run_name",             run_name, # Not used in multiomics
         "placeholder_array_max",            as.character(nrow(sample_info) - 1),
         "placeholder_sample_array_list",    paste(sample_info$Sample_ID,
                                                   collapse = " "),
@@ -973,7 +976,7 @@ cellranger_count <- function(sample_info,
         "placeholder_slurm_out",            slurm_out,
         "placeholder_reference_folder",     ref_folder,
         "placeholder_counts_folder",        counts_folder,
-        "placeholder_fastq_folder",         fastq_folder,
+        "placeholder_fastq_folder",         long_fastq_folder, # Not used in multiomics
         "placeholder_slurm_name",           paste0("count_", run_name),
         "placeholder_library_csv",          tmp_csv,
         "placeholder_include_introns",      intron_arg
@@ -994,18 +997,18 @@ cellranger_count <- function(sample_info,
             dplyr::mutate(
                 rm_path = dplyr::if_else(
                     Protocol == "3GEX",
-                    paste0(fastq_folder, "/",
+                    paste0(long_fastq_folder, "/",
                            run_name, "/",
                            Sample_ID,
                            "_S*fastq.gz"),
                     dplyr::if_else(Protocol == "MATAC",
-                                   paste0(fastq_folder,
+                                   paste0(long_fastq_folder,
                                           "_A/",
                                           run_name, "/",
                                           Sample_ID, "/",
                                           Sample_ID,
                                           "_S*fastq.gz"),
-                                   paste0(fastq_folder,
+                                   paste0(long_fastq_folder,
                                           "_R/",
                                           run_name, "/",
                                           Sample_ID,
@@ -1277,7 +1280,10 @@ make_sobj <- function(s_id,
         }, error = function(e) {
             big_problem(paste("Failed to load gene count data for sample",
                               sample_data$Sample_ID[1],
-                              ". Skipping."))
+                              ".",
+                              "Error: ",
+                              e,
+                              "Skipping."))
             return(FALSE)
         })
 
