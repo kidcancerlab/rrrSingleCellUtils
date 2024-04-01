@@ -36,7 +36,7 @@ r_dim_plot <- function(object,
                          label = label,
                          pt.size = pt.size,
                          cols = scales::alpha(c(plot_cols,
-                                                sample(rainbow(1000))),
+                                                sample(grDevices::rainbow(1000))),
                                               pt_alpha),
                          ...) +
         patchwork::plot_annotation(title = title) +
@@ -158,6 +158,7 @@ theme_roberts <- function(axis_font_size = 5,
 #'     This table should have columns named "feature", "min_val" and "max_val"
 #'     where "feature" matches each element of the "features" argument, and
 #'     "min_val" and"max_val" are numeric values. This argument is optional.
+#' @param n_x_breaks Number of x-axis breaks to use
 #'
 #' @return A ggplot object
 #' @export
@@ -169,7 +170,8 @@ theme_roberts <- function(axis_font_size = 5,
 #' }
 feature_hist <- function(sobject,
                          features,
-                         cutoff_table = NULL) {
+                         cutoff_table = NULL,
+                         n_x_breaks = 10) {
     temp_data <-
         Seurat::FetchData(sobject,
                           vars = features) %>%
@@ -185,7 +187,8 @@ feature_hist <- function(sobject,
                                 scales = "free",
                                 ncol = 1) +
             ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90,
-                                                               hjust = 1))
+                                                               hjust = 1)) +
+            ggplot2::scale_x_continuous(breaks = scales::pretty_breaks(n = n_x_breaks))
 
     if (!is.null(cutoff_table)) {
         # Function to add min/max lines

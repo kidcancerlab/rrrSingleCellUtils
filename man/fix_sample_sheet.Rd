@@ -4,13 +4,22 @@
 \alias{fix_sample_sheet}
 \title{Fix sampleSheet.csv for cellranger mkfastq}
 \usage{
-fix_sample_sheet(sample_sheet, sample_info_sheet)
+fix_sample_sheet(
+  orig_sample_sheet,
+  new_sample_sheet,
+  sample_info_sheet,
+  record_log = TRUE
+)
 }
 \arguments{
-\item{sample_sheet}{SampleSheet.csv from the BCL folder}
+\item{new_sample_sheet}{Location to write new sample sheet}
 
 \item{sample_info_sheet}{Tab delimited sheet with columns containing info to
 insert into the sample sheet}
+
+\item{record_log}{Record failures when processing data}
+
+\item{sample_sheet}{SampleSheet.csv from the BCL folder}
 }
 \description{
 Fix sampleSheet.csv for cellranger mkfastq

@@ -24,6 +24,8 @@ tenx_load_qc(
 
 \item{h5_file}{Path to 10X h5 file}
 
+\item{frag_file}{Path to 10X ATAC fragments file. Only required for ATAC data}
+
 \item{min_cells}{Passed to CreateSeuratObject: Include features detected in
 at least this many cells. Will subset the counts matrix as well. To
 reintroduce excluded features, create a new object with a lower cutoff.}

@@ -28,6 +28,8 @@ merge_bcfs(
 
 \item{slurm_out}{The name of the slurm output file}
 
+\item{sbatch_base}{The prefix to use with the sbatch job file}
+
 \item{cleanup}{Whether to delete the bcfs after merging}
 }
 \value{

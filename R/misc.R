@@ -1,20 +1,89 @@
-utils::globalVariables(c(".", "avg.exp.scaled", "features.plot", "id",
-                         "pct.exp", "score", "x", "y", "p_val_adj",
-                         "avg_log2FC", "gene", "Freq", "Var1", "cid",
-                         "col.fill", "freq", "label", "label14", "label30",
-                         "lt_14", "lt_30", "database", "from", "to", "pearson",
-                         "test_ligand", "ligand_target_matrix", "ligands",
-                         "ligands_bona_fide", "lr_network", "lr_network_strict",
-                         "receptors", "receptors_bona_fide", "value",
-                         "weighted_networks", "weighted_networks_lr", "Phase",
-                         "Cluster", "Proportion", "weight", "cluster",
-                         "sil_width", "sil_vals", "res_vals", "num_clusters",
-                         "min_val", "max_val", "median_val", "sd_val",
-                         "feature", "Sample_ID", "exp_type", "suffix", "fastqs",
-                         "library_type", "link_folder", "tx_id", "tar_folder",
-                         "CB", "bam_file", "cell_barcode", "cell_group",
-                         "tree_group", "sample_1", "sample_2", "group_count",
-                         "n_bams", "snp_dist"))
+utils::globalVariables(c(
+    ".",
+    "Abort",
+    "avg.exp.scaled",
+    "avg_log2FC",
+    "bam_file",
+    "CB",
+    "cell_barcode",
+    "cell_group",
+    "cid",
+    "cluster",
+    "Cluster",
+    "col.fill",
+    "control_celltypes",
+    "database",
+    "download_data",
+    "exp_type",
+    "fastq_folder_suffix",
+    "fastqs",
+    "feature",
+    "features.plot",
+    "freq",
+    "Freq",
+    "from",
+    "gene",
+    "group_count",
+    "id",
+    "junk",
+    "label",
+    "label14",
+    "label30",
+    "library_type",
+    "ligand_target_matrix",
+    "ligands",
+    "ligands_bona_fide",
+    "link_folder",
+    "lr_network",
+    "lr_network_strict",
+    "lt_14",
+    "lt_30",
+    "max_val",
+    "median_val",
+    "method",
+    "min_val",
+    "n_bams",
+    "num_clusters",
+    "p_val_adj",
+    "pearson",
+    "pct.exp",
+    "Phase",
+    "Proportion",
+    "Protocol",
+    "rainbow",
+    "receptors",
+    "receptors_bona_fide",
+    "res_vals",
+    "rm_path",
+    "run_cellranger_count",
+    "run_cellranger_mkfastq",
+    "sample_1",
+    "sample_2",
+    "Sample_ID",
+    "Sample_Project",
+    "score",
+    "sd_val",
+    "sil_vals",
+    "sil_width",
+    "snp_dist",
+    "suffix",
+    "sobj",
+    "tar_folder",
+    "test_ligand",
+    "to",
+    "to_make_sobj",
+    "tree_group",
+    "tx_id",
+    "tx_name",
+    "value",
+    "Var1",
+    "weight",
+    "weighted_networks",
+    "weighted_networks_lr",
+    "x",
+    "y"
+    ))
+
 
 #' Use a sbatch template to submit a job to the cluster
 #'
@@ -61,17 +130,24 @@ use_sbatch_template <- function(replace_tibble,
     readr::write_file(sbatch_template, file = temp_file)
 
     if (submit == TRUE) {
-        return_val <- system(paste("sbatch", temp_file))
+        return_value <- system(paste("sbatch", temp_file))
     } else {
-        return_val <- 0
+        return_value <- 0
     }
 
-    if (return_val != 0) {
-        stop(paste0(warning_label,
-                    " sbatch submission failed. Error code ",
-                    return_val))
+    if (return_value != 0) {
+        big_problem(paste0(warning_label,
+                           " sbatch submission failed. Error code ",
+                           return_value,
+                           ". Check the sbatch file ",
+                           temp_file))
     }
-    return(0)
+
+    if (return_value == 0) {
+        return(TRUE)
+    } else {
+        return(FALSE)
+    }
 }
 
 #' Check that a command is available on the system

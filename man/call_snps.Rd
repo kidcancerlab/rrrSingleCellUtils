@@ -30,6 +30,8 @@ call_snps(
 
 \item{slurm_base}{The base name for the slurm output files. Don't include path}
 
+\item{sbatch_base}{The prefix to use with the sbatch job file}
+
 \item{account}{The hpc account to use in slurm scripts}
 
 \item{ploidy}{The ploidy of the organism. See details for more information}

@@ -2,6 +2,7 @@
 #'
 #' @param path_10x Path to 10X RNAseq data "filtered_feature_bc_matrix" folder
 #' @param h5_file Path to 10X h5 file
+#' @param frag_file Path to 10X ATAC fragments file. Only required for ATAC data
 #' @param min_cells Passed to CreateSeuratObject: Include features detected in
 #'     at least this many cells. Will subset the counts matrix as well. To
 #'     reintroduce excluded features, create a new object with a lower cutoff.
@@ -80,11 +81,27 @@ tenx_load_qc <- function(path_10x = "",
                             species_pattern,
                             remove_species_pattern)
 
+        if (ncol(rna_raw_data) == 0) {
+            stop("!No data left in object! Check species_pattern argument. ",
+                "Before filtering gex data using species_pattern there were ",
+                gex_orig_cells,
+                " cells and the first genes were ",
+                gex_first_ten_genes)
+        }
+
         seurat <-
             Seurat::CreateSeuratObject(rna_raw_data,
                                        min.cells = min_cells,
-                                       min.features = min_features) %>%
-            Seurat::PercentageFeatureSet(pattern = gsub("_", "-", mt_pattern),
+                                       min.features = min_features)
+
+        if (ncol(seurat) == 0) {
+            stop("!No data left after applying min.cells and min.features.",
+                 " Check your data and arguments.")
+        }
+
+        seurat <-
+            Seurat::PercentageFeatureSet(seurat,
+                                         pattern = gsub("_", "-", mt_pattern),
                                          col.name = "percent.mt")
             # Need to change all underscores to dashes due to CreateSeuratObject
             # doing the same
@@ -103,10 +120,22 @@ tenx_load_qc <- function(path_10x = "",
 
     if (grepl("ATAC", exp_type)) {
         # subset the data to only include the species of interest
+        atac_orig_cells <- nrow(rna_raw_data)
+        atac_first_ten_genes <- head(rownames(rna_raw_data, 10))
+
         atac_raw_data <-
             filter_raw_data(atac_raw_data,
                             species_pattern,
                             remove_species_pattern)
+
+        if (ncol(atac_raw_data) == 0) {
+            stop("!No data left in object! Check species_pattern argument. ",
+                "Before filtering atac data using species_pattern there were ",
+                atac_orig_cells,
+                " cells and the first genes were ",
+                atac_first_ten_genes)
+        }
+
 
         if (exp_type == "ATAC") {
             seurat <-
@@ -133,13 +162,7 @@ tenx_load_qc <- function(path_10x = "",
 
     }
 
-    if (nrow(seurat) == 0) {
-        stop("!No data left in object! Check your species_pattern argument. ",
-              "Before filtering based on species_pattern there were ",
-              gex_orig_cells,
-              " cells and the first genes were ",
-              gex_first_ten_genes)
-    }
+
 
     if (violin_plot && grepl("GEX", exp_type)) {
         print(Seurat::VlnPlot(seurat,
@@ -285,7 +308,11 @@ gen_cellecta_bc_data <- function(file, verbose = FALSE, output = tempfile(),
 
   system(system_cmd)
 
-  results <- readr::read_delim(output, delim = "\t", col_names = TRUE)
+  results <-
+    readr::read_delim(output,
+                      delim = "\t",
+                      col_names = TRUE,
+                      show_col_types = FALSE)
 
   return(results)
 }
@@ -608,6 +635,7 @@ process_seurat <- function(sobject,
 #' @param sd_up Number of standard deviations above the median to subset
 #' @param make_plots Whether to make plots of the features before and after subsetting
 #' @param features Vector of features to use for subsetting
+#' @param sample_name Name of sample to use in plot titles
 #'
 #' @return A Seurat object
 #' @export
@@ -621,7 +649,8 @@ auto_subset <- function(sobject,
                         sd_up = 2,
                         make_plots = TRUE,
                         features = c("nCount_RNA",
-                                     "nFeature_RNA")) {
+                                     "nFeature_RNA"),
+                        sample_name = NULL) {
 
     cutoff_table <-
         sobject@meta.data %>%
@@ -653,10 +682,10 @@ auto_subset <- function(sobject,
                                 values <= cutoffs$max_val[1])]
     }
 
-    if (make_plots) {
-        print(feature_hist(sobject,
-                           features = features,
-                           cutoff_table = cutoff_table))
-    }
+    # if (make_plots) {
+    #     print(feature_hist(sobject,
+    #                        features = features,
+    #                        cutoff_table = cutoff_table))
+    # }
     return(sobject)
 }

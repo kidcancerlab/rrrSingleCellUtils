@@ -2,10 +2,11 @@
 #SBATCH --job-name=placeholder_slurm_name
 #SBATCH --output=placeholder_slurm_out
 #SBATCH --error=placeholder_slurm_out
-#SBATCH --time=1-00:00:00
+#SBATCH --time=3-00:00:00
 #SBATCH --cpus-per-task=30
 #SBATCH --array=0-placeholder_array_max
 #SBATCH --wait
+#SBATCH --partition=general,himem
 placeholder_email
 
 set -e
@@ -24,6 +25,10 @@ BCLFolder=placeholder_bcl_path
 
 FASTQFolder=placeholder_fastq_folder
 
+echo $CommonFolderName
+echo $BCLFolder
+echo $ExpType
+
 ## set path info
 export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-7.1.0:$PATH
 export PATH=/gpfs0/home2/gdrobertslab/lab/Tools/10x/cellranger-arc-2.0.2:$PATH
@@ -34,11 +39,11 @@ cd $TMPDIR
 ## demultiplex bcl and create fasta files
 placeholder_cellranger_type mkfastq \
   --localcores=30 \
-  --localmem=220 \
-  --samplesheet=${BCLFolder}/${CommonFolderName}/${BCLFolderName}/SampleSheet.csv \
+  --localmem=200 \
+  --delete-undetermined \
+  --samplesheet=placeholder_sample_sheet \
   --run=${BCLFolder}/${CommonFolderName}/${BCLFolderName}/ \placeholder_base_mask
   --output-dir $TMPDIR placeholder_filter_arg
-#  --filter-dual-index \ #not sure we need this?
 
 ## copy the files over from the temporary directory
 if [ ! -d ${FASTQFolder}/${CommonFolderName}${ExpType} ]
