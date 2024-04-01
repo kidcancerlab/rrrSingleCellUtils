@@ -23,7 +23,6 @@ Imports:
     utils,
     stats,
     tidyr,
-    getPass,
     patchwork,
     cluster,
     grDevices,
@@ -33,9 +32,7 @@ Imports:
     Signac,
     GenomicFeatures,
     GenomicRanges,
-    SeuratObject,
-    logr,
-    qs
+    SeuratObject
 Depends: R (>= 3.5.0), nichenetr
 Suggests:
     rmarkdown,
