@@ -1,3 +1,7 @@
+# rrrSingleCellUtils 0.11.1
+
+- Fixed an issue where filtering based on species_pattern could remove all the genes or peaks in a dataset and not result in an error being thrown. As a result a rather uninformative error was given. This has been updated so an informative error is thrown if this happens.
+
 # rrrSingleCellUtils 0.10.0
 
 - Merge in some branches related to SNV calling
