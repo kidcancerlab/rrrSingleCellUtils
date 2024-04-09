@@ -73,20 +73,19 @@ tenx_load_qc <- function(path_10x = "",
     }
 
     if (grepl("GEX", exp_type)) {
-        gex_orig_cells <- nrow(rna_raw_data)
-        gex_first_ten_genes <- head(rownames(rna_raw_data, 10))
+        gex_first_ten_genes <- head(rownames(rna_raw_data), 10)
         # subset the data to only include the species of interest
         rna_raw_data <-
             filter_raw_data(rna_raw_data,
                             species_pattern,
                             remove_species_pattern)
 
-        if (ncol(rna_raw_data) == 0) {
-            stop("!No data left in object! Check species_pattern argument. ",
-                "Before filtering gex data using species_pattern there were ",
-                gex_orig_cells,
-                " cells and the first genes were ",
-                gex_first_ten_genes)
+        if (nrow(rna_raw_data) == 0) {
+            stop("No genes left in object after filtering using ",
+                 "species_pattern! Check species_pattern argument. ",
+                 "Before filtering gex data using species_pattern the first ",
+                 "genes were: ",
+                 paste(gex_first_ten_genes, collapse = "\n"))
         }
 
         seurat <-
@@ -95,7 +94,7 @@ tenx_load_qc <- function(path_10x = "",
                                        min.features = min_features)
 
         if (ncol(seurat) == 0) {
-            stop("!No data left after applying min.cells and min.features.",
+            stop("No data left after applying min.cells and min.features.",
                  " Check your data and arguments.")
         }
 
@@ -120,20 +119,19 @@ tenx_load_qc <- function(path_10x = "",
 
     if (grepl("ATAC", exp_type)) {
         # subset the data to only include the species of interest
-        atac_orig_cells <- nrow(rna_raw_data)
-        atac_first_ten_genes <- head(rownames(rna_raw_data, 10))
+        atac_first_ten_peaks <- head(rownames(rna_raw_data), 10)
 
         atac_raw_data <-
             filter_raw_data(atac_raw_data,
                             species_pattern,
                             remove_species_pattern)
 
-        if (ncol(atac_raw_data) == 0) {
-            stop("!No data left in object! Check species_pattern argument. ",
-                "Before filtering atac data using species_pattern there were ",
-                atac_orig_cells,
-                " cells and the first genes were ",
-                atac_first_ten_genes)
+        if (nrow(atac_raw_data) == 0) {
+            stop("No peaks left in object after filtering using ",
+                 "species_pattern! Check species_pattern argument. ",
+                 "Before filtering gex data using species_pattern the first ",
+                 "peaks were: ",
+                 paste(atac_first_ten_peaks, collapse = "\n"))
         }
 
 
