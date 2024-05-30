@@ -1,3 +1,8 @@
+# rrrSingleCellUtils 0.12.0
+
+- Added in the `run_fdl()` function to run force directed layout analysis on a seurat object.
+- Also fixed version number since it apparently got mixed up last release.
+
 # rrrSingleCellUtils 0.10.1
 
 - Fixed an issue where filtering based on species_pattern could remove all the genes or peaks in a dataset and result in a rather uninformative error. This has been updated so an informative error is thrown if this happens.
