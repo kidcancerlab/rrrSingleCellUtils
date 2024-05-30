@@ -1287,7 +1287,7 @@ make_sobj <- function(s_id,
             return(FALSE)
         })
 
-    if (class(s_obj) == "logical") {
+    if (inherits(s_obj, "logical")) {
         return(FALSE)
     }
 
@@ -1422,8 +1422,9 @@ process_sobj_gex <- function(s_obj,
                                                     vars = descriptor) <= cutoff_value)]
             } else {
                 print(subset_table)
-                big_problem("Unknown direction in subset table for ",
-                        descriptor, ".")
+                big_problem(paste0("Unknown direction in subset table for ",
+                                   descriptor,
+                                   "."))
             }
         }
     }
@@ -1536,8 +1537,9 @@ process_sobj_atac <- function(s_obj,
                                                     vars = descriptor) <= cutoff_value)]
             } else {
                 print(subset_table)
-                big_problem("Unknown direction in subset table for ",
-                        descriptor, ".")
+                big_problem(paste0("Unknown direction in subset table for ",
+                                   descriptor,
+                                   "."))
             }
         }
     }
