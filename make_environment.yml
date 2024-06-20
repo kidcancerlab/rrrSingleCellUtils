@@ -1,0 +1,14 @@
+name: r_rna_velo
+channels:
+    - defaults
+dependencies:
+    - numpy=1.26.4
+    - cython=3.0.10
+    - pandas=2.2.2
+    - matplotlib=3.8.4
+    - pip
+    - pip:
+        - scvelo==0.3.2
+        - anndata==0.10.7
+        - velocyto
+        - loompy
