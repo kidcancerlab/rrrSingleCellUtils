@@ -12,6 +12,8 @@
 #SBATCH--time=12:00:00
 #SBATCH--wait
 
+echo "abt to load modules"
+
 ml SAMtools/1.15
 
 ### USE CONDA FORGE, NOT MINICONDA
@@ -35,8 +37,12 @@ else
     conda create -p ${env_path} -f make_environment.yml
 fi
 
+echo "about to activate env"
+
 #activate environment
 conda activate $env_path
+
+echo "environment activated, making velocyto call"
 
 #Run velocyto
 veloctyo run \
