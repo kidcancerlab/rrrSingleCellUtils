@@ -116,7 +116,8 @@ r_make_loom_files <- function(sobj,
                     "placeholder_bam_file", tmp_bam_path,
                     "placeholder_loom_dir", loom_dir,
                     "placeholder_env_path", env_path,
-                    "placeholder_gtf_file", paste0(species, "_genes.gtf"))
+                    "placeholder_gtf_file", paste0(species, "_genes.gtf"),
+                    "placeholder_sampleid", id)
 
         #Make directories for sbatch files and slurm output
         system("mkdir sbatch; mkdir sbatch/jobs; mkdir sbatch/output")
