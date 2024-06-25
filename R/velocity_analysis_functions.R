@@ -117,9 +117,66 @@ r_make_loom_files <- function(sobj,
                     "placeholder_gtf_file", paste0(species, "_genes.gtf"))
 
         use_sbatch_template(replace_tibble = replace_tbl,
-                            template = paste0(find.package("rrrSingleCellUtils"),
+                            template = paste0(rrrscu,
                                               "/inst/make_loom_files.sh"),
                             submit = TRUE,
                             file_dir = ".")
     }
+}
+
+#' Use a sbatch template to submit a job to the cluster
+#'
+#' @param replace_tibble A tibble with two columns, find and replace.
+#'  The find column should contain the placeholder text to be replaced and the
+#'  replace column should contain the text to replace it with.
+#' @param template The name of the template file to use. This should be a file
+#'  in the rrrSingleCellUtils/inst folder.
+#' @param file_dir The directory to write the temporary sbatch file to.
+#' @param temp_ext The extension to use for the temporary sbatch file.
+#' @param temp_prefix The prefix to use for the temporary sbatch file.
+#' @param warning_label A string to use in the warning message if the sbatch
+#'  submission fails.
+#' @param submit Whether to actually submit the sbatch job or just write the
+#' sbatch file. If FALSE, the sbatch file will be written but not submitted.
+#'
+#' @return 0 if the sbatch submission was successful, otherwise an error is
+#'  thrown
+
+use_sbatch_template <- function(replace_tibble,
+                                template,
+                                file_dir = tempdir(),
+                                temp_ext = ".sh",
+                                temp_prefix = "sbatch_",
+                                warning_label = "",
+                                submit = TRUE) {
+    sbatch_template <-
+        readr::read_file(template)
+
+    # Replace placeholders with real data
+    for (i in seq_len(nrow(replace_tibble))) {
+        sbatch_template <-
+        stringr::str_replace_all(sbatch_template,
+                                 pattern = replace_tibble$find[i],
+                                 replacement = replace_tibble$replace[i])
+    }
+
+    temp_file <-
+        tempfile(fileext = temp_ext,
+                 tmpdir = file_dir,
+                 pattern = temp_prefix)
+
+    readr::write_file(sbatch_template, file = temp_file)
+
+    if (submit == TRUE) {
+        return_val <- system(paste("sbatch", temp_file))
+    } else {
+        return_val <- 0
+    }
+
+    if (return_val != 0) {
+        stop(paste0(warning_label,
+                    " sbatch submission failed. Error code ",
+                    return_val))
+    }
+    return(0)
 }
