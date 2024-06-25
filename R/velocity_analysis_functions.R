@@ -32,7 +32,7 @@ r_make_loom_files <- function(sobj,
                               slurm_base = paste0(getwd(), "/slurmOut"),
                               sbatch_base = "sbatch_") {
     #get ids and store in a variable
-    samp_ids <- unique(sobj[[id_col]])[,1]
+    samp_ids <- unique(sobj[[id_col]])[, 1]
 
     #Make sure sample_id column exists
     if (is.null(id_col)) {
@@ -74,7 +74,9 @@ r_make_loom_files <- function(sobj,
         bcs <- colnames(sobj)[sobj@meta.data[[id_col]] == id]
         #Remove any additional things added to barcode
         bcs <- unlist(str_extract_all(bcs, "[A T G C]{16}+\\-+[1-9]"))
-        bc_path <- tempfile(id, fileext = ".tsv")
+        bc_path <- tempfile(id, tmpdir = "tmp_bcs", fileext = ".tsv")
+        #optionally create tmp_bcs
+        if(!dir.exists("tmp_bcs")) dir.create("tmp_bcs")
         write.table(bcs,
                     bc_path,
                     row.names = FALSE,
@@ -116,12 +118,17 @@ r_make_loom_files <- function(sobj,
                     "placeholder_env_path", env_path,
                     "placeholder_gtf_file", paste0(species, "_genes.gtf"))
 
+        #Make directories for sbatch files and slurm output
+        system("mkdir sbatch; mkdir sbatch/jobs; mkdir sbatch/output")
+
         use_sbatch_template(replace_tibble = replace_tbl,
                             template = paste0(rrrscu,
                                               "/inst/make_loom_files.sh"),
                             submit = TRUE,
-                            file_dir = ".")
+                            file_dir = "sbatch/jobs")
     }
+    #Remove tmp_bcs, tmp_bams, and genes files
+    system("rm -r tmp_bcs; rm -r tmp_bams; rm -f *_genes.gtf*")
 }
 
 #' Use a sbatch template to submit a job to the cluster
