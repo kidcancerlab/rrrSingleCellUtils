@@ -68,24 +68,31 @@ r_make_loom_files <- function(sobj,
                       "_genes.gtf.gz"))
     }
 
+    #Make directories for sbatch files and slurm output
+    system("mkdir sbatch; mkdir sbatch/jobs; mkdir sbatch/output")
+    
+    #optionally create tmp_bcs
+    if(!dir.exists("tmp_bcs")) dir.create("tmp_bcs")
+
+    #optionally create tmp_bams
+    if (!dir.exists("tmp_bams")) dir.create("tmp_bams")
+
     #Loop through ID's
     for (id in unique(samp_ids)) {
         #make temporary directory with barcodes for current sample
         bcs <- colnames(sobj)[sobj@meta.data[[id_col]] == id]
         #Remove any additional things added to barcode
         bcs <- unlist(str_extract_all(bcs, "[A T G C]{16}+\\-+[1-9]"))
-        bc_path <- tempfile(id, tmpdir = "tmp_bcs", fileext = ".tsv")
-        #optionally create tmp_bcs
-        if(!dir.exists("tmp_bcs")) dir.create("tmp_bcs")
+        bc_path <- paste0("tmp_bcs/", id, ".tsv")
         write.table(bcs,
                     bc_path,
                     row.names = FALSE,
                     col.names = FALSE,
                     quote = FALSE)
+
         #get bam path
         bam_path <- bam_paths[[id]]
         #copy bam to local location
-        system("if [ ! -d tmp_bams ]; then mkdir -p tmp_bams; fi")
         tmp_bam_path <- paste0("tmp_bams/", id, ".bam")
         system(paste("cp", bam_path, tmp_bam_path))
 
@@ -119,12 +126,9 @@ r_make_loom_files <- function(sobj,
                     "placeholder_gtf_file", paste0(species, "_genes.gtf"),
                     "placeholder_sampleid", id)
 
-        #Make directories for sbatch files and slurm output
-        system("mkdir sbatch; mkdir sbatch/jobs; mkdir sbatch/output")
-
         use_sbatch_template(replace_tibble = replace_tbl,
                             template = paste0(rrrscu,
-                                              "/inst/make_loom_files.sh"),
+                                              "/make_loom_files.sh"),
                             submit = TRUE,
                             file_dir = "sbatch/jobs")
     }
