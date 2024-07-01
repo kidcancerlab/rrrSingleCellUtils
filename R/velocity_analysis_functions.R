@@ -118,8 +118,7 @@ r_make_loom_files <- function(sobj,
             exists_conda <- system(paste0("conda env create -p ",
                                          env_path,
                                          " -f ",
-                                         rrrscu,
-                                         "/make_environment.yml"))
+                                         paste0("../rrrSingleCellUtils/inst/make_environment.yml")))
         }
 
         replace_tbl <-
@@ -135,8 +134,7 @@ r_make_loom_files <- function(sobj,
                     "placeholder_sampleid", id)
 
         use_sbatch_template(replace_tibble = replace_tbl,
-                            template = paste0(rrrscu,
-                                              "/make_loom_files.sh"),
+                            template = "../rrrSingleCellUtils/inst/make_loom_files.sh",
                             submit = TRUE,
                             file_dir = "sbatch/jobs")
     }
