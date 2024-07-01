@@ -124,13 +124,13 @@ r_make_loom_files <- function(sobj,
         replace_tbl <-
             tribble(~find, ~replace,
                     "placeholder_account", cluster_account,
-                    "placeholder_slurm_out", slurm_base,
+                    "placeholder_slurm_out", paste0("sbatch/output/", id),
                     "placeholder_cell_file", bc_path,
                     "placeholder_bam_file", tmp_bam_path,
                     "placeholder_loom_dir", loom_dir,
                     "placeholder_env_path", env_path,
                     "placeholder_gtf_file", paste0(species, "_genes.gtf"),
-                    "placeholder_metadata", paste0("tmp_metadata/", id, "_metadata.tsv"),
+                    # "placeholder_metadata", paste0("tmp_metadata/", id, "_metadata.tsv"),
                     "placeholder_sampleid", id)
 
         use_sbatch_template(replace_tibble = replace_tbl,
