@@ -83,7 +83,7 @@ r_make_loom_files <- function(sobj,
     #Loop through ID's
     for (id in unique(samp_ids)) {
         #get metadata for current sample
-        subset(sobj, sample_id == id) %>%
+        subset(sobj@meta.data, sample_id == id) %>%
             write.table(paste0("tmp_metadata/", id, "_metadata.tsv"))
             
         #make temporary directory with barcodes for current sample
