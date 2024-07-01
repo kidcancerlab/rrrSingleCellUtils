@@ -24,6 +24,7 @@ cell_file=placeholder_cell_file
 env_path=placeholder_env_path
 gtf_file=placeholder_gtf_file
 sampleid=placeholder_sampleid
+metadata=placeholder_metadata
 
 #Check if conda environment exists
 if conda info --envs | grep -q ${env_path};
@@ -42,4 +43,5 @@ velocyto run \
     -b ${cell_file} \
     -o ${loom_dir} \
     -e ${sampleid} \
+    -s ${metadata} \
     ${gtf_file}
