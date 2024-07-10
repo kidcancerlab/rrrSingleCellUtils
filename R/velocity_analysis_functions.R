@@ -77,15 +77,8 @@ r_make_loom_files <- function(sobj,
     #optionally create tmp_bams
     if (!dir.exists("tmp_bams")) dir.create("tmp_bams")
 
-    #optionally create tmp_metadata
-    if (!dir.exists("tmp_metadata")) dir.create("tmp_metadata")
-
     #Loop through ID's
     for (id in unique(samp_ids)) {
-        #get metadata for current sample
-        subset(sobj@meta.data, sample_id == id) %>%
-            write.table(paste0("tmp_metadata/", id, "_metadata.tsv"))
-            
         #make temporary directory with barcodes for current sample
         bcs <- colnames(sobj)[sobj@meta.data[[id_col]] == id]
         #Remove any additional things added to barcode
@@ -130,7 +123,6 @@ r_make_loom_files <- function(sobj,
                     "placeholder_loom_dir", loom_dir,
                     "placeholder_env_path", env_path,
                     "placeholder_gtf_file", paste0(species, "_genes.gtf"),
-                    # "placeholder_metadata", paste0("tmp_metadata/", id, "_metadata.tsv"),
                     "placeholder_sampleid", id)
 
         use_sbatch_template(replace_tibble = replace_tbl,
