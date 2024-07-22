@@ -1,5 +1,5 @@
 #' Wrapper to make loom files in R
-#' 
+#'
 #' @param sobj Seurat object you want to run velocity analysis
 #' @param loom_dir Folder to output loom files to. By default will create a
 #' directory in your working directory called loom_files
@@ -108,10 +108,11 @@ r_make_loom_files <- function(sobj,
 
         if (sum(grepl(pattern = env_path, x = conda_envs)) == 0) {
             #only make conda environment if it doesn't already exist
-            exists_conda <- system(paste0("conda env create -p ",
-                                         env_path,
-                                         " -f ",
-                                         paste0("../rrrSingleCellUtils/inst/make_environment.yml")))
+            exists_conda <-
+                system(paste0("conda env create -p ",
+                              env_path,
+                              " -f ",
+                              paste0("../rrrSingleCellUtils/inst/make_environment.yml"))) #nolint
         }
 
         replace_tbl <-
@@ -126,12 +127,88 @@ r_make_loom_files <- function(sobj,
                     "placeholder_sampleid", id)
 
         use_sbatch_template(replace_tibble = replace_tbl,
-                            template = "../rrrSingleCellUtils/inst/make_loom_files.sh",
+                            template = "../rrrSingleCellUtils/inst/make_loom_files.sh", #nolint
                             submit = TRUE,
                             file_dir = "sbatch/jobs")
     }
     #Remove tmp_bcs, tmp_bams, and genes files
     system("rm -r tmp_bcs; rm -r tmp_bams; rm -f *_genes.gtf*")
+}
+
+#' Save off metadata for velocity analysis
+#'
+#' @param sobj Seurat object; must have a column titled sample_id
+#' @param sobj_id The specific seurat object ID for which you want metadata;
+#' required even if only one sample in sobj
+#' @param loom_dir The directory that contains the loom files for velocity
+#' analysis
+#' @param output_dir The directory you wish to save your metadata to
+#' @param vars_to_keep Metadata columns you want saved off along with sample_id
+#' and UMAP and PCA embeddings
+#'
+#' @details This is a helper function for running RNA velocity analysis. While
+#' your Seurat object may contain multiple samples, the loom files are
+#' constructed for each sample_id present in that object, and the anndata
+#' objects created from those loom files are for each individual sample_id.
+#' The function assumes that you made the loom files using the shell script
+#' "make_loom_files.sh", which changes the row names and appends a unique ID
+#' to the end of each sample when saving it off.
+#'
+#' @export
+
+write_off_md <- function(sobj,
+                         id_col,
+                         output_dir,
+                         vars_to_keep = NULL) {
+    #Make sure sample_id column exists
+    if (is.null(id_col)) {
+        stop(paste("No column with sample ID's provided.",
+                   "Please specify what column these are found in."))
+    }
+
+    #get ids and store in a variable
+    samp_ids <- unique(sobj[[id_col]])[,1]
+
+    #add id_col to vars_to_keep
+    vars_to_keep <- c(vars_to_keep, id_col)
+
+
+    for (id in samp_ids) {
+        #subset object for current id
+        tmp_ob <- sobj[ , sobj@meta.data[[id_col]] == id]
+        tmp_md <- dplyr::select(tmp_ob@meta.data, any_of(vars_to_keep)) %>%
+            rownames_to_column("bc")
+
+        #save off umap and pca coordinates if present
+        if ("pca" %in% names(tmp_ob@reductions)) {
+            tmp_md <- cbind(tmp_md,
+                            Seurat::Embeddings(tmp_ob, reduction = "pca"))
+        }
+
+        if ("umap" %in% names(tmp_ob@reductions)) {
+            tmp_md <- cbind(tmp_md,
+                            Seurat::Embeddings(tmp_ob, reduction = "umap"))
+        }
+
+        #change rownames so they match format in the loom files
+        tmp_md$bc <-
+            paste0(id,
+                   ":",
+                   unlist(stringr::str_extract_all(tmp_md$bc, "[A T G C]{16}")),
+                   "x")
+
+        #write off metadata file
+        if (is.null(output_dir)) {
+            utils::write.csv(tmp_md,
+                      paste0(id, "_metadata.csv"),
+                      row.names = FALSE)
+        } else {
+            if (!dir.exists(output_dir)) dir.create(output_dir)
+            utils::write.csv(tmp_md,
+                    paste0(output_dir, "/", id, "_metadata.csv"),
+                    row.names = FALSE)
+        }
+    }
 }
 
 #' Use a sbatch template to submit a job to the cluster
