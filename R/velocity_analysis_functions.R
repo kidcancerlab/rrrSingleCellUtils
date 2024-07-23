@@ -165,6 +165,10 @@ write_off_md <- function(sobj,
                          id_col,
                          output_dir,
                          vars_to_keep = NULL) {
+    output_dir <- ifelse(endsWith(output_dir, "/"),
+                         substr(output_dir, 1, nchar(output_dir) - 1),
+                         output_dir)
+
     #Make sure sample_id column exists
     if (is.null(id_col)) {
         stop(paste("No column with sample ID's provided.",
@@ -187,7 +191,7 @@ write_off_md <- function(sobj,
         #save off reduction coordinates if present
         for (red %in% names(tmp_ob@reductions)) {
             tmp_md <- cbind(tmp_md,
-                            Seurat::Embeddings(tmp_ob, reduction = red)))
+                            Seurat::Embeddings(tmp_ob, reduction = red))
         }
 
         #change rownames so they match format in the loom files
