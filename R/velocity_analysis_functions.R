@@ -31,6 +31,11 @@ r_make_loom_files <- function(sobj,
                               cluster_account,
                               slurm_base = paste0(getwd(), "/slurmOut"),
                               sbatch_base = "sbatch_") {
+    #make loom_dir end with a /
+    loom_dir <- ifelse(endsWith(loom_dir, "/"),
+                       loom_dir,
+                       paste0(loom_dir, "/"))
+
     #get ids and store in a variable
     samp_ids <- unique(sobj[[id_col]])[, 1]
 
@@ -179,15 +184,10 @@ write_off_md <- function(sobj,
         tmp_md <- dplyr::select(tmp_ob@meta.data, any_of(vars_to_keep)) %>%
             rownames_to_column("bc")
 
-        #save off umap and pca coordinates if present
-        if ("pca" %in% names(tmp_ob@reductions)) {
+        #save off reduction coordinates if present
+        for (red %in% names(tmp_ob@reductions)) {
             tmp_md <- cbind(tmp_md,
-                            Seurat::Embeddings(tmp_ob, reduction = "pca"))
-        }
-
-        if ("umap" %in% names(tmp_ob@reductions)) {
-            tmp_md <- cbind(tmp_md,
-                            Seurat::Embeddings(tmp_ob, reduction = "umap"))
+                            Seurat::Embeddings(tmp_ob, reduction = red)))
         }
 
         #change rownames so they match format in the loom files
