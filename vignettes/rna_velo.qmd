@@ -1,0 +1,68 @@
+---
+title: "RNA Velocity Analysis in {rrrSingleCellUtils}"
+output: rmarkdown
+vignette: >
+    %\VignetteIndexEntry{Basics of rrrSingleCellUtils}
+    %\VignetteEngine{quarto::html}
+    %\VignetteEncoding{UTF-8}
+---
+
+# Outline
+
+This vignette is to demonstrate the RNA velocity pipeline for the Roberts' Lab. It will be split up into multiple steps. The first step once we have a seurat object of interest is to create the loom files for all samples present in the object. Next, we write off metadata from each sample present in our object into a csv to pass into python. Lastly, we recreate our Seurat object as an anndata object in python with all the appropriate RNA velocity information in our object.
+
+RNA velocity analysis using scVelo uses the relationship between unspliced and spliced mRNA to infer whether or not a gene is being up/down-regulated or in a steady-state. This model calculates a set of high-dimension velocity vecotrs in the gene expression space for each individual cell. These velocities across genes are then used to estimate the future state of a cell, which is represented by a low-dimensional embedding of cell-to-cell transition probabilities. This resulting n_obs x n_obs velocity matrix is projected onto an embedding (we'll use UMAP in this case) and is used to visualize the likely cell-to-cell changes that are occuring in our data.
+
+# Libraries
+
+```{r libraries}
+library(Seurat)
+library(rrrSingleCellUtils)
+library(tidyverse)
+```
+
+# Load in Data
+
+For this demo I'm going to use an object from Yogesh's osteosarcoma atlas.
+
+```{r load-in-object}
+sobj <-
+    qs::qread("/home/gdrobertslab/lab/Analysis/Yogesh/CellTypeAnnRefs/output/seurat_objects/tumor_vs_stroma/mm_mets_cancer_cells.qs") %>%
+    process_seurat()
+
+table(sobj$sample_name)
+
+DimPlot(sobj, label = TRUE)
+```
+
+This is an object with cancer cells from five different samples: S0067, S0068, S0075, S0122, and S0246.
+
+# Make Loom Files
+
+The first step after the usual quality control steps is to make loom files for each of the sample ID's in our object. Loom files are a data format for holding large 'omics datasets efficiently. This will be created from the bam files in order to get an idea of the spliced and unspliced RNA fragments. We'll use the function `r_make_loom_files`.
+
+Before we start, we're going to make a list of our bam files. This will be passed to the function in order to generate loom files from the bams. Note that the entire bam won't be used, only the rows that match barcodes in our object.
+
+```{r make-bam-list}
+bams <- lapply(unique(sobj$sample_name), function(x) {
+    paste0("/home/gdrobertslab/lab/Counts_2/", x, "/possorted_geneome_bam.bam.bai")
+})
+#make names of bams the sample id's
+names(bams) <- unique(sobj$sample_name)
+```
+
+It's important that the names of the entries in our bam list matches the Sample ID's.
+
+Some helpful info about the arguments:
+    loom_dir is the relative path to a folder you want your loom files to be output to
+    id_col is the name of the metadata column in which sample ID's can be found. In this case it is `sample_name`
+    species determines what genome to align the bam sequences to
+
+```{r make-loom-files}
+r_make_loom_files(sobj = sobj,
+                  loom_dir = "loom_files/",
+                  id_col = "sample_name",
+                  species = "mouse",
+                  bam_paths = bams,
+                  cluster_account = "gdrobertslab")
+```
