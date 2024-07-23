@@ -45,4 +45,6 @@ Suggests:
 Config/testthat/edition: 3
 NeedsCompilation: no
 Packaged: 2021-06-03 17:21:13 UTC; mvc002
-VignetteBuilder: knitr
+VignetteBuilder:
+    knitr,
+    quarto
