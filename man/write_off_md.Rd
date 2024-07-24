@@ -16,9 +16,10 @@ and UMAP and PCA embeddings}
 
 \item{sobj_id}{The specific seurat object ID for which you want metadata;
 required even if only one sample in sobj}
-
-\item{loom_dir}{The directory that contains the loom files for velocity
-analysis}
+}
+\value{
+A csv for each sample ID containing the sample ID, the reductions, 
+and any user specified columns of metadata in output_dir
 }
 \description{
 Save off metadata for velocity analysis

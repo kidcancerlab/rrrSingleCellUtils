@@ -37,6 +37,9 @@ unique values in sobj[[id_col]]}
 
 \item{sbatch_base}{The prefix to use with the sbatch job file.}
 }
+\value{
+A loom file for each unique ID present in id_col, output to loom_dir.
+}
 \description{
 Wrapper to make loom files in R
 }
