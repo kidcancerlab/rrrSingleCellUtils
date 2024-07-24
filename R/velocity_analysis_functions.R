@@ -165,6 +165,7 @@ write_off_md <- function(sobj,
                          id_col,
                          output_dir,
                          vars_to_keep = NULL) {
+
     output_dir <- ifelse(endsWith(output_dir, "/"),
                          substr(output_dir, 1, nchar(output_dir) - 1),
                          output_dir)
@@ -176,20 +177,19 @@ write_off_md <- function(sobj,
     }
 
     #get ids and store in a variable
-    samp_ids <- unique(sobj[[id_col]])[,1]
+    samp_ids <- unique(sobj[[id_col]])[, 1]
 
     #add id_col to vars_to_keep
     vars_to_keep <- c(vars_to_keep, id_col)
 
-
     for (id in samp_ids) {
         #subset object for current id
-        tmp_ob <- sobj[ , sobj@meta.data[[id_col]] == id]
+        tmp_ob <- sobj[, sobj@meta.data[[id_col]] == id]
         tmp_md <- dplyr::select(tmp_ob@meta.data, any_of(vars_to_keep)) %>%
             rownames_to_column("bc")
 
         #save off reduction coordinates if present
-        for (red %in% names(tmp_ob@reductions)) {
+        for (red in names(tmp_ob@reductions)) {
             tmp_md <- cbind(tmp_md,
                             Seurat::Embeddings(tmp_ob, reduction = red))
         }
