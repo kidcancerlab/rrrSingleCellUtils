@@ -8,7 +8,7 @@ dependencies:
     - matplotlib=3.8.4
     - pip
     - pip:
-        - scvelo==0.3.2
+        - git+https://github.com/theislab/scvelo@main
         - anndata==0.10.7
         - velocyto
         - loompy
