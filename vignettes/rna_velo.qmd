@@ -146,19 +146,22 @@ for i in loom_files:
     #read in metadata file
     md_path = "metadata/" + sample_id + "_metadata.csv"
     metadata = pd.read_csv(md_path, index_col = "bc")
+    tmp.obs = metadata.filter(regex = '^(?!umap_|PC_|fdl_|harmony_).*$').reindex(tmp.obs.index)
     #Add pca embeddings
     tmp.obsm["X_pca"] = metadata.filter(regex = "PC_").reindex(tmp.obs.index).to_numpy()
     #Add umap embeddings
-    tmp.obsm["X_umap"] = metadata.filter(regex = "UMAP_").reindex(tmp.obs.index).to_numpy()
+    tmp.obsm["X_umap"] = metadata.filter(regex = "umap_").reindex(tmp.obs.index).to_numpy()
     #add fdl embeddings
     tmp.obsm["X_fdl"] = metadata.filter(regex = "fdl_").reindex(tmp.obs.index).to_numpy()
+    #add harmony embeddings
+    tmp.obsm["X_harmony"] = metadata.filter(regex = "harmony_").reindex(tmp.obs.index).to_numpy()
     #make var names unique (this step is necessary to merge anndata list)
     tmp.var_names_make_unique()
     #add object to list
     ad_obs.append(tmp)
 
 #merge anndata list
-merged_anndata = anndata.concat(ad_obs, join = outer)
+merged_anndata = anndata.concat(ad_obs)
 ```
 
 At this point we've essentially recreated our Seurat object as an Anndata object in python! Now we can run it through the scVelo pipeline. Note that I will only be showing the creation of the velocity stream plot and that there is much more you can do with scVelo. For more information visit https://scvelo.readthedocs.io/en/stable/about.html
@@ -169,5 +172,5 @@ scv.pp.moments(merged_anndata)
 scv.tl.velocity(merged_anndata, mode = "stochastic")
 scv.tl.velocity_graph(merged_anndata)
 scv.pl.velocity_embedding(merged_anndata, basis = "umap", color = "seurat_clusters")
-scv.pl.velocity_embedding_stream(merged_anndata, basis = "umap", color = "james_cell_type")
+scv.pl.velocity_embedding_stream(merged_anndata, basis = "umap", color = "seurat_clusters")
 ```
