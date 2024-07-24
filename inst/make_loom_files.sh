@@ -25,14 +25,6 @@ env_path=placeholder_env_path
 gtf_file=placeholder_gtf_file
 sampleid=placeholder_sampleid
 
-#Check if conda environment exists
-if conda info --envs | grep -q ${env_path};
-then
-    echo "env already exists";
-else
-    conda create -p ${env_path} -f make_environment.yml
-fi
-
 #activate environment
 conda activate $env_path
 
