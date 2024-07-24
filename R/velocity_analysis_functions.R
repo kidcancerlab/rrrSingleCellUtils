@@ -19,7 +19,7 @@
 #' in your seurat object. The loom files can then be used to run velocity
 #' analysis using scVelo.
 #' 
-#' @value A loom file for each unique ID present in id_col, output to loom_dir.
+#' @return A loom file for each unique ID present in id_col, output to loom_dir.
 #' 
 #' @export
 
@@ -145,8 +145,6 @@ r_make_loom_files <- function(sobj,
 #' @param sobj Seurat object; must have a column titled sample_id
 #' @param sobj_id The specific seurat object ID for which you want metadata;
 #' required even if only one sample in sobj
-#' @param loom_dir The directory that contains the loom files for velocity
-#' analysis
 #' @param output_dir The directory you wish to save your metadata to
 #' @param vars_to_keep Metadata columns you want saved off along with sample_id
 #' and UMAP and PCA embeddings
@@ -158,6 +156,9 @@ r_make_loom_files <- function(sobj,
 #' The function assumes that you made the loom files using the shell script
 #' "make_loom_files.sh", which changes the row names and appends a unique ID
 #' to the end of each sample when saving it off.
+#'
+#' @return A csv for each sample ID containing the sample ID, the reductions, 
+#' and any user specified columns of metadata in output_dir
 #'
 #' @export
 
