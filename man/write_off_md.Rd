@@ -18,7 +18,7 @@ and UMAP and PCA embeddings}
 required even if only one sample in sobj}
 }
 \value{
-A csv for each sample ID containing the sample ID, the reductions, 
+A csv for each sample ID containing the sample ID, the reductions,
 and any user specified columns of metadata in output_dir
 }
 \description{
