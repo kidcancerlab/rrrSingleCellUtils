@@ -117,7 +117,8 @@ r_make_loom_files <- function(sobj,
                 system(paste0("conda env create -p ",
                               env_path,
                               " -f ",
-                              paste0("../rrrSingleCellUtils/inst/make_environment.yml"))) #nolint
+                              paste0(rrrscu,
+                                     "/make_environment.yml")))
         }
 
         replace_tbl <-
@@ -132,7 +133,8 @@ r_make_loom_files <- function(sobj,
                     "placeholder_sampleid", id)
 
         use_sbatch_template(replace_tibble = replace_tbl,
-                            template = "../rrrSingleCellUtils/inst/make_loom_files.sh", #nolint
+                            template = paste0(rrrscu,
+                                              "/make_loom_files.sh"),
                             submit = TRUE,
                             file_dir = "sbatch/jobs")
     }
@@ -157,7 +159,7 @@ r_make_loom_files <- function(sobj,
 #' "make_loom_files.sh", which changes the row names and appends a unique ID
 #' to the end of each sample when saving it off.
 #'
-#' @return A csv for each sample ID containing the sample ID, the reductions, 
+#' @return A csv for each sample ID containing the sample ID, the reductions,
 #' and any user specified columns of metadata in output_dir
 #'
 #' @export
