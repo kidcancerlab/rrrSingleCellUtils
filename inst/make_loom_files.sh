@@ -25,7 +25,10 @@ cell_array=(tmp_bcs/*.tsv)
 bam_file=${bam_array[$SLURM_ARRAY_TASK_ID]}
 cell_file=${cell_array[$SLURM_ARRAY_TASK_ID]}
 
+echo bam file is $bam_file and cell file is $cell_file
+
 #get sampleid from bam file
+#MAKE THIS SAMPLEID placeholder
 sampleid=${bam_file:9:5}
 
 #Get arguments from sbatch template
