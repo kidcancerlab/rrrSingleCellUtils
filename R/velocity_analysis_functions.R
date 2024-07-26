@@ -98,8 +98,11 @@ r_make_loom_files <- function(sobj,
         #get bam path
         bam_path <- bam_paths[[id]]
         #copy bam to local location
-        tmp_bam_path <- paste0("tmp_bams/", id, ".bam")
-        system(paste("cp", bam_path, tmp_bam_path))
+        # tmp_bam_path <- paste0("tmp_bams/", id, ".bam")
+        # system(paste("cp", bam_path, tmp_bam_path))
+
+        #trying to make symlink to bams
+        system(paste0("ln -s ", bam_path, " tmp_bams/", id, ".bam"))
     }
 
     #Make conda environment
@@ -132,8 +135,7 @@ r_make_loom_files <- function(sobj,
                 "placeholder_max_array", as.character(length(unique(samp_ids)) - 1)) #nolint
 
     use_sbatch_template(replace_tibble = replace_tbl,
-                        template = paste0(rrrscu,
-                                          "/make_loom_files.sh"),
+                        template = "/home/gdrobertslab/lab/Analysis/MattGust/projects/rrrSingleCellUtils/inst/make_loom_files.sh",
                         submit = TRUE,
                         file_dir = "sbatch/jobs")
 
