@@ -40,7 +40,7 @@ gtf_file=placeholder_gtf_file
 conda activate $env_path
 
 #Run velocyto
-echo velocyto run \
+velocyto run \
     ${bam_file} \
     -b ${cell_file} \
     -o ${loom_dir} \
