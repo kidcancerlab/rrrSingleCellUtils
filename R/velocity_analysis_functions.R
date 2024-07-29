@@ -132,7 +132,7 @@ r_make_loom_files <- function(sobj,
                 "placeholder_max_array", as.character(length(unique(samp_ids)) - 1)) #nolint
 
     use_sbatch_template(replace_tibble = replace_tbl,
-                        template = paste0(rrrscu, "make_loom_files.sh")
+                        template = paste0(rrrscu, "make_loom_files.sh"),
                         submit = TRUE,
                         file_dir = "sbatch/jobs")
 
