@@ -2,7 +2,7 @@
 % Please edit documentation in R/velocity_analysis_functions.R
 \name{r_make_loom_files}
 \alias{r_make_loom_files}
-\title{Wrapper to make loom files in R}
+\title{Wrapper to Make Loom Files in R}
 \usage{
 r_make_loom_files(
   sobj,
@@ -41,7 +41,7 @@ unique values in sobj[[id_col]]}
 A loom file for each unique ID present in id_col, output to loom_dir.
 }
 \description{
-Wrapper to make loom files in R
+Wrapper to Make Loom Files in R
 }
 \details{
 This is a wrapper function around velocyto's "run" command. It will

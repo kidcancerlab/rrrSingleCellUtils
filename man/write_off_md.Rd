@@ -2,7 +2,7 @@
 % Please edit documentation in R/velocity_analysis_functions.R
 \name{write_off_md}
 \alias{write_off_md}
-\title{Save off metadata for velocity analysis}
+\title{Save Off Metadata for Velocity Analysis}
 \usage{
 write_off_md(sobj, id_col, output_dir, vars_to_keep = NULL)
 }
@@ -22,7 +22,7 @@ A csv for each sample ID containing the sample ID, the reductions,
 and any user specified columns of metadata in output_dir
 }
 \description{
-Save off metadata for velocity analysis
+Save Off Metadata for Velocity Analysis
 }
 \details{
 This is a helper function for running RNA velocity analysis. While

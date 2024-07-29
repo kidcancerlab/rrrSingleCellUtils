@@ -54,5 +54,5 @@ sbatch file. If FALSE, the sbatch file will be written but not submitted.}
 \description{
 Use a sbatch template to submit a job to the cluster
 
-Use a sbatch template to submit a job to the cluster
+Use a Sbatch Template to Submit a Job to the Cluster
 }
