@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --account=placeholder_account
-#SBATCH --output=placeholder_slurm_out
-#SBATCH --error=placeholder_slurm_out
+#SBATCH --output=placeholder_slurm_out%j.txt
+#SBATCH --error=placeholder_slurm_out%j.txt
 #SBATCH --job-name rrr_make_loom_files
-#SBATCH --array=0-0
+#SBATCH --array=0-placeholder_max_array
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
@@ -17,13 +17,24 @@ ml SAMtools/1.15
 ml load miniforge3/24.3.0
 eval "$(conda shell.bash hook)"
 
-#Get arguments from sbatch template or whatever
-bam_file=placeholder_bam_file
+#get arrays
+bam_array=(tmp_bams/*bam)
+cell_array=(tmp_bcs/*.tsv)
+
+#get current bam file and barcode file from arrays
+bam_file=${bam_array[$SLURM_ARRAY_TASK_ID]}
+cell_file=${cell_array[$SLURM_ARRAY_TASK_ID]}
+
+echo bam file is $bam_file and cell file is $cell_file
+
+#get sampleid from bam file
+#MAKE THIS SAMPLEID placeholder
+sampleid=${bam_file:9:5}
+
+#Get arguments from sbatch template
 loom_dir=placeholder_loom_dir
-cell_file=placeholder_cell_file
 env_path=placeholder_env_path
 gtf_file=placeholder_gtf_file
-sampleid=placeholder_sampleid
 
 #activate environment
 conda activate $env_path

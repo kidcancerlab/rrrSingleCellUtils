@@ -100,44 +100,42 @@ r_make_loom_files <- function(sobj,
         #copy bam to local location
         tmp_bam_path <- paste0("tmp_bams/", id, ".bam")
         system(paste("cp", bam_path, tmp_bam_path))
-
-        #Make conda environment
-        #going to make environment in location of R installation, it's likely
-        #that people won't have any conda environments here
-        #get location of rrrSingleCellUtils and append env name to it
-        rrrscu <- find.package("rrrSingleCellUtils")
-        env_path <- paste0(rrrscu, "/r_rna_velo")
-
-        #check conda environment doesn't exist before creating
-        conda_envs <- system("conda info --envs", intern = TRUE)
-
-        if (sum(grepl(pattern = env_path, x = conda_envs)) == 0) {
-            #only make conda environment if it doesn't already exist
-            exists_conda <-
-                system(paste0("conda env create -p ",
-                              env_path,
-                              " -f ",
-                              paste0(rrrscu,
-                                     "/make_environment.yml")))
-        }
-
-        replace_tbl <-
-            tribble(~find, ~replace,
-                    "placeholder_account", cluster_account,
-                    "placeholder_slurm_out", paste0("sbatch/output/", id),
-                    "placeholder_cell_file", bc_path,
-                    "placeholder_bam_file", tmp_bam_path,
-                    "placeholder_loom_dir", loom_dir,
-                    "placeholder_env_path", env_path,
-                    "placeholder_gtf_file", paste0(species, "_genes.gtf"),
-                    "placeholder_sampleid", id)
-
-        use_sbatch_template(replace_tibble = replace_tbl,
-                            template = paste0(rrrscu,
-                                              "/make_loom_files.sh"),
-                            submit = TRUE,
-                            file_dir = "sbatch/jobs")
     }
+
+    #Make conda environment
+    #going to make environment in location of R installation, it's likely
+    #that people won't have any conda environments here
+    #get location of rrrSingleCellUtils and append env name to it
+    rrrscu <- find.package("rrrSingleCellUtils")
+    env_path <- paste0(rrrscu, "/r_rna_velo")
+
+    #check conda environment doesn't exist before creating
+    conda_envs <- system("conda info --envs", intern = TRUE)
+
+    if (sum(grepl(pattern = env_path, x = conda_envs)) == 0) {
+        #only make conda environment if it doesn't already exist
+        exists_conda <-
+            system(paste0("conda env create -p ",
+                          env_path,
+                          " -f ",
+                          paste0(rrrscu,
+                                 "/make_environment.yml")))
+    }
+
+    replace_tbl <-
+        tribble(~find, ~replace,
+                "placeholder_account", cluster_account,
+                "placeholder_slurm_out", paste0("sbatch/output/"),
+                "placeholder_loom_dir", loom_dir,
+                "placeholder_env_path", env_path,
+                "placeholder_gtf_file", paste0(species, "_genes.gtf"),
+                "placeholder_max_array", as.character(length(unique(samp_ids)) - 1)) #nolint
+
+    use_sbatch_template(replace_tibble = replace_tbl,
+                        template = paste0(rrrscu, "make_loom_files.sh")
+                        submit = TRUE,
+                        file_dir = "sbatch/jobs")
+
     #Remove tmp_bcs, tmp_bams, and genes files
     system("rm -r tmp_bcs; rm -r tmp_bams; rm -f *_genes.gtf*")
 }
