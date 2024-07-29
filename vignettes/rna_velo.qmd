@@ -11,7 +11,7 @@ vignette: >
 
 This vignette is to demonstrate the RNA velocity pipeline for the Roberts' Lab. It will be split up into multiple steps. The first step once we have a seurat object of interest is to create the loom files for all samples present in the object. Next, we write off metadata from each sample present in our object into a csv to pass into python. Lastly, we recreate our Seurat object as an anndata object in python with all the appropriate RNA velocity information in our object.
 
-RNA velocity analysis using scVelo uses the relationship between unspliced and spliced mRNA to infer whether or not a gene is being up/down-regulated or in a steady-state. This model calculates a set of high-dimension velocity vecotrs in the gene expression space for each individual cell. These velocities across genes are then used to estimate the future state of a cell, which is represented by a low-dimensional embedding of cell-to-cell transition probabilities. This resulting n_obs x n_obs velocity matrix is projected onto an embedding (we'll use UMAP in this case) and is used to visualize the likely cell-to-cell changes that are occuring in our data.
+RNA velocity analysis using scVelo uses the relationship between unspliced and spliced mRNA to infer whether or not a gene is being up/down-regulated or in a steady-state. This model calculates a set of high-dimension velocity vectors in the gene expression space for each individual cell. These velocities across genes are then used to estimate the future state of a cell, which is represented by a low-dimensional embedding of cell-to-cell transition probabilities. This resulting n_obs x n_obs velocity matrix is projected onto an embedding (we'll use UMAP in this case) and is used to visualize the likely cell-to-cell changes that are occuring in our data.
 
 # Libraries
 
@@ -138,11 +138,11 @@ loom_files = os.listdir("loom_files")
 ad_obs = []
 
 #Read in objects and add to anndata list
-for i in loom_files:
+for one_loom in loom_files:
     #get sample id from file name
-    sample_id = i[0:5:1]
+    sample_id = one_loom[0:5:1]
     #add object to list
-    tmp = anndata.read_loom("loom_files/"+i)
+    tmp = anndata.read_loom("loom_files/" + one_loom)
     #read in metadata file
     md_path = "metadata/" + sample_id + "_metadata.csv"
     metadata = pd.read_csv(md_path, index_col = "bc")

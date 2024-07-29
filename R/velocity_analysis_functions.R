@@ -1,4 +1,4 @@
-#' Wrapper to make loom files in R
+#' Wrapper to Make Loom Files in R
 #'
 #' @param sobj Seurat object you want to run velocity analysis
 #' @param loom_dir Folder to output loom files to. By default will create a
@@ -140,7 +140,7 @@ r_make_loom_files <- function(sobj,
     system("rm -r tmp_bcs; rm -r tmp_bams; rm -f *_genes.gtf*")
 }
 
-#' Save off metadata for velocity analysis
+#' Save Off Metadata for Velocity Analysis
 #'
 #' @param sobj Seurat object; must have a column titled sample_id
 #' @param sobj_id The specific seurat object ID for which you want metadata;
@@ -216,7 +216,7 @@ write_off_md <- function(sobj,
     }
 }
 
-#' Use a sbatch template to submit a job to the cluster
+#' Use a Sbatch Template to Submit a Job to the Cluster
 #'
 #' @param replace_tibble A tibble with two columns, find and replace.
 #'  The find column should contain the placeholder text to be replaced and the
