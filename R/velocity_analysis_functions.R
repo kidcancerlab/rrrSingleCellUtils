@@ -124,8 +124,7 @@ r_make_loom_files <- function(sobj,
     }
 
     #create bash array of sample ids
-    id_array <- paste0("(", paste(ids, collapse = " "), ")") %>%
-        noquote()
+    id_array <- paste(ids, collapse = " ")
 
     replace_tbl <-
         tribble(~find, ~replace,
