@@ -75,6 +75,9 @@ r_make_loom_files <- function(sobj,
 
     #Make directories for sbatch files and slurm output
     system("mkdir sbatch; mkdir sbatch/jobs; mkdir sbatch/output")
+
+    #Make directory for loom files
+    if(!dir.exists(loom_dir)) dir.create(loom_dir)
     
     #optionally create tmp_bcs
     if(!dir.exists("tmp_bcs")) dir.create("tmp_bcs")
