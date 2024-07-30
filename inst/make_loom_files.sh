@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --account=placeholder_account
-#SBATCH --output=placeholder_slurm_out%j.txt
-#SBATCH --error=placeholder_slurm_out%j.txt
+#SBATCH --output=placeholder_slurm_outplaceholder_id_array[$SLURM_ARRAY_TASK_ID].txt
+#SBATCH --error=placeholder_slurm_outplaceholder_id_array[$SLURM_ARRAY_TASK_ID].txt
 #SBATCH --job-name rrr_make_loom_files
 #SBATCH --array=0-placeholder_max_array
 #SBATCH --nodes=1

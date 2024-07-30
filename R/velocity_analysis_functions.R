@@ -83,7 +83,8 @@ r_make_loom_files <- function(sobj,
     if (!dir.exists("tmp_bams")) dir.create("tmp_bams")
 
     #Loop through ID's
-    for (id in unique(samp_ids)) {
+    ids <- unique(samp_ids)
+    for (id in ids) {
         #make temporary directory with barcodes for current sample
         bcs <- colnames(sobj)[sobj@meta.data[[id_col]] == id]
         #Remove any additional things added to barcode
@@ -122,6 +123,10 @@ r_make_loom_files <- function(sobj,
                                  "/make_environment.yml")))
     }
 
+    #create bash array of sample ids
+    id_array <- paste0("(", paste(ids, collapse = " "), ")") %>%
+        noquote()
+
     replace_tbl <-
         tribble(~find, ~replace,
                 "placeholder_account", cluster_account,
@@ -129,10 +134,11 @@ r_make_loom_files <- function(sobj,
                 "placeholder_loom_dir", loom_dir,
                 "placeholder_env_path", env_path,
                 "placeholder_gtf_file", paste0(species, "_genes.gtf"),
-                "placeholder_max_array", as.character(length(unique(samp_ids)) - 1)) #nolint
+                "placeholder_max_array", as.character(length(ids) - 1),
+                "placeholder_id_array", id_array)
 
     use_sbatch_template(replace_tibble = replace_tbl,
-                        template = paste0(rrrscu, "make_loom_files.sh"),
+                        template = paste0(rrrscu, "/make_loom_files.sh"),
                         submit = TRUE,
                         file_dir = "sbatch/jobs")
 
