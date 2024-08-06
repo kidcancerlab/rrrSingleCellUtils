@@ -3,7 +3,7 @@
 #SBATCH --output=placeholder_slurm_out%j.txt
 #SBATCH --error=placeholder_slurm_out%j.txt
 #SBATCH --job-name rrr_make_loom_files
-#SBATCH --array=0-placeholder_max_array
+#SBATCH --array=0-placeholder_max_array%10
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
@@ -53,3 +53,5 @@ velocyto run \
     -o ${loom_dir} \
     -e ${sampleid} \
     ${gtf_file}
+
+rm ${bam_file}
