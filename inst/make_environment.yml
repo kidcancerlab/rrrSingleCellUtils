@@ -1,6 +1,7 @@
 name: r_rna_velo
 channels:
-    - defaults
+    - conda-forge
+    - bioconda
 dependencies:
     - numpy=1.26.4
     - cython=3.0.10
