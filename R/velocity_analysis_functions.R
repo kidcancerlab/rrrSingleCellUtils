@@ -103,7 +103,9 @@ r_make_loom_files <- function(sobj,
         bam_path <- bam_paths[[id]]
         #copy bam to local location
         tmp_bam_path <- paste0("tmp_bams/", id, ".bam")
-        system(paste("cp", bam_path, tmp_bam_path))
+        if (!file.exists(tmp_bam_path)) {
+            system(paste("cp", bam_path, tmp_bam_path))
+        }
     }
 
     #Make conda environment
@@ -145,7 +147,7 @@ r_make_loom_files <- function(sobj,
                         file_dir = "sbatch/jobs")
 
     #Remove tmp_bcs, tmp_bams, and genes files
-    system("rm -r tmp_bcs; rm -r tmp_bams; rm -f *_genes.gtf*")
+    system("rm -r tmp_bcs; rm -rf tmp_bams; rm -f *_genes.gtf*")
 }
 
 #' Save Off Metadata for Velocity Analysis
