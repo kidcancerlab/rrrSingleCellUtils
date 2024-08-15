@@ -54,4 +54,8 @@ velocyto run \
     -e ${sampleid} \
     ${gtf_file}
 
-rm ${bam_file}
+echo "Just ran velocyto"
+
+sleep 10
+
+rm -f ${bam_file}
