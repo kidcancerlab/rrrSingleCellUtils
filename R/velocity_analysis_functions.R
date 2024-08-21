@@ -1,8 +1,10 @@
 #' Wrapper to Make Loom Files in R
 #'
 #' @param sobj Seurat object you want to run velocity analysis
-#' @param loom_dir Folder to output loom files to. By default will create a
-#' directory in your working directory called loom_files
+#' @param sobj_name Optional, name of your seurat object for specifying output
+#' when the same sample has a loom created for multiple objects.
+#' @param out_dir Folder to output loom files and sbatch output to. By default
+#' will create a directory in your working directory called loom_output
 #' @param id_col Name of metadata column marking what sample a given cell is
 #' from.
 #' @param species String communicating what species the cells are from.
@@ -24,17 +26,23 @@
 #' @export
 
 r_make_loom_files <- function(sobj,
-                              loom_dir = "loom_files/",
+                              sobj_name = NULL,
+                              out_dir = "loom_output/"
                               id_col = NULL,
                               species,
                               bam_paths,
                               cluster_account,
                               slurm_base = paste0(getwd(), "/slurmOut"),
                               sbatch_base = "sbatch_") {
-    #make loom_dir end with a /
-    loom_dir <- ifelse(endsWith(loom_dir, "/"),
-                       loom_dir,
-                       paste0(loom_dir, "/"))
+    #make out_dir end with a /
+    out_dir <- ifelse(endsWith(out_dir, "/"),
+                       out_dir,
+                       paste0(out_dir, "/"))
+
+    if (!is.null(sobj_name)) out_dir <- paste0(out_dir, sobj_name, "/")
+    
+    #make loom_dir variable
+    loom_dir <- paste0(out_dir, "loom_files/")
 
     #get ids and store in a variable
     samp_ids <- unique(sobj[[id_col]])[, 1]
@@ -74,7 +82,15 @@ r_make_loom_files <- function(sobj,
     }
 
     #Make directories for sbatch files and slurm output
-    system("mkdir sbatch; mkdir sbatch/jobs; mkdir sbatch/output")
+    sbatch_dir <- paste0(out_dir, "sbatch")
+    system(paste0("mkdir ",
+                  sbatch_dir,
+                  "; mkdir ",
+                  sbatch_dir,
+                  "/jobs;",
+                  "mkdir ",
+                  sbatch_dir,
+                  "/output"))
 
     #Make directory for loom files
     if(!dir.exists(loom_dir)) dir.create(loom_dir)
@@ -134,17 +150,18 @@ r_make_loom_files <- function(sobj,
     replace_tbl <-
         tribble(~find, ~replace,
                 "placeholder_account", cluster_account,
-                "placeholder_slurm_out", paste0("sbatch/output/"),
+                "placeholder_slurm_out", paste0(sbatch_dir, "/output/"),
                 "placeholder_loom_dir", loom_dir,
                 "placeholder_env_path", env_path,
                 "placeholder_gtf_file", paste0(species, "_genes.gtf"),
                 "placeholder_max_array", as.character(length(ids) - 1),
-                "placeholder_id_array", id_array)
+                "placeholder_id_array", id_array,
+                "placeholder_sobj_name", sobj_name)
 
     use_sbatch_template(replace_tibble = replace_tbl,
                         template = paste0(rrrscu, "/make_loom_files.sh"),
                         submit = TRUE,
-                        file_dir = "sbatch/jobs")
+                        file_dir = paste0(sbatch_dir, "/jobs/"))
 
     #Remove tmp_bcs, tmp_bams, and genes files
     system("rm -r tmp_bcs; rm -rf tmp_bams; rm -f *_genes.gtf*")
