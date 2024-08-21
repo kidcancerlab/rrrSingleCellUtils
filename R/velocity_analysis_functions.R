@@ -27,7 +27,7 @@
 
 r_make_loom_files <- function(sobj,
                               sobj_name = NULL,
-                              out_dir = "loom_output/"
+                              out_dir = "loom_output/",
                               id_col = NULL,
                               species,
                               bam_paths,
