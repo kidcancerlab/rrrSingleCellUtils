@@ -1,3 +1,7 @@
+# rrrSingleCellUtils 0.13.0
+
+- Added in new function annotate_celltypes() which is a wrapper for SingleR to annotate cell types in a Seurat object.
+
 # rrrSingleCellUtils 0.12.0
 
 - Added in the `run_fdl()` function to run force directed layout analysis on a seurat object.
