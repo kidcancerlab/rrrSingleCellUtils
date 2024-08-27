@@ -2,6 +2,7 @@
 #'
 #' @param path_10x Path to 10X RNAseq data "filtered_feature_bc_matrix" folder
 #' @param h5_file Path to 10X h5 file
+#' @param frag_file Path to 10X ATAC fragments file
 #' @param min_cells Passed to CreateSeuratObject: Include features detected in
 #'     at least this many cells. Will subset the counts matrix as well. To
 #'     reintroduce excluded features, create a new object with a lower cutoff.
@@ -73,7 +74,7 @@ tenx_load_qc <- function(path_10x = "",
 
     if (grepl("GEX", exp_type)) {
         gex_orig_cells <- nrow(rna_raw_data)
-        gex_first_ten_genes <- head(rownames(rna_raw_data, 10))
+        gex_first_ten_genes <- rownames(rna_raw_data)[1:10]
         # subset the data to only include the species of interest
         rna_raw_data <-
             filter_raw_data(rna_raw_data,
