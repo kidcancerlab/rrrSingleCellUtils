@@ -7,7 +7,8 @@
 optimize_silhouette(
   sobject,
   test_res = seq(0.05, 0.75, by = 0.05),
-  summary_plot = TRUE
+  summary_plot = TRUE,
+  reduction = "pca"
 )
 }
 \arguments{
@@ -17,6 +18,8 @@ optimize_silhouette(
 \item{test_res}{A numeric vector of resolution values to test}
 
 \item{summary_plot}{A logical value indicating whether to plot the results}
+
+\item{reduction}{The reduction data used (default is "pca").}
 }
 \value{
 A numeric value

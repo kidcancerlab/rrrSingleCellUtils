@@ -9,7 +9,7 @@ merge_gex_atac(
   atac_sobj,
   atac_assay_name = "ATAC",
   gex_pca_dims = 1:dim(Seurat::Embeddings(gex_sobj))[2],
-  atac_pca_dims = 1:dim(Seurat::Embeddings(atac_sobj))[2],
+  atac_pca_dims = 1:dim(Seurat::Embeddings(atac_sobj, reduction = "lsi"))[2],
   verbose = FALSE
 )
 }

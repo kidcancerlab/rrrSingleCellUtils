@@ -15,6 +15,7 @@ plot_cols <- c("#D43F3AFF", "#EEA236FF", "#357EBDFF", "#5CB85CFF",
 #'
 #' @inheritParams Seurat::DimPlot
 #' @param title Title to use for plot
+#' @param pt_alpha Transparency of points (should be between 0 and 1)
 #' @param ... Other arguments to pass to Seurat::DimPlot
 #'
 #' @return A patchworked ggplot object if combine = TRUE; otherwise, a list of
@@ -23,29 +24,25 @@ plot_cols <- c("#D43F3AFF", "#EEA236FF", "#357EBDFF", "#5CB85CFF",
 #'
 #' @examples
 #' \dontrun{
-#' cid_lt <- gen_cellecta_bc_data(file = "path/to/file.bam",
-#'                                verbose = TRUE,
-#'                                samtools_module = "GCC/9.3.0 SAMtools/1.10")
-#' output <- process_ltbc(sobject, cid_lt = cid_lt, histogram = TRUE)
+#' r_dim_plot(object = sobject)
 #' }
 r_dim_plot <- function(object,
                        title = NULL,
                        label = TRUE,
                        pt.size = 1,
+                       pt_alpha = 0.6,
                        ...) {
-    if(length(levels(Seurat::Idents(object))) < 22) {
-        p <- Seurat::DimPlot(object = object,
-                             label = label,
-                             pt.size = pt.size,
-                             cols = scales::alpha(plot_cols, 0.6),
-                             ...) +
-            patchwork::plot_annotation(title = title) +
-            ggplot2::theme(legend.position = "none") +
-            ggplot2::coord_fixed()
-        return(p)
-    } else {
-        print("Too many identity classes to use this function. Requires <22.")
-    }
+    p <- Seurat::DimPlot(object = object,
+                         label = label,
+                         pt.size = pt.size,
+                         cols = scales::alpha(c(plot_cols,
+                                                sample(grDevices::rainbow(1000))),
+                                              pt_alpha),
+                         ...) +
+        patchwork::plot_annotation(title = title) +
+        ggplot2::theme(legend.position = "none") +
+        ggplot2::coord_fixed()
+    return(p)
 }
 
 
@@ -113,23 +110,26 @@ theme_roberts <- function(axis_font_size = 5,
                           legend_title_font_size = 6,
                           subtitle_font_size = 6,
                           title_font_size = 10) {
-    if (font_name == "Arial" &
-        !"Arial" %in% names(grDevices::pdfFonts())) {
-        #    !"Arial" %in% sysfonts::font_families()) {
-        message("Adding Arial font to system")
-        tryCatch(
-            {
-                extrafont::font_import(paths = "/home/gdrobertslab/lab/Tools/fonts/Arial/",
-                                       prompt = FALSE)
-                extrafont::loadfonts(quiet = TRUE)
-            },
-                error = function(e) {
-                    message("Arial font files not found in /home/gdrobertslab/lab/Tools/fonts/Arial/")
-                    message("Either use a different font or install Arial")
-                    print(e)
-            }
-        )
-    }
+    # Commenting this out for now. In it's current implementation, it
+    # squashes all the words together when exporting to a pdf. I'm not sure why,
+    # but it needs to be fixed before it can be used.
+    #if (font_name == "Arial" &
+        # !"Arial" %in% names(grDevices::pdfFonts())) {
+        # #    !"Arial" %in% sysfonts::font_families()) {
+        # message("Adding Arial font to system")
+        # tryCatch(
+        #     {
+        #         extrafont::font_import(paths = "/home/gdrobertslab/lab/Tools/fonts/Arial/",
+        #                                prompt = FALSE)
+        #         extrafont::loadfonts(quiet = TRUE)
+        #     },
+        #         error = function(e) {
+        #             message("Arial font files not found in /home/gdrobertslab/lab/Tools/fonts/Arial/")
+        #             message("Either use a different font or install Arial")
+        #             print(e)
+        #     }
+        # )
+    #}
     list(ggpubr::theme_pubr(base_family = font_name) +
          ggplot2::theme(
             axis.text = ggplot2::element_text(size = axis_font_size),
@@ -147,7 +147,7 @@ theme_roberts <- function(axis_font_size = 5,
             strip.background = ggplot2::element_blank(),
             legend.key.size = ggplot2::unit(0.2, "cm")
             ),
-    ggplot2::scale_color_manual(values = plot_cols))
+    ggplot2::scale_color_manual(values = c(plot_cols, sample(rainbow(1000)))))
 }
 
 #' Make ggplot2-based histograms of Seurat features
@@ -158,6 +158,7 @@ theme_roberts <- function(axis_font_size = 5,
 #'     This table should have columns named "feature", "min_val" and "max_val"
 #'     where "feature" matches each element of the "features" argument, and
 #'     "min_val" and"max_val" are numeric values. This argument is optional.
+#' @param n_x_breaks Number of x-axis breaks to use
 #'
 #' @return A ggplot object
 #' @export
@@ -169,7 +170,8 @@ theme_roberts <- function(axis_font_size = 5,
 #' }
 feature_hist <- function(sobject,
                          features,
-                         cutoff_table = NULL) {
+                         cutoff_table = NULL,
+                         n_x_breaks = 10) {
     temp_data <-
         Seurat::FetchData(sobject,
                           vars = features) %>%
@@ -185,7 +187,8 @@ feature_hist <- function(sobject,
                                 scales = "free",
                                 ncol = 1) +
             ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90,
-                                                               hjust = 1))
+                                                               hjust = 1)) +
+            ggplot2::scale_x_continuous(breaks = scales::pretty_breaks(n = n_x_breaks))
 
     if (!is.null(cutoff_table)) {
         # Function to add min/max lines

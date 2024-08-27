@@ -1,3 +1,22 @@
+# rrrSingleCellUtils 0.12.0
+
+- Added in the `run_fdl()` function to run force directed layout analysis on a seurat object.
+- Also fixed version number since it apparently got mixed up last release.
+
+# rrrSingleCellUtils 0.10.1
+
+- Fixed an issue where filtering based on species_pattern could remove all the genes or peaks in a dataset and result in a rather uninformative error. This has been updated so an informative error is thrown if this happens.
+
+# rrrSingleCellUtils 0.11.1
+
+- Fixed an issue where filtering based on species_pattern could remove all the genes or peaks in a dataset and not result in an error being thrown. As a result a rather uninformative error was given. This has been updated so an informative error is thrown if this happens.
+
+# rrrSingleCellUtils 0.10.0
+
+- Merge in some branches related to SNV calling
+
+# rrrSingleCellUtils 0.9.0
+
 # rrrSingleCellUtils 0.8.0
 
 - Added the option to load in data using an h5 file, which is needed when working with multiomics data.

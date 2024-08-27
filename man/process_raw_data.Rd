@@ -8,12 +8,20 @@ process_raw_data(
   sample_info,
   domain = "//igmdata/igm_roberts",
   email = "",
-  include_introns = FALSE,
+  include_introns = TRUE,
+  plots = FALSE,
   slurm_base = paste(getwd(), "/slurmOut", sep = ""),
-  bcl_folder = "/home/gdrobertslab/lab/BCLs",
-  fastq_folder = "/home/gdrobertslab/lab/FASTQs",
-  counts_folder = "/home/gdrobertslab/lab/Counts",
-  ref_folder = "/home/gdrobertslab/lab/GenRef"
+  bcl_folder = "/home/gdrobertslab/lab/BCLs_2",
+  fastq_folder = "/home/gdrobertslab/lab/FASTQs_2",
+  counts_folder = "/home/gdrobertslab/lab/Counts_2",
+  ref_folder = "/home/gdrobertslab/lab/GenRef",
+  sobj_folder = "/home/gdrobertslab/lab/SeuratObj",
+  cutoff_hist_folder = "/home/gdrobertslab/lab/SeuratObj/cutoff_hists",
+  proc_threads = 10,
+  delete_bcl_tar = FALSE,
+  delete_bcls = FALSE,
+  delete_fastqs = FALSE,
+  record_log = TRUE
 )
 }
 \arguments{
@@ -25,6 +33,8 @@ process_raw_data(
 
 \item{include_introns}{Should intronic reads be included in counts?}
 
+\item{plots}{Should plots be generated?}
+
 \item{slurm_base}{Base name for slurm output files}
 
 \item{bcl_folder}{Path to write BCL files}
@@ -34,6 +44,20 @@ process_raw_data(
 \item{counts_folder}{Path to write counts files}
 
 \item{ref_folder}{Path to 10x reference folders}
+
+\item{sobj_folder}{Path to write Seurat objects}
+
+\item{cutoff_hist_folder}{Path to write cutoff histograms}
+
+\item{proc_threads}{Number of threads to use for processing}
+
+\item{delete_bcl_tar}{Delete the tar file after untarring?}
+
+\item{delete_bcls}{Delete the BCL files after mkfastq?}
+
+\item{delete_fastqs}{Delete the fastq files after count?}
+
+\item{record_log}{Record failures when processing data}
 }
 \description{
 Download and pre-process raw 10X data
@@ -46,7 +70,8 @@ This is a wrapper for several functions to get and process single
  outlines the information about each sample. The data are then downloaded
  using smbclient and then md5sum checked and untar’d.
  The data are then processed with cellranger mkfastq and either cellranger
- count or cellranger-dna cnv (depending on the exp_type argument).
+ count or cellranger-dna cnv (depending on the Protocol argument). A seurat
+ object is generated as well and filtered using auto_subset().
 }
 \examples{
 \dontrun{

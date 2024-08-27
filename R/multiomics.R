@@ -80,10 +80,16 @@ merge_atac <- function(peak_beds,
 #' @return RETURN_DESCRIPTION
 #' @examples
 #' # ADD_EXAMPLES_HERE
-annotate_atac <- function(sobject, gtf) {
+annotate_atac <- function(sobject,
+                          gtf) {
     if (is.null(gtf)) {
         message("No gtf file provided")
         stop
+    }
+
+    if (!Seurat::DefaultAssay(sobject) %in% c("ATAC", "peaks")) {
+        warning("If your default assay isn't your ATAC data, this function",
+                "will fail. Make sure to set DefaultAssay() properly.")
     }
 
     # Create annotation to put into seurat object
@@ -103,7 +109,10 @@ annotate_atac <- function(sobject, gtf) {
         read.table(text = ., header = TRUE) %>%
         dplyr::full_join(tibble::tibble(tx_name = annotations$tx_name,
                                         tx_id = annotations$tx_id)) %>%
-        dplyr::arrange(tx_id)
+        dplyr::arrange(tx_id) %>%
+        dplyr::filter(tx_name %in% annotations@elementMetadata$tx_name)
+        # the filter accounts for any transcripts that are dropped while
+        # creating the "annotations" object
 
     # "This should all be TRUE"
     if (all(gene_info$tx_name == annotations$tx_name)) {
@@ -134,7 +143,8 @@ annotate_atac <- function(sobject, gtf) {
 #' @return RETURN_DESCRIPTION
 #' @examples
 #' # ADD_EXAMPLES_HERE
-add_nucleosome_signal <- function(sobject, cutoff = 4) {
+add_nucleosome_signal <- function(sobject,
+                                  cutoff = 4) {
     sobject <- Signac::NucleosomeSignal(sobject)
     sobject$nucleosome_group <- ifelse(sobject$nucleosome_signal > cutoff,
                                        paste0("NS > ", cutoff),
@@ -154,7 +164,8 @@ add_nucleosome_signal <- function(sobject, cutoff = 4) {
 #' @return RETURN_DESCRIPTION
 #' @examples
 #' # ADD_EXAMPLES_HERE
-tss_enrichment <- function(sobject, cutoff = 2) {
+tss_enrichment <- function(sobject,
+                           cutoff = 2) {
     sobject <- Signac::TSSEnrichment(sobject, fast = FALSE)
     sobject$high_tss <- ifelse(sobject$TSS.enrichment > cutoff,
                                "High",
@@ -176,15 +187,24 @@ tss_enrichment <- function(sobject, cutoff = 2) {
 #' @return RETURN_DESCRIPTION
 #' @examples
 #' # ADD_EXAMPLES_HERE
-calc_frip <- function(sobject, frag_files, verbose = FALSE) {
+calc_frip <- function(sobject,
+                      frag_files,
+                      verbose = FALSE) {
     # Get fragments for each sample in order and add sample name to CB column
-    # if only one file provided, with no name
-    if (is.null(names(frag_files)) & length(frag_files) == 1) {
-        message("Did you mean to add a name to this list?")
+    # if only one file provided, with no name for the list and the cell names
+    # don't look like normal cellranger names, throw a warning
+    if (all(stringr::str_detect(colnames(sobject),
+                                        "^[ATGC]+-[0-9]+$"))) {
+        # all good, I think
         total_frag_df <- Signac::CountFragments(frag_files[[1]],
                                                 verbose = verbose)
+    } else if (is.null(names(frag_files)) &&
+                length(frag_files) == 1) {
+        message("Did you mean to add a name to this list? Your cell names ",
+                "don't look like normal cellranger names.")
+        stop()
     # if only one file provided, with a name, append name to CB column
-    } else if (!is.null(names(frag_files)) & length(frag_files) == 1) {
+    } else if (!is.null(names(frag_files)) && length(frag_files) == 1) {
         total_frag_df <-
             Signac::CountFragments(frag_files[[1]],
                                    verbose = verbose) %>%
@@ -231,6 +251,34 @@ calc_frip <- function(sobject, frag_files, verbose = FALSE) {
     return(sobject)
 }
 
+#' Add ATAC specific metadata to the Seurat object
+#'
+#' Add nucleosome signal, TSS enrichment, and FRiP to a Seurat object
+#'
+#' @param sobject Seurat object to be processed
+#' @param gtf String of path to a gtf file.
+#' @param nucl_cutoff Cutoff for nucleosome signal
+#' @param tss_cutoff Cutoff for TSS enrichment
+#' @param frag_files Named list of paths to fragment files.
+#' @param verbose Should functions be verbose?
+#'
+#' @export
+#'
+#' @return A Seurat object
+add_atac_metadata <- function(sobject,
+                              gtf,
+                              nucl_cutoff = 4,
+                              tss_cutoff = 2,
+                              frag_files,
+                              verbose = TRUE) {
+    sobject <-
+        annotate_atac(sobject,
+                      gtf = gtf) %>%
+        add_nucleosome_signal(cutoff = nucl_cutoff) %>%
+        tss_enrichment(cutoff = tss_cutoff) %>%
+        calc_frip(frag_files = frag_files,
+                  verbose = verbose)
+}
 
 #' Process a Seurat object with ATAC data
 #'
@@ -262,7 +310,8 @@ process_seurat_atac <- function(sobject,
         Seurat::FindClusters(algorithm = 3, verbose = verbose) %>%
         Seurat::RunUMAP(reduction = "lsi",
                         dims = umap_dims,
-                        verbose = verbose)
+                        verbose = verbose,
+                        reduction.name = "umap_atac")
 
     # Reset active assay
     Seurat::DefaultAssay(sobject) <- old_active_ident
@@ -305,7 +354,8 @@ merge_gex_atac <- function(gex_sobj,
                            atac_sobj,
                            atac_assay_name = "ATAC",
                            gex_pca_dims = 1:dim(Seurat::Embeddings(gex_sobj))[2],
-                           atac_pca_dims = 1:dim(Seurat::Embeddings(atac_sobj))[2],
+                           atac_pca_dims = 1:dim(Seurat::Embeddings(atac_sobj,
+                                                                    reduction = "lsi"))[2],
                            verbose = FALSE) {
     # Make seurat object from GEX keeping only cells present in ATAC
     merged_data <-
@@ -314,14 +364,17 @@ merge_gex_atac <- function(gex_sobj,
 
     # Make temporary seurat object from ATAC with cells present in GEX
     temp <-
-        atac_sobj[, colnames(atac_sobj) %in% colnames(gex_sobj)] %>%
+        atac_sobj[, colnames(atac_sobj) %in% colnames(gex_sobj)]
+
+    # Stuff it into the merged_data object and process it
+    merged_data[["ATAC"]] <- temp@assays[[atac_assay_name]]
+    Seurat::DefaultAssay(merged_data) <- "ATAC"
+    merged_data <-
+        merged_data %>%
         Signac::RunTFIDF(verbose = verbose) %>%
         Signac::FindTopFeatures(min.cutoff = "q0",
                                 verbose = verbose) %>%
         Signac::RunSVD(verbose = verbose)
-
-    # Stuff it into the merged_data object
-    merged_data[["ATAC"]] <- temp@assays[[atac_assay_name]]
 
     # Make joint UMAP
     merged_data <-

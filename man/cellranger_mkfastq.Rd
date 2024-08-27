@@ -6,15 +6,20 @@
 \usage{
 cellranger_mkfastq(
   sample_info,
+  sample_sheet,
   email = "",
   tar_folders,
   bcl_folder = "/home/gdrobertslab/lab/BCLs",
   fastq_folder = "/home/gdrobertslab/lab/FASTQs",
-  slurm_out = paste(getwd(), "/slurmOut_mkfastq-\%j.out", sep = "")
+  slurm_out = paste(getwd(), "/slurmOut_mkfastq-\%j.out", sep = ""),
+  record_log = TRUE,
+  submit = TRUE
 )
 }
 \arguments{
 \item{sample_info}{File containing sample info (see details)}
+
+\item{sample_sheet}{SampleSheet.csv from the BCL folder}
 
 \item{email}{Email for Slurm notifications}
 
@@ -25,6 +30,10 @@ cellranger_mkfastq(
 \item{fastq_folder}{Path to write fastq files}
 
 \item{slurm_out}{Location to write out slurm out files}
+
+\item{record_log}{Record failures when processing data}
+
+\item{submit}{Submit the job to the cluster?}
 }
 \description{
 Run cellranger mkfastq

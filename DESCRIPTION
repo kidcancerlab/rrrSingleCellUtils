@@ -1,7 +1,7 @@
 Package: rrrSingleCellUtils
 Type: Package
 Title: A Set of Tools For Single Cell Analysis
-Version: 0.8.0
+Version: 0.12.0
 Author: Matt Cannon
 Maintainer: Matt Cannon <matthewvc1@gmail.com>
 Description: This is a set of utility functions designed for single cell
@@ -36,6 +36,9 @@ Imports:
     SeuratObject,
     celldex,
     SingleR
+    logr,
+    qs,
+    igraph
 Depends: R (>= 3.5.0), nichenetr
 Suggests:
     rmarkdown,

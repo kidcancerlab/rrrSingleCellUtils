@@ -7,16 +7,21 @@
 get_raw_data(
   link_folder,
   dest_folder,
+  tar_folder,
   domain = "//igmdata/igm_roberts",
   user = Sys.info()[["user"]],
   user_group = "research",
-  .pw
+  .pw,
+  delete_bcl_tar = FALSE,
+  record_log = TRUE
 )
 }
 \arguments{
 \item{link_folder}{Folder containing raw data}
 
-\item{dest_folder}{Location to store files}
+\item{dest_folder}{Parent folder to store BCL files}
+
+\item{tar_folder}{Folder containing tar files}
 
 \item{domain}{Where the raw files are hosted}
 
@@ -25,6 +30,10 @@ get_raw_data(
 \item{user_group}{Group the user belongs to}
 
 \item{.pw}{internal use only}
+
+\item{delete_bcl_tar}{Delete the tar file after untarring?}
+
+\item{record_log}{Record failures when processing data}
 }
 \description{
 Retrieve sequencing data and store it in
