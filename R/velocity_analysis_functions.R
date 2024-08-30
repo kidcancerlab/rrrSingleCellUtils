@@ -34,13 +34,18 @@ r_make_loom_files <- function(sobj,
                               cluster_account,
                               slurm_base = paste0(getwd(), "/slurmOut"),
                               sbatch_base = "sbatch_") {
+    system(paste0("mkdir ", out_dir))
+    
     #make out_dir end with a /
     out_dir <- ifelse(endsWith(out_dir, "/"),
-                       out_dir,
-                       paste0(out_dir, "/"))
+                      out_dir,
+                      paste0(out_dir, "/"))
 
-    if (!is.null(sobj_name)) out_dir <- paste0(out_dir, sobj_name, "/")
-    
+    if (!is.null(sobj_name)) {
+        out_dir <- paste0(out_dir, sobj_name, "/")
+        system(paste0("mkdir ", out_dir))
+    }
+
     #make loom_dir variable
     loom_dir <- paste0(out_dir, "loom_files/")
 
@@ -96,10 +101,9 @@ r_make_loom_files <- function(sobj,
     if(!dir.exists(loom_dir)) dir.create(loom_dir)
     
     #optionally create tmp_bcs
-    if(!dir.exists("tmp_bcs")) dir.create("tmp_bcs")
-
-    #optionally create tmp_bams
-    if (!dir.exists("tmp_bams")) dir.create("tmp_bams")
+    if(!dir.exists(paste0(out_dir, "tmp_bcs"))) {
+        dir.create(paste0(out_dir, "tmp_bcs"))
+    }
 
     #Loop through ID's
     ids <- unique(samp_ids)
@@ -107,8 +111,8 @@ r_make_loom_files <- function(sobj,
         #make temporary directory with barcodes for current sample
         bcs <- colnames(sobj)[sobj@meta.data[[id_col]] == id]
         #Remove any additional things added to barcode
-        bcs <- unlist(str_extract_all(bcs, "[A T G C]{16}+\\-+[1-9]"))
-        bc_path <- paste0("tmp_bcs/", id, ".tsv")
+        bcs <- unlist(str_extract_all(bcs, "[ATGC]{16}\\-[0-9]"))
+        bc_path <- paste0(out_dir, "tmp_bcs/", id, ".tsv")
         write.table(bcs,
                     bc_path,
                     row.names = FALSE,
@@ -117,8 +121,10 @@ r_make_loom_files <- function(sobj,
 
         #get bam path
         bam_path <- bam_paths[[id]]
+        #create sample specific folder for bams
+        tmp_bam_path <- paste0(out_dir, id, "_bams/", id, ".bam")
+        dir.create(paste0(out_dir, id, "_bams"))
         #copy bam to local location
-        tmp_bam_path <- paste0("tmp_bams/", id, ".bam")
         if (!file.exists(tmp_bam_path)) {
             system(paste("cp", bam_path, tmp_bam_path))
         }
@@ -156,15 +162,13 @@ r_make_loom_files <- function(sobj,
                 "placeholder_gtf_file", paste0(species, "_genes.gtf"),
                 "placeholder_max_array", as.character(length(ids) - 1),
                 "placeholder_id_array", id_array,
-                "placeholder_sobj_name", sobj_name)
+                "placeholder_sobj_name", sobj_name,
+                "placeholder_out_dir", out_dir)
 
     use_sbatch_template(replace_tibble = replace_tbl,
                         template = paste0(rrrscu, "/make_loom_files.sh"),
                         submit = TRUE,
-                        file_dir = paste0(sbatch_dir, "/jobs/"))
-
-    #Remove tmp_bcs, tmp_bams, and genes files
-    system("rm -r tmp_bcs; rm -rf tmp_bams; rm -f *_genes.gtf*")
+                        file_dir = paste0(sbatch_dir, "/jobs"))
 }
 
 #' Save Off Metadata for Velocity Analysis
@@ -223,11 +227,19 @@ write_off_md <- function(sobj,
         }
 
         #change rownames so they match format in the loom files
-        tmp_md$bc <-
-            paste0(id,
-                   ":",
-                   unlist(stringr::str_extract_all(tmp_md$bc, "[A T G C]{16}")),
-                   "x")
+        #account for case of n = 1
+        if (nrow(tmp_md) == 1) {
+            tmp_md$bc <- paste0(id,
+                                ":",
+                                unlist(stringr::str_extract_all(tmp_md$bc, "[ATGC]{16}\\-[0-9]")))
+        } else {
+
+            tmp_md$bc <-
+                paste0(id,
+                       ":",
+                       unlist(stringr::str_extract_all(tmp_md$bc, "[A T G C]{16}")),
+                       "x")
+        }
 
         #write off metadata file
         if (is.null(output_dir)) {
