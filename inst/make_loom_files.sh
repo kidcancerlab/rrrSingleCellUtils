@@ -17,19 +17,23 @@ ml SAMtools/1.15
 ml load miniforge3/24.3.0
 eval "$(conda shell.bash hook)"
 
+#get output directory
+out_dir=placeholder_out_dir
+
 #get arrays
-bam_array=(tmp_bams/*bam)
-cell_array=(tmp_bcs/*.tsv)
 id_array=(placeholder_id_array)
-
-#get current bam file and barcode file from arrays
-bam_file=${bam_array[$SLURM_ARRAY_TASK_ID]}
-cell_file=${cell_array[$SLURM_ARRAY_TASK_ID]}
-
-echo bam file is $bam_file and cell file is $cell_file
 
 #get sampleid from id array
 sampleid=${id_array[$SLURM_ARRAY_TASK_ID]}
+
+#get current barcode file from out_dir
+cell_file=${out_dir}tmp_bcs/${sampleid}.tsv
+
+
+#make bam file from out_dir and sampleid
+bam_file=${out_dir}${sampleid}_bams/${sampleid}.bam
+
+echo bam file is $bam_file and cell file is $cell_file
 
 #rename output file with sample id
 echo This is job ID ${SLURM_JOBID}
@@ -56,6 +60,8 @@ velocyto run \
 
 echo "Just ran velocyto"
 
-sleep 10
+rm -rf ${out_dir}${sampleid}_bams/
 
-rm -f ${bam_file}
+sleep 60
+
+echo "Just deleted bams. Job's done"
