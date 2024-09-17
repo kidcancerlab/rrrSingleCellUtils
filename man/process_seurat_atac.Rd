@@ -4,7 +4,13 @@
 \alias{process_seurat_atac}
 \title{Process a Seurat object with ATAC data}
 \usage{
-process_seurat_atac(sobject, assay = "ATAC", verbose = FALSE, umap_dims = 2:30)
+process_seurat_atac(
+  sobject,
+  assay = "ATAC",
+  verbose = FALSE,
+  umap_dims = 2:30,
+  resolution = 0.3
+)
 }
 \arguments{
 \item{sobject}{Seurat object to be processed}
