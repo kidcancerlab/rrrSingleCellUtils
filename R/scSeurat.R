@@ -73,7 +73,8 @@ tenx_load_qc <- function(path_10x = "",
     }
 
     if (grepl("GEX", exp_type)) {
-        gex_first_ten_genes <- head(rownames(rna_raw_data), 10)
+        gex_orig_cells <- nrow(rna_raw_data)
+        gex_first_ten_genes <- rownames(rna_raw_data)[1:10]
         # subset the data to only include the species of interest
         rna_raw_data <-
             filter_raw_data(rna_raw_data,

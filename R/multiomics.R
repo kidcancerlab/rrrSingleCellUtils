@@ -297,7 +297,8 @@ add_atac_metadata <- function(sobject,
 process_seurat_atac <- function(sobject,
                                 assay = "ATAC",
                                 verbose = FALSE,
-                                umap_dims = 2:30) {
+                                umap_dims = 2:30,
+                                resolution = 0.3) {
     # Save current assay so we can reset it later
     old_active_ident <- Seurat::DefaultAssay(sobject)
 
@@ -307,7 +308,7 @@ process_seurat_atac <- function(sobject,
         Signac::FindTopFeatures(min.cutoff = "q0", verbose = verbose) %>%
         Signac::RunSVD(verbose = verbose) %>%
         Seurat::FindNeighbors(reduction = "lsi", verbose = verbose) %>%
-        Seurat::FindClusters(algorithm = 3, verbose = verbose) %>%
+        Seurat::FindClusters(algorithm = 3, verbose = verbose, resolution = resolution) %>%
         Seurat::RunUMAP(reduction = "lsi",
                         dims = umap_dims,
                         verbose = verbose,
