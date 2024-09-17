@@ -1,3 +1,7 @@
+# rrrSingleCellUtils 0.14.0
+
+- Removed all of the functions associated with automated processing of raw data. This code is now in the rrrAutoProcess package. This was done as the code was getting too complex and the code was also very specifically tailored to our software environment, which really limits it's general use. This package will now focus on post processing of data and analysis of data.
+
 # rrrSingleCellUtils 0.13.0
 
 - Added in new function annotate_celltypes() which is a wrapper for SingleR to annotate cell types in a Seurat object.
