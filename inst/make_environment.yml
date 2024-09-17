@@ -1,0 +1,15 @@
+name: r_rna_velo
+channels:
+    - conda-forge
+    - bioconda
+dependencies:
+    - numpy=1.26.4
+    - cython=3.0.10
+    - pandas=2.2.2
+    - matplotlib=3.8.4
+    - pip
+    - pip:
+        - git+https://github.com/theislab/scvelo@main
+        - anndata==0.10.7
+        - velocyto
+        - loompy

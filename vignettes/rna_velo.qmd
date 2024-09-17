@@ -1,0 +1,184 @@
+---
+title: "RNA Velocity Analysis in {rrrSingleCellUtils}"
+output: rmarkdown
+vignette: >
+    %\VignetteIndexEntry{Basics of rrrSingleCellUtils}
+    %\VignetteEngine{quarto::html}
+    %\VignetteEncoding{UTF-8}
+---
+
+# Outline
+
+This vignette is to demonstrate the RNA velocity pipeline for the Roberts' Lab. It will be split up into multiple steps. The first step once we have a seurat object of interest is to create the loom files for all samples present in the object. Next, we write off metadata from each sample present in our object into a csv to pass into python. Lastly, we recreate our Seurat object as an anndata object in python with all the appropriate RNA velocity information in our object.
+
+RNA velocity analysis using scVelo uses the relationship between unspliced and spliced mRNA to infer whether or not a gene is being up/down-regulated or in a steady-state. This model calculates a set of high-dimension velocity vectors in the gene expression space for each individual cell. These velocities across genes are then used to estimate the future state of a cell, which is represented by a low-dimensional embedding of cell-to-cell transition probabilities. This resulting n_obs x n_obs velocity matrix is projected onto an embedding (we'll use UMAP in this case) and is used to visualize the likely cell-to-cell changes that are occuring in our data.
+
+# Libraries
+
+```{r r_libraries}
+library(Seurat)
+library(rrrSingleCellUtils)
+library(tidyverse)
+```
+
+# Load in Data
+
+For this demo I'm going to use an object from Yogesh's osteosarcoma atlas.
+
+```{r load-in-object}
+#| eval=FALSE
+sobj <-
+    qs::qread("/home/gdrobertslab/lab/Analysis/Yogesh/CellTypeAnnRefs/output/seurat_objects/tumor_vs_stroma/mm_mets_cancer_cells.qs") %>%
+    process_seurat()
+
+table(sobj$sample_name)
+
+DimPlot(sobj, label = TRUE)
+```
+
+This is an object with cancer cells from five different samples: S0067, S0068, S0075, S0122, and S0246.
+
+# Make Loom Files
+
+The first step after the usual quality control steps is to make loom files for each of the sample ID's in our object. Loom files are a data format for holding large 'omics datasets efficiently. This will be created from the bam files in order to get an idea of the spliced and unspliced RNA fragments. We'll use the function `r_make_loom_files`.
+
+Before we start, we're going to make a list of our bam files. This will be passed to the function in order to generate loom files from the bams. Note that the entire bam won't be used, only the rows that match barcodes in our object.
+
+```{r make-bam-list}
+#| eval=FALSE
+bams <- lapply(unique(sobj$sample_name), function(x) {
+    paste0("/home/gdrobertslab/lab/Counts_2/", x, "/possorted_genome_bam.bam")
+})
+#make names of bams the sample id's
+names(bams) <- unique(sobj$sample_name)
+```
+
+It's important that the names of the entries in our bam list matches the Sample ID's.
+
+Some helpful info about the arguments:
+    loom_dir is the relative path to a folder you want your loom files to be output to
+    id_col is the name of the metadata column in which sample ID's can be found. In this case it is `sample_name`
+    species determines what genome to align the bam sequences to
+
+Additionally, this function will create a conda environment named r_rna_velo in the location of the user's rrrSingleCellUtils installation.
+
+```{r make-loom-files}
+#| eval=FALSE
+start <- Sys.time()
+r_make_loom_files(sobj = sobj,
+                  out_dir = "loom_files/",
+                  id_col = "sample_name",
+                  species = "mouse",
+                  bam_paths = bams,
+                  cluster_account = "gdrobertslab")
+end <- Sys.time()
+
+end - start
+```
+
+# Write off Metadata
+
+Now that our loom files are made using velocyto, the last step we have to make before using scVelo to analyze our loom files is to write off metadata from the seurat object. This enables us to add metadata to our eventual anndata object (the pythonian counterpart of a Seurat object). In addition to metadata columns chosen by the user, all reductions will be saved off into metadata as well.
+
+Again we'll need to specify what column the Sample ID's are held in. We also are going to write off the `seurat_clusters` column for visualizing the velocity stream.
+
+```{r save-off-metadata}
+#| eval=FALSE
+write_off_md(sobj = sobj,
+             id_col = "sample_name",
+             output_dir = "metadata",
+             vars_to_keep = c("sample_name", "seurat_clusters"))
+```
+
+Ok everyone, hold onto your seatbelts, we are about to leave R dimension and enter into ... THE PYTHON-VERSE
+
+  (sssssss)
+{^}
+ /\
+/..\
+| |
+\ \
+ | |       ^
+ \ \      //
+  \_\____//
+
+# Convert to Anndata Object
+
+Now that we're in the python-verse, it's important to get our luggage that we left behind in R. Luckily, this is fairly straightforward since we have our loom files and metadata saved off.
+
+## Activate Conda Environment
+
+In order to work in python, though, we'll need to activate the conda environment created in the r_make_loom_files function. This can be found by running the following R command: `find.package("rrrSingleCellUtils")` and appending "/r_rna_velo" to the value of that expression.
+
+Run the following line before launching python from a bash terminal:
+
+```{bash activate-env, eval=FALSE}
+#| eval=FALSE
+conda activate /home/gdrobertslab/mjg015/R/x86_64-pc-linux-gnu-library/4.3/rrrSingleCellUtils/r_rna_velo
+```
+
+## Create Anndata
+
+Before executing python code we need to import our libraries.
+
+```{python py_libraries}
+#| eval=FALSE
+import anndata
+import scvelo as scv
+import pandas as pd
+import numpy as np
+import matplotlib as plt
+import scanpy as sc
+import os
+```
+
+Now we can finally read in our loom files and create our anndata object with all the appropriate metadata.
+
+Note that the file paths to metadata and the loom files should be changed in accordance with what you named those directories.
+
+```{python create-anndata}
+#| eval=FALSE
+#get names of loom files
+loom_files = os.listdir("loom_files")
+
+#initialize list to hold anndata objects
+ad_obs = []
+
+#Read in objects and add to anndata list
+for one_loom in loom_files:
+    #get sample id from file name
+    sample_id = one_loom[0:5:1]
+    #add object to list
+    tmp = anndata.read_loom("loom_files/" + one_loom)
+    #read in metadata file
+    md_path = "metadata/" + sample_id + "_metadata.csv"
+    metadata = pd.read_csv(md_path, index_col = "bc")
+    tmp.obs = metadata.filter(regex = '^(?!umap_|PC_|fdl_|harmony_).*$').reindex(tmp.obs.index)
+    #Add pca embeddings
+    tmp.obsm["X_pca"] = metadata.filter(regex = "PC_").reindex(tmp.obs.index).to_numpy()
+    #Add umap embeddings
+    tmp.obsm["X_umap"] = metadata.filter(regex = "umap_").reindex(tmp.obs.index).to_numpy()
+    #add fdl embeddings
+    tmp.obsm["X_fdl"] = metadata.filter(regex = "fdl_").reindex(tmp.obs.index).to_numpy()
+    #add harmony embeddings
+    tmp.obsm["X_harmony"] = metadata.filter(regex = "harmony_").reindex(tmp.obs.index).to_numpy()
+    #make var names unique (this step is necessary to merge anndata list)
+    tmp.var_names_make_unique()
+    #add object to list
+    ad_obs.append(tmp)
+
+#merge anndata list
+merged_anndata = anndata.concat(ad_obs)
+```
+
+At this point we've essentially recreated our Seurat object as an Anndata object in python! Now we can run it through the scVelo pipeline. Note that I will only be showing the creation of the velocity stream plot and that there is much more you can do with scVelo. For more information visit https://scvelo.readthedocs.io/en/stable/about.html
+
+```{python run-scvelo}
+#| eval=FALSE
+sc.pp.neighbors(merged_anndata, n_pcs = 30, n_neighbors = 30)
+scv.pp.moments(merged_anndata)
+scv.tl.velocity(merged_anndata, mode = "stochastic")
+scv.tl.velocity_graph(merged_anndata)
+scv.pl.velocity_embedding(merged_anndata, basis = "umap", color = "seurat_clusters")
+scv.pl.velocity_embedding_stream(merged_anndata, basis = "umap", color = "seurat_clusters")
+```
