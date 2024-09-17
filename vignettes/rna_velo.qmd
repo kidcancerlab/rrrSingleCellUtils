@@ -15,7 +15,7 @@ RNA velocity analysis using scVelo uses the relationship between unspliced and s
 
 # Libraries
 
-```{r libraries}
+```{r r_libraries}
 library(Seurat)
 library(rrrSingleCellUtils)
 library(tidyverse)
@@ -26,6 +26,7 @@ library(tidyverse)
 For this demo I'm going to use an object from Yogesh's osteosarcoma atlas.
 
 ```{r load-in-object}
+#| eval=FALSE
 sobj <-
     qs::qread("/home/gdrobertslab/lab/Analysis/Yogesh/CellTypeAnnRefs/output/seurat_objects/tumor_vs_stroma/mm_mets_cancer_cells.qs") %>%
     process_seurat()
@@ -44,6 +45,7 @@ The first step after the usual quality control steps is to make loom files for e
 Before we start, we're going to make a list of our bam files. This will be passed to the function in order to generate loom files from the bams. Note that the entire bam won't be used, only the rows that match barcodes in our object.
 
 ```{r make-bam-list}
+#| eval=FALSE
 bams <- lapply(unique(sobj$sample_name), function(x) {
     paste0("/home/gdrobertslab/lab/Counts_2/", x, "/possorted_genome_bam.bam")
 })
@@ -61,9 +63,10 @@ Some helpful info about the arguments:
 Additionally, this function will create a conda environment named r_rna_velo in the location of the user's rrrSingleCellUtils installation.
 
 ```{r make-loom-files}
+#| eval=FALSE
 start <- Sys.time()
 r_make_loom_files(sobj = sobj,
-                  loom_dir = "loom_files/",
+                  out_dir = "loom_files/",
                   id_col = "sample_name",
                   species = "mouse",
                   bam_paths = bams,
@@ -80,6 +83,7 @@ Now that our loom files are made using velocyto, the last step we have to make b
 Again we'll need to specify what column the Sample ID's are held in. We also are going to write off the `seurat_clusters` column for visualizing the velocity stream.
 
 ```{r save-off-metadata}
+#| eval=FALSE
 write_off_md(sobj = sobj,
              id_col = "sample_name",
              output_dir = "metadata",
@@ -109,6 +113,7 @@ In order to work in python, though, we'll need to activate the conda environment
 Run the following line before launching python from a bash terminal:
 
 ```{bash activate-env, eval=FALSE}
+#| eval=FALSE
 conda activate /home/gdrobertslab/mjg015/R/x86_64-pc-linux-gnu-library/4.3/rrrSingleCellUtils/r_rna_velo
 ```
 
@@ -116,7 +121,8 @@ conda activate /home/gdrobertslab/mjg015/R/x86_64-pc-linux-gnu-library/4.3/rrrSi
 
 Before executing python code we need to import our libraries.
 
-```{python libraries}
+```{python py_libraries}
+#| eval=FALSE
 import anndata
 import scvelo as scv
 import pandas as pd
@@ -131,6 +137,7 @@ Now we can finally read in our loom files and create our anndata object with all
 Note that the file paths to metadata and the loom files should be changed in accordance with what you named those directories.
 
 ```{python create-anndata}
+#| eval=FALSE
 #get names of loom files
 loom_files = os.listdir("loom_files")
 
@@ -167,6 +174,7 @@ merged_anndata = anndata.concat(ad_obs)
 At this point we've essentially recreated our Seurat object as an Anndata object in python! Now we can run it through the scVelo pipeline. Note that I will only be showing the creation of the velocity stream plot and that there is much more you can do with scVelo. For more information visit https://scvelo.readthedocs.io/en/stable/about.html
 
 ```{python run-scvelo}
+#| eval=FALSE
 sc.pp.neighbors(merged_anndata, n_pcs = 30, n_neighbors = 30)
 scv.pp.moments(merged_anndata)
 scv.tl.velocity(merged_anndata, mode = "stochastic")
