@@ -6,7 +6,8 @@
 \usage{
 r_make_loom_files(
   sobj,
-  loom_dir = "loom_files/",
+  sobj_name = NULL,
+  out_dir = "loom_output/",
   id_col = NULL,
   species,
   bam_paths,
@@ -18,8 +19,11 @@ r_make_loom_files(
 \arguments{
 \item{sobj}{Seurat object you want to run velocity analysis}
 
-\item{loom_dir}{Folder to output loom files to. By default will create a
-directory in your working directory called loom_files}
+\item{sobj_name}{Optional, name of your seurat object for specifying output
+when the same sample has a loom created for multiple objects.}
+
+\item{out_dir}{Folder to output loom files and sbatch output to. By default
+will create a directory in your working directory called loom_output}
 
 \item{id_col}{Name of metadata column marking what sample a given cell is
 from.}

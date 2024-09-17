@@ -20,9 +20,9 @@
 #' take your seurat object and generate loom files using only the cells present
 #' in your seurat object. The loom files can then be used to run velocity
 #' analysis using scVelo.
-#' 
+#'
 #' @return A loom file for each unique ID present in id_col, output to loom_dir.
-#' 
+#'
 #' @export
 
 r_make_loom_files <- function(sobj,
@@ -35,7 +35,7 @@ r_make_loom_files <- function(sobj,
                               slurm_base = paste0(getwd(), "/slurmOut"),
                               sbatch_base = "sbatch_") {
     system(paste0("mkdir ", out_dir))
-    
+
     #make out_dir end with a /
     out_dir <- ifelse(endsWith(out_dir, "/"),
                       out_dir,
@@ -98,10 +98,10 @@ r_make_loom_files <- function(sobj,
                   "/output"))
 
     #Make directory for loom files
-    if(!dir.exists(loom_dir)) dir.create(loom_dir)
-    
+    if (!dir.exists(loom_dir)) dir.create(loom_dir)
+
     #optionally create tmp_bcs
-    if(!dir.exists(paste0(out_dir, "tmp_bcs"))) {
+    if (!dir.exists(paste0(out_dir, "tmp_bcs"))) {
         dir.create(paste0(out_dir, "tmp_bcs"))
     }
 
@@ -111,7 +111,7 @@ r_make_loom_files <- function(sobj,
         #make temporary directory with barcodes for current sample
         bcs <- colnames(sobj)[sobj@meta.data[[id_col]] == id]
         #Remove any additional things added to barcode
-        bcs <- unlist(str_extract_all(bcs, "[ATGC]{16}\\-[0-9]"))
+        bcs <- unlist(stringr::str_extract_all(bcs, "[ATGC]{16}\\-[0-9]"))
         bc_path <- paste0(out_dir, "tmp_bcs/", id, ".tsv")
         write.table(bcs,
                     bc_path,
@@ -154,16 +154,18 @@ r_make_loom_files <- function(sobj,
     id_array <- paste(ids, collapse = " ")
 
     replace_tbl <-
-        tribble(~find, ~replace,
-                "placeholder_account", cluster_account,
-                "placeholder_slurm_out", paste0(sbatch_dir, "/output/"),
-                "placeholder_loom_dir", loom_dir,
-                "placeholder_env_path", env_path,
-                "placeholder_gtf_file", paste0(species, "_genes.gtf"),
-                "placeholder_max_array", as.character(length(ids) - 1),
-                "placeholder_id_array", id_array,
-                "placeholder_sobj_name", sobj_name,
-                "placeholder_out_dir", out_dir)
+        tibble::tribble(
+            ~find,                      ~replace,
+            "placeholder_account",      cluster_account,
+            "placeholder_slurm_out",    paste0(sbatch_dir, "/output/"),
+            "placeholder_loom_dir",     loom_dir,
+            "placeholder_env_path",     env_path,
+            "placeholder_gtf_file",     paste0(species, "_genes.gtf"),
+            "placeholder_max_array",    as.character(length(ids) - 1),
+            "placeholder_id_array",     id_array,
+            "placeholder_sobj_name",    sobj_name,
+            "placeholder_out_dir",      out_dir
+        )
 
     use_sbatch_template(replace_tibble = replace_tbl,
                         template = paste0(rrrscu, "/make_loom_files.sh"),
@@ -217,8 +219,12 @@ write_off_md <- function(sobj,
     for (id in samp_ids) {
         #subset object for current id
         tmp_ob <- sobj[, sobj@meta.data[[id_col]] == id]
-        tmp_md <- dplyr::select(tmp_ob@meta.data, any_of(vars_to_keep)) %>%
-            rownames_to_column("bc")
+        tmp_md <-
+            dplyr::select(
+                tmp_ob@meta.data,
+                dplyr::any_of(vars_to_keep)
+            ) %>%
+            tibble::rownames_to_column("bc")
 
         #save off reduction coordinates if present
         for (red in names(tmp_ob@reductions)) {
@@ -229,16 +235,30 @@ write_off_md <- function(sobj,
         #change rownames so they match format in the loom files
         #account for case of n = 1
         if (nrow(tmp_md) == 1) {
-            tmp_md$bc <- paste0(id,
-                                ":",
-                                unlist(stringr::str_extract_all(tmp_md$bc, "[ATGC]{16}\\-[0-9]")))
-        } else {
-
             tmp_md$bc <-
-                paste0(id,
-                       ":",
-                       unlist(stringr::str_extract_all(tmp_md$bc, "[A T G C]{16}")),
-                       "x")
+                paste0(
+                    id,
+                    ":",
+                    unlist(
+                        stringr::str_extract_all(
+                            tmp_md$bc,
+                            "[ATGC]{16}\\-[0-9]"
+                        )
+                    )
+                )
+        } else {
+            tmp_md$bc <-
+                paste0(
+                    id,
+                    ":",
+                    unlist(
+                        stringr::str_extract_all(
+                            tmp_md$bc,
+                            "[A T G C]{16}"
+                        )
+                    ),
+                    "x"
+                )
         }
 
         #write off metadata file
