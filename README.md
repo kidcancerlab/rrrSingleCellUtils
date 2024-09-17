@@ -28,16 +28,6 @@
     * Regress out cell cycle effects
   * plot_cc()
     * Plot the proportion of cells in each cell cycle stage
-  * process_raw_data
-    * This is a wrapper for several functions to get and process single
-    cell data from the NCH IGM core. I have built the defaults to be specific to
-    the Roberts lab, so you may need to carefully change the defaults if you
-    want to use it outside of this context. The input is a link to data and a
-    sample sheet that outlines the information about each sample (see
-    inst/exampleSampleInfoSheet.txt - Column headers must remain unchanged). The
-    data are then downloaded using smbclient and then md5sum checked and
-    untar’d. The data are then processed with cellranger mkfastq and either
-    cellranger count or cellranger-dna cnv (depending on the exp_type argument).
 
 ### Still in testing
 
@@ -47,21 +37,15 @@
 
   * Make arguments inherit documentation from other functions instead of re-typing them
   * Add argument to provide path to cellranger
-  * Add argument to specify bcl2fastq path or module
   * Vignette
-  * Function to check sample sheet
   * For multiomics, make sure both atac and gex are present in sample input sheet, and not as "sample1_atac" and "sample1_gex", which will fail. Should be "sample1" and "sample1" for both.
   * Try out snp calling: https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1863-4
   * In tenx_load_qc, check if all data is filtered out or sobj is empty
   * Figure out multiomic FRiP calculation and see if I need to divide by 2
     * https://support.10xgenomics.com/single-cell-multiome-atac-gex/software/pipelines/latest/algorithms/overview
-  * Change make_sobj to be a sbatch script
-  * in getProcessData.R, change sbatch submissions to use use_sbatch_template()
   * Make optimize_silhouette warn if there are no dim reductions or clustering present
   * Try out snp calling: https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1863-4
   * In tenx_load_qc, check if all data is filtered out or sobj is empty
-  * Change make_sobj to be a sbatch script
-  * in getProcessData.R, change sbatch submissions to use use_sbatch_template()
 
 ---
 
