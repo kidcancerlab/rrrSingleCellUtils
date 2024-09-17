@@ -179,6 +179,8 @@ r_make_loom_files <- function(sobj,
 #' @param output_dir The directory you wish to save your metadata to
 #' @param vars_to_keep Metadata columns you want saved off along with sample_id
 #' and UMAP and PCA embeddings
+#' @param handle_n_of_1 boolean saying whether or not you want to handle the special
+#' case when a sample has only one observation
 #'
 #' @details This is a helper function for running RNA velocity analysis. While
 #' your Seurat object may contain multiple samples, the loom files are
@@ -196,7 +198,8 @@ r_make_loom_files <- function(sobj,
 write_off_md <- function(sobj,
                          id_col,
                          output_dir,
-                         vars_to_keep = NULL) {
+                         vars_to_keep = NULL,
+                         handle_n_of_1 = TRUE) {
 
     output_dir <- ifelse(endsWith(output_dir, "/"),
                          substr(output_dir, 1, nchar(output_dir) - 1),
@@ -228,7 +231,7 @@ write_off_md <- function(sobj,
 
         #change rownames so they match format in the loom files
         #account for case of n = 1
-        if (nrow(tmp_md) == 1) {
+        if (nrow(tmp_md) == 1 & handle_n_of_1) {
             tmp_md$bc <- paste0(id,
                                 ":",
                                 unlist(stringr::str_extract_all(tmp_md$bc, "[ATGC]{16}\\-[0-9]")))
