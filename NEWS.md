@@ -1,3 +1,7 @@
+# rrrSingleCellUtils 0.15.0
+
+- Added in functionality and a vignette written by Matt Gust to do velocity analysis on a Seurat object.
+
 # rrrSingleCellUtils 0.14.0
 
 - Removed all of the functions associated with automated processing of raw data. This code is now in the rrrAutoProcess package. This was done as the code was getting too complex and the code was also very specifically tailored to our software environment, which really limits it's general use. This package will now focus on post processing of data and analysis of data.
