@@ -413,6 +413,7 @@ process_ltbc <- function(sobject, cid_lt, histogram = FALSE,
 #' @param cc_regress If set to Y, the process with run without user input and
 #'     will automatically proceed to cell cycle regression. If set to Ask, will
 #'     prompt the user. If set to N no regression will be performed.
+#' @param show_plots Should the plots be printed?
 #' @param find_pcs Number of principal components to generate in the re-do PCA
 #'     post-CC regression
 #' @param use_pcs Number of principal components to use in the post-regression
@@ -441,8 +442,13 @@ process_ltbc <- function(sobject, cid_lt, histogram = FALSE,
 #' load("~/analyses/roberts/dev/rrrSingleCellUtils/testData/test_cc.RData")
 #' test <- kill_cc(os, use_pcs = 5, cc_regress = "Y")
 #' }
-kill_cc <- function(sobject, cc_regress = "N", find_pcs = 20, use_pcs = 3,
-                    use_res = 0.5, method = "umap") {
+kill_cc <- function(sobject,
+                    cc_regress = "N",
+                    show_plots = TRUE,
+                    find_pcs = 20,
+                    use_pcs = 3,
+                    use_res = 0.5,
+                    method = "umap") {
   sobject <- Seurat::CellCycleScoring(sobject,
                                       s.features = Seurat::cc.genes$s.genes,
                                       g2m.features = Seurat::cc.genes$g2m.genes,
@@ -459,7 +465,9 @@ kill_cc <- function(sobject, cc_regress = "N", find_pcs = 20, use_pcs = 3,
                     pt.size = 1) +
     theme_roberts()
 
-  print(plot_cc)
+  if (show_plots) {
+    print(plot_cc)
+  }
 
   if (cc_regress == "Ask") {
     cc_regress <-
@@ -485,18 +493,20 @@ kill_cc <- function(sobject, cc_regress = "N", find_pcs = 20, use_pcs = 3,
 
     sobject <- Seurat::FindClusters(sobject, resolution = use_res)
 
-    print(Seurat::DimPlot(sobject,
-                          reduction = method,
-                          label = TRUE,
-                          pt.size = 1,
-                          group.by = "Phase") +
-            theme_roberts())
+    if (show_plots) {
+        print(Seurat::DimPlot(sobject,
+                            reduction = method,
+                            label = TRUE,
+                            pt.size = 1,
+                            group.by = "Phase") +
+                theme_roberts())
 
-    print(Seurat::DimPlot(sobject,
-                          reduction = method,
-                          label = TRUE,
-                          pt.size = 1) +
-            theme_roberts())
+        print(Seurat::DimPlot(sobject,
+                            reduction = method,
+                            label = TRUE,
+                            pt.size = 1) +
+                theme_roberts())
+    }
 
   } else {
     print("No CC regression performed.")

@@ -7,6 +7,7 @@
 kill_cc(
   sobject,
   cc_regress = "N",
+  show_plots = TRUE,
   find_pcs = 20,
   use_pcs = 3,
   use_res = 0.5,
@@ -19,6 +20,8 @@ kill_cc(
 \item{cc_regress}{If set to Y, the process with run without user input and
 will automatically proceed to cell cycle regression. If set to Ask, will
 prompt the user. If set to N no regression will be performed.}
+
+\item{show_plots}{Should the plots be printed?}
 
 \item{find_pcs}{Number of principal components to generate in the re-do PCA
 post-CC regression}
