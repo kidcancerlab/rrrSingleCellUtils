@@ -288,6 +288,8 @@ add_atac_metadata <- function(sobject,
 #' @param assay Assay that has the ATAC data
 #' @param verbose Should functions be verbose?
 #' @param umap_dims PCA dimensions to use for UMAP
+#' @param resolution Resolution to be used in FindClusters
+#' @param reduction What reduction to be used to generate umap
 #'
 #' @export
 #'
@@ -298,7 +300,8 @@ process_seurat_atac <- function(sobject,
                                 assay = "ATAC",
                                 verbose = FALSE,
                                 umap_dims = 2:30,
-                                resolution = 0.3) {
+                                resolution = 0.3,
+                                reduction = "lsi") {
     # Save current assay so we can reset it later
     old_active_ident <- Seurat::DefaultAssay(sobject)
 
@@ -307,9 +310,9 @@ process_seurat_atac <- function(sobject,
         Signac::RunTFIDF(verbose = verbose) %>%
         Signac::FindTopFeatures(min.cutoff = "q0", verbose = verbose) %>%
         Signac::RunSVD(verbose = verbose) %>%
-        Seurat::FindNeighbors(reduction = "lsi", verbose = verbose) %>%
+        Seurat::FindNeighbors(reduction = reduction, verbose = verbose) %>%
         Seurat::FindClusters(algorithm = 3, verbose = verbose, resolution = resolution) %>%
-        Seurat::RunUMAP(reduction = "lsi",
+        Seurat::RunUMAP(reduction = reduction,
                         dims = umap_dims,
                         verbose = verbose,
                         reduction.name = "umap_atac")
