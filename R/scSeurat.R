@@ -410,6 +410,7 @@ process_ltbc <- function(sobject, cid_lt, histogram = FALSE,
 #' Regress out cell cycle effects
 #'
 #' @param sobject Seurat object to be processed
+#' @param species What species does your data represent? "human" or "mouse"
 #' @param cc_regress If set to Y, the process with run without user input and
 #'     will automatically proceed to cell cycle regression. If set to Ask, will
 #'     prompt the user. If set to N no regression will be performed.
@@ -443,15 +444,18 @@ process_ltbc <- function(sobject, cid_lt, histogram = FALSE,
 #' test <- kill_cc(os, use_pcs = 5, cc_regress = "Y")
 #' }
 kill_cc <- function(sobject,
+                    species = "human",
                     cc_regress = "N",
                     show_plots = TRUE,
                     find_pcs = 20,
                     use_pcs = 3,
                     use_res = 0.5,
                     method = "umap") {
+  cc_genes <- get_cell_cycle_genes(species = species)
+
   sobject <- Seurat::CellCycleScoring(sobject,
-                                      s.features = Seurat::cc.genes$s.genes,
-                                      g2m.features = Seurat::cc.genes$g2m.genes,
+                                      s.features = cc_genes$s_features,
+                                      g2m.features = cc_genes$g2m_features,
                                       set.ident = TRUE)
 
   if (method != "umap" & method != "tsne") {
@@ -512,6 +516,46 @@ kill_cc <- function(sobject,
     print("No CC regression performed.")
   }
   return(sobject)
+}
+
+#' Get Cell Cycle Genes
+#'
+#' This function retrieves cell cycle genes for a specified species.
+#'
+#' @param species A character string specifying the species. 
+#'                Supported values are "human" and "mouse". Default is "human".
+#'
+#' @return A list containing S phase and G2M phase cell cycle genes.
+#'         - s_features: S phase genes
+#'         - g2m_features: G2M phase genes
+#'
+#' @keywords internal
+get_cell_cycle_genes <- function(species = "human") {
+    output <- list()
+    if (species == "human") {
+        output$s_features <- Seurat::cc.genes$s.genes
+        output$g2m_features <- Seurat::cc.genes$g2m.genes
+    } else if(species == "mouse") {
+        output$s_features <-
+            nichenetr::convert_human_to_mouse_symbols(
+                Seurat::cc.genes$s.genes
+            ) %>%
+            na.omit() %>%
+            as.vector()
+        output$g2m_features <-
+            nichenetr::convert_human_to_mouse_symbols(
+                Seurat::cc.genes$g2m.genes
+            ) %>%
+            na.omit() %>%
+            as.vector()
+    } else {
+        stop(
+          "species argument: ",
+          species,
+          " is not supported, only human/mouse"
+        )
+    }
+    return(output)
 }
 
 #' Plot Cell Cycle Distribution

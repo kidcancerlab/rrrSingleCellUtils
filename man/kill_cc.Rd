@@ -6,6 +6,7 @@
 \usage{
 kill_cc(
   sobject,
+  species = "human",
   cc_regress = "N",
   show_plots = TRUE,
   find_pcs = 20,
@@ -16,6 +17,8 @@ kill_cc(
 }
 \arguments{
 \item{sobject}{Seurat object to be processed}
+
+\item{species}{What species does your data represent? "human" or "mouse"}
 
 \item{cc_regress}{If set to Y, the process with run without user input and
 will automatically proceed to cell cycle regression. If set to Ask, will
