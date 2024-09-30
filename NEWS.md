@@ -1,3 +1,7 @@
+# rrrSingleCellUtils 0.16.0
+
+- Added in the option to specify the species (currently either mouse or human) when running `kill_cc()`. Also added the option not to plot the results of the function.
+
 # rrrSingleCellUtils 0.15.0
 
 - Added in functionality and a vignette written by Matt Gust to do velocity analysis on a Seurat object.
