@@ -9,7 +9,8 @@ process_seurat_atac(
   assay = "ATAC",
   verbose = FALSE,
   umap_dims = 2:30,
-  resolution = 0.3
+  resolution = 0.3,
+  reduction = "lsi"
 )
 }
 \arguments{
@@ -20,6 +21,10 @@ process_seurat_atac(
 \item{verbose}{Should functions be verbose?}
 
 \item{umap_dims}{PCA dimensions to use for UMAP}
+
+\item{resolution}{Resolution to be used in FindClusters}
+
+\item{reduction}{What reduction to be used to generate umap}
 }
 \value{
 A processed Seurat object

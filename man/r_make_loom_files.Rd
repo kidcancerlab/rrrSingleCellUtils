@@ -6,7 +6,7 @@
 \usage{
 r_make_loom_files(
   sobj,
-  sobj_name = NULL,
+  sobj_name = "",
   out_dir = "loom_output/",
   id_col = NULL,
   species,
@@ -29,7 +29,7 @@ will create a directory in your working directory called loom_output}
 from.}
 
 \item{species}{String communicating what species the cells are from.
-Value should be either "human" or "mouse".}
+Value should be either "human", "mouse", or "mixed" in the case of a PDX.}
 
 \item{bam_paths}{A named list or vector containing the bam files for each
 unique sample in id_col. Names should be the sample name and should match the
