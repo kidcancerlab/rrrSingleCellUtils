@@ -8,7 +8,7 @@
 #' @param id_col Name of metadata column marking what sample a given cell is
 #' from.
 #' @param species String communicating what species the cells are from.
-#' Value should be either "human" or "mouse".
+#' Value should be either "human", "mouse", or "mixed" in the case of a PDX.
 #' @param bam_paths A named list or vector containing the bam files for each
 #' unique sample in id_col. Names should be the sample name and should match the
 #' unique values in sobj[[id_col]]
@@ -26,7 +26,7 @@
 #' @export
 
 r_make_loom_files <- function(sobj,
-                              sobj_name = NULL,
+                              sobj_name = "",
                               out_dir = "loom_output/",
                               id_col = NULL,
                               species,
@@ -65,14 +65,17 @@ r_make_loom_files <- function(sobj,
 
 
     #get proper gtf file
-    if (species == "human") {
-        gtf_path <- "/home/gdrobertslab/lab/GenRef/10x-hg38/genes/genes.gtf.gz"
-    } else if (species == "mouse") {
-        gtf_path <- "/home/gdrobertslab/lab/GenRef/10x-mm10/genes/genes.gtf.gz"
+    gtf_list <- list("mixed" = "10x-hg38-mm10",
+                     "human" = "10x-hg38",
+                     "mouse" = "10x-mm10")
+    if (species %in% names(gtf_list)) {
+        gtf_path <- paste0("/home/gdrobertslab/lab/GenRef/",
+                           gtf_list[[species]],
+                           "/genes/genes.gtf.gz")
     } else {
         stop(paste("Unknown species.",
-                   "Species parameter must be either \"human\" or \"mouse\".",
-                   "Exiting..."))
+                   "Species parameter must be either \"human\", \"mouse\", or \"mixed\".",
+                   "Exiting"))
     }
 
     #Make local copy of gtf file and unzip
