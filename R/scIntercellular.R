@@ -112,7 +112,8 @@ find_ligands <- function(sobject, gset, receiver, senders, gset_spec = "human",
                         rec_pct = 0.10, rec_spec = "human", send_pct = 0.10,
                         send_spec = "human", stringency = "loose",
                         d_plot = TRUE, lt_vis = TRUE, lr_vis = TRUE,
-                        n_best = 20) {
+                        n_best = 20,
+                        show_plots = TRUE) {
 
   if (is.null(rrr_env$ligands)) {
     load_lig_receptor_data()
@@ -275,7 +276,9 @@ find_ligands <- function(sobject, gset, receiver, senders, gset_spec = "human",
                                      x_axis_position = "top",
                                      legend_title = "Regulatory potential") +
       ggplot2::theme(axis.text.x = ggplot2::element_text(face = "italic"))
-    print(ltv)
+    if (show_plots) {
+        print(ltv)
+    }
   } else {
     ltv <- NULL
   }
@@ -341,7 +344,9 @@ find_ligands <- function(sobject, gset, receiver, senders, gset_spec = "human",
                                           vis_ligand_receptor_network)),
                                         cols = c("gray95", "sienna3")) &
       Seurat::RotatedAxis()
-    print(dotplot_reciever)
+    if (show_plots) {
+        print(dotplot_reciever)
+    }
 
     dotplot_ligand <- Seurat::DotPlot(subset(sobject, idents = senders),
                                       features = rev(colnames(
@@ -349,7 +354,9 @@ find_ligands <- function(sobject, gset, receiver, senders, gset_spec = "human",
                                       cols = c("gray95", "sienna3")) &
       Seurat::RotatedAxis() &
       ggplot2::coord_flip()
-    print(dotplot_ligand)
+    if (show_plots) {
+        print(dotplot_ligand)
+    }
   }
 
   # If requested, create a ligand-receptor visualization graph, weighted by
@@ -362,7 +369,9 @@ find_ligands <- function(sobject, gset, receiver, senders, gset_spec = "human",
                           x_axis_position = "top",
                           legend_title = "Prior interaction potential",
                           color = "darkseagreen3")
-    print(lrv)
+    if (show_plots) {
+        print(lrv)
+    }
   } else {
     lrv <- NULL
   }
