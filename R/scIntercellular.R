@@ -367,13 +367,13 @@ find_ligands <- function(sobject, gset, receiver, senders, gset_spec = "human",
     lrv <- NULL
   }
 
-  return.list <- list(dotplot_ligand,
-                      dotplot_reciever,
-                      ltv,
-                      lrv,
-                      ligand_activities,
-                      vis_ligand_target,
-                      vis_ligand_receptor_network)
+  return.list <- list(dotplot_ligand            = dotplot_ligand,
+                      dotplot_receiver          = dotplot_reciever,
+                      ligand_target_heatmap     = ltv,
+                      ligand_receiver_heatmap   = lrv,
+                      ligand_activities         = ligand_activities,
+                      ligand_target_matrix      = vis_ligand_target,
+                      ligand_receptor_matrix    = vis_ligand_receptor_network)
 
 }
 
