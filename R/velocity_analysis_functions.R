@@ -7,8 +7,8 @@
 #' will create a directory in your working directory called loom_output
 #' @param id_col Name of metadata column marking what sample a given cell is
 #' from.
-#' @param species String communicating what species the cells are from.
-#' Value should be either "human", "mouse", or "mixed" in the case of a PDX.
+#' @param gtf_path String containing a path to the gtf file to which your
+#' samples were aligned.
 #' @param bam_paths A named list or vector containing the bam files for each
 #' unique sample in id_col. Names should be the sample name and should match the
 #' unique values in sobj[[id_col]]
@@ -69,11 +69,14 @@ r_make_loom_files <- function(sobj,
     if (!file.exists(gtf_path)) stop(paste("gtf file not found"))
 
     #Make local copy of gtf file and unzip
-    system(paste("cp",
-                 gtf_path,
-                 "tmp_genes.gtf.gz; gunzip tmp_genes.gtf.gz"))
-
-    #Make directories for sbatch files and slurm output
+    if (endsWith(gtf_path, ".gz")) {
+        system(paste("cp",
+                     gtf_path,
+                     "tmp_genes.gtf.gz; gunzip tmp_genes.gtf.gz"))
+    } else {
+        system(paste("cp", gtf_path, "tmp_genes.gtf"))
+    }
+        #Make directories for sbatch files and slurm output
     sbatch_dir <- paste0(out_dir, "sbatch")
     system(paste0("mkdir ",
                   sbatch_dir,
