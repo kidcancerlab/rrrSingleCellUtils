@@ -62,6 +62,8 @@ echo "Just ran velocyto"
 
 rm -rf ${out_dir}${sampleid}_bams/
 
+rm tmp_genes.gtf
+
 sleep 60
 
 echo "Just deleted bams. Job's done"
