@@ -1,3 +1,7 @@
+# rrrSingleCellUtils 0.17.0
+
+Added an option to find_ligand() to not show the plots that are generated. Also added names to the returned list of results.
+
 # rrrSingleCellUtils 0.16.0
 
 - Added in the option to specify the species (currently either mouse or human) when running `kill_cc()`. Also added the option not to plot the results of the function.
