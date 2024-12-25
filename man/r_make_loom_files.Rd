@@ -9,7 +9,7 @@ r_make_loom_files(
   sobj_name = "",
   out_dir = "loom_output/",
   id_col = NULL,
-  species,
+  gtf_path,
   bam_paths,
   cluster_account,
   slurm_base = paste0(getwd(), "/slurmOut"),
@@ -28,9 +28,6 @@ will create a directory in your working directory called loom_output}
 \item{id_col}{Name of metadata column marking what sample a given cell is
 from.}
 
-\item{species}{String communicating what species the cells are from.
-Value should be either "human", "mouse", or "mixed" in the case of a PDX.}
-
 \item{bam_paths}{A named list or vector containing the bam files for each
 unique sample in id_col. Names should be the sample name and should match the
 unique values in sobj[[id_col]]}
@@ -40,6 +37,9 @@ unique values in sobj[[id_col]]}
 \item{slurm_base}{The directory to write slurm output files to.}
 
 \item{sbatch_base}{The prefix to use with the sbatch job file.}
+
+\item{species}{String communicating what species the cells are from.
+Value should be either "human", "mouse", or "mixed" in the case of a PDX.}
 }
 \value{
 A loom file for each unique ID present in id_col, output to loom_dir.
