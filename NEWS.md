@@ -1,6 +1,9 @@
+# rrrSingleCellUtils 0.18.0
+- Fixed a bug in merge_atac() where bed entries were not filtered properly.
+
 # rrrSingleCellUtils 0.17.0
 
-Added an option to find_ligand() to not show the plots that are generated. Also added names to the returned list of results.
+- Added an option to find_ligand() to not show the plots that are generated. Also added names to the returned list of results.
 
 # rrrSingleCellUtils 0.16.0
 
