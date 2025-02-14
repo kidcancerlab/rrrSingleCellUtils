@@ -7,8 +7,8 @@
 #' will create a directory in your working directory called loom_output
 #' @param id_col Name of metadata column marking what sample a given cell is
 #' from.
-#' @param species String communicating what species the cells are from.
-#' Value should be either "human", "mouse", or "mixed" in the case of a PDX.
+#' @param gtf_path String containing a path to the gtf file to which your
+#' samples were aligned.
 #' @param bam_paths A named list or vector containing the bam files for each
 #' unique sample in id_col. Names should be the sample name and should match the
 #' unique values in sobj[[id_col]]
@@ -29,7 +29,7 @@ r_make_loom_files <- function(sobj,
                               sobj_name = "",
                               out_dir = "loom_output/",
                               id_col = NULL,
-                              species,
+                              gtf_path,
                               bam_paths,
                               cluster_account,
                               slurm_base = paste0(getwd(), "/slurmOut"),
@@ -64,32 +64,19 @@ r_make_loom_files <- function(sobj,
     }
 
 
-    #get proper gtf file
-    gtf_list <- list("mixed" = "10x-hg38-mm10",
-                     "human" = "10x-hg38",
-                     "mouse" = "10x-mm10")
-    if (species %in% names(gtf_list)) {
-        gtf_path <- paste0("/home/gdrobertslab/lab/GenRef/",
-                           gtf_list[[species]],
-                           "/genes/genes.gtf.gz")
-    } else {
-        stop(paste("Unknown species.",
-                   "Species parameter must be either \"human\", \"mouse\", or \"mixed\".",
-                   "Exiting"))
-    }
+    #Check that gtf file exists
+    if (is.null(gtf_path)) stop(paste("please provide a path to the gtf.gz (gene annotation) file"))
+    if (!file.exists(gtf_path)) stop(paste("gtf file not found"))
 
     #Make local copy of gtf file and unzip
-    if (!file.exists(paste0(species, "_genes.gtf"))) {
-        system(paste0("cp ",
-                      gtf_path,
-                      " ",
-                      species,
-                      "_genes.gtf.gz; gunzip ",
-                      species,
-                      "_genes.gtf.gz"))
+    if (endsWith(gtf_path, ".gz")) {
+        system(paste("cp",
+                     gtf_path,
+                     "tmp_genes.gtf.gz; gunzip tmp_genes.gtf.gz"))
+    } else {
+        system(paste("cp", gtf_path, "tmp_genes.gtf"))
     }
-
-    #Make directories for sbatch files and slurm output
+        #Make directories for sbatch files and slurm output
     sbatch_dir <- paste0(out_dir, "sbatch")
     system(paste0("mkdir ",
                   sbatch_dir,
@@ -163,7 +150,7 @@ r_make_loom_files <- function(sobj,
             "placeholder_slurm_out",    paste0(sbatch_dir, "/output/"),
             "placeholder_loom_dir",     loom_dir,
             "placeholder_env_path",     env_path,
-            "placeholder_gtf_file",     paste0(species, "_genes.gtf"),
+            "placeholder_gtf_file",     "tmp_genes.gtf",
             "placeholder_max_array",    as.character(length(ids) - 1),
             "placeholder_id_array",     id_array,
             "placeholder_sobj_name",    sobj_name,

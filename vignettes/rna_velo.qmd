@@ -58,7 +58,7 @@ It's important that the names of the entries in our bam list matches the Sample 
 Some helpful info about the arguments:
     loom_dir is the relative path to a folder you want your loom files to be output to
     id_col is the name of the metadata column in which sample ID's can be found. In this case it is `sample_name`
-    species determines what genome to align the bam sequences to
+    gtf_path determines what genome to align the bam sequences to
 
 Additionally, this function will create a conda environment named r_rna_velo in the location of the user's rrrSingleCellUtils installation.
 
@@ -68,7 +68,7 @@ start <- Sys.time()
 r_make_loom_files(sobj = sobj,
                   out_dir = "loom_files/",
                   id_col = "sample_name",
-                  species = "mouse",
+                  gtf_path = "/home/gdrobertslab/lab/GenRef/10x-mm10/genes/genes.gtf.gz",
                   bam_paths = bams,
                   cluster_account = "gdrobertslab")
 end <- Sys.time()
