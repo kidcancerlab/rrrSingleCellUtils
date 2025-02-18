@@ -13,6 +13,10 @@
 #'  prior to annotation, see trainSingleR.
 #' @param label_type Either "label.main", "label.fine" or "label.ont" if using
 #'  species argument. Not needed otherwise
+#' @param add_ref Additional reference(s) to add to the existing reference. Must
+#'  be a list of SingleCellExperiment objects or something SingleR can handle.
+#' @param add_labels Additional label(s) to add to the existing labels. Must be
+#' a list of vectors.
 #' @param ... Other options passed to SingleR
 #'
 #' @return A seurat object with cell_type and cell_scores added to metadata
@@ -24,6 +28,8 @@ annotate_celltypes <- function(sobject,
                                labels,
                                aggr_ref = FALSE,
                                label_type = "label.main",
+                               add_ref,
+                               add_labels,
                                ...) {
     if (species == "human") {
         huim <- celldex::MonacoImmuneData()
@@ -81,6 +87,15 @@ annotate_celltypes <- function(sobject,
 
     if (missing(ref) || missing(labels)) {
         stop("Please provide either ref/labels or species argument(s)")
+    }
+
+    if (!missing(add_ref) && !missing(add_labels)) {
+        if (!is.list(add_ref) || !is.list(add_labels)) {
+            stop("add_ref and add_labels must be lists")
+        }
+
+        ref <- c(ref, add_ref)
+        labels <- c(labels, add_labels)
     }
 
     annotation <-
