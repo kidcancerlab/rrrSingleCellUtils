@@ -1,5 +1,146 @@
 #' Wrapper to Make Loom Files in R
 #'
+#' @param input_table Dataframe or tibble with columns titled "sample_id",
+#' "h5_path", "bam_path", and "gtf_path"
+#' @param out_dir Folder to output loom files and sbatch output to. By default
+#' will create a directory in your working directory called loom_output
+#' @param gtf_path String containing a path to the gtf file to which your
+#' samples were aligned.
+#' @param bam_paths A named list or vector containing the bam files for each
+#' unique sample in id_col. Names should be the sample name and should match the
+#' unique values in sobj[[id_col]]
+#' @param cluster_account Your Franklin cluster user ID.
+#' @param slurm_base The directory to write slurm output files to.
+#' @param sbatch_base The prefix to use with the sbatch job file.
+#'
+#' @details This is a wrapper function around velocyto's "run" command. It will
+#' take your seurat object and generate loom files using only the cells present
+#' in your seurat object. The loom files can then be used to run velocity
+#' analysis using scVelo.
+#'
+#' @return A loom file for each unique ID present in id_col, output to loom_dir.
+#'
+#' @export
+
+
+new_make_loom_files <- function(input_table,
+         out_dir = "loom_output/samples",
+         cluster_account,
+         slurm_base = paste0(getwd(), "/slurmOut"),
+         sbatch_base = "sbatch_") {
+    #Check for column names
+    if (!all((c("sample_id",
+                "h5_path",
+                "bam_path",
+                "gtf_path") %in% colnames(input_table)))) {
+        missing_cols <- setdiff(c("sample_id", "h5_path", "bam_path", "gtf_path"), #nolint
+                                colnames(input_table))
+        stop(paste("Columns",
+                   missing_cols,
+                   collapse = ", "),
+                   "not found in input table. Exiting...")
+    }
+
+    #Check all h5, bam, and gtf files exist
+    if (!all(file.exists(input_table$h5_path))) {
+        stop(paste("H5 files not found for",
+                   input_table$sample_id[which(!file.exists(input_table$h5_path))])) #nolint
+    }
+    if (!all(file.exists(input_table$bam_path))) {
+        stop(paste("bam files not found for",
+                   input_table$sample_id[which(!file.exists(input_table$bam_path))])) #nolint
+    }
+    if (!all(file.exists(input_table$gtf_path))) {
+        stop(paste("gtf files not found for",
+                   input_table$sample_id[which(!file.exists(input_table$gtf_path))])) #nolint
+    }
+
+    rownames(input_table) <- input_table$sample_id
+
+    #make out_dir end with a /
+    out_dir <- ifelse(endsWith(out_dir, "/"),
+                      out_dir,
+                      paste0(out_dir, "/"))
+
+    system(paste0("mkdir -p ", out_dir))
+
+    for (sid in rownames(input_table)) {
+        #make sample output folders
+        sid_out <- paste0(out_dir, sid)
+        system(paste0("mkdir -p", sid_out))
+
+        species <- input_table[sid, ]$species
+        new_gene_path <- paste0(sid_out, "/genes.gtf.gz")
+        system(paste("cp",
+                     input_table[sid, ]$gtf_path,
+                     new_gene_path))
+
+        #read in h5 object
+        h5_object <- Read10X_h5(input_table[sid, ]$h5_path)
+        #make sure only get gene expression data
+        if (class(h5_object) == "list") {
+            h5_object <- h5_object[["Gene Expression"]]
+        }
+
+        #make temporary directory with barcodes for current sample
+        bcs <- colnames(h5_object)
+        write.table(bcs,
+                    paste0(sid_out, "/tmp_bcs.tsv"),
+                    row.names = FALSE,
+                    col.names = FALSE,
+                    quote = FALSE)
+
+        #copy over bams
+        old_bam_path <- input_table[sid, ]$bam_path
+        tmp_bam_path <- paste0(sid_out, "/tmp_bam.bam")
+        if (!file.exists(tmp_bam_path)) {
+            system(paste("cp", old_bam_path, tmp_bam_path))
+        }
+    }
+    #Make conda environment
+    #going to make environment in location of R installation, it's likely
+    #that people won't have any conda environments here
+    #get location of rrrSingleCellUtils and append env name to it
+    rrrscu <- find.package("rrrSingleCellUtils")
+    env_path <- paste0(rrrscu, "/r_rna_velo")
+
+    #check conda environment doesn't exist before creating
+    conda_envs <- system("conda info --envs", intern = TRUE)
+
+    if (sum(grepl(pattern = env_path, x = conda_envs)) == 0) {
+        #only make conda environment if it doesn't already exist
+        exists_conda <-
+            system(paste0("conda env create -p ",
+                          env_path,
+                          " -f ",
+                          paste0(rrrscu,
+                                 "/make_environment.yml")))
+    }
+
+    #create bash array of sample_ids
+    ids <- rownames(input_table)
+    id_array <- paste(ids, collapse = " ")
+
+    replace_tbl <-
+        tibble::tribble(
+            ~find,                      ~replace,
+            "placeholder_account",      cluster_account,
+            "placeholder_slurm_out",    paste0(out_dir, "/sbatch/out_"),
+            "placeholder_slurm_error",  paste0(out_dir, "/sbatch/error_"),
+            "placeholder_env_path",     env_path,
+            "placeholder_max_array",    as.character(length(ids) - 1),
+            "placeholder_id_array",     id_array,
+            "placeholder_out_dir",      out_dir
+        )
+
+    use_sbatch_template(replace_tibble = replace_tbl,
+                        template = paste0("../../rrrSingleCellUtils/inst/make_loom_files_2.sh"),
+                        submit = TRUE,
+                        file_dir = paste0(sbatch_dir, "/jobs"))
+}
+
+#' Wrapper to Make Loom Files in R
+#'
 #' @param sobj Seurat object you want to run velocity analysis
 #' @param sobj_name Optional, name of your seurat object for specifying output
 #' when the same sample has a loom created for multiple objects.
@@ -171,8 +312,8 @@ r_make_loom_files <- function(sobj,
 #' @param output_dir The directory you wish to save your metadata to
 #' @param vars_to_keep Metadata columns you want saved off along with sample_id
 #' and UMAP and PCA embeddings
-#' @param handle_n_of_1 boolean saying whether or not you want to handle the special
-#' case when a sample has only one observation
+#' @param handle_n_of_1 boolean saying whether or not you want to handle the
+#' special case when a sample has only one observation
 #'
 #' @details This is a helper function for running RNA velocity analysis. While
 #' your Seurat object may contain multiple samples, the loom files are
