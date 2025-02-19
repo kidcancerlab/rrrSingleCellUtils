@@ -3,12 +3,9 @@
 #' @param input_table Dataframe or tibble with columns titled "sample_id",
 #' "h5_path", "bam_path", and "gtf_path"
 #' @param out_dir Folder to output loom files and sbatch output to. By default
-#' will create a directory in your working directory called loom_output
-#' @param gtf_path String containing a path to the gtf file to which your
-#' samples were aligned.
-#' @param bam_paths A named list or vector containing the bam files for each
-#' unique sample in id_col. Names should be the sample name and should match the
-#' unique values in sobj[[id_col]]
+#' will create a directory in your working directory called loom_output/samples.
+#' Each sample_id found in input_table will have its own directory within
+#' out_dir
 #' @param cluster_account Your Franklin cluster user ID.
 #' @param slurm_base The directory to write slurm output files to.
 #' @param sbatch_base The prefix to use with the sbatch job file.
@@ -16,7 +13,8 @@
 #' @details This is a wrapper function around velocyto's "run" command. It will
 #' take your seurat object and generate loom files using only the cells present
 #' in your seurat object. The loom files can then be used to run velocity
-#' analysis using scVelo.
+#' analysis using scVelo. Slurm error and std output will be written to
+#' out_dir/sample_id/.
 #'
 #' @return A loom file for each unique ID present in id_col, output to loom_dir.
 #'
@@ -70,10 +68,26 @@ new_make_loom_files <- function(input_table,
         system(paste0("mkdir -p", sid_out))
 
         species <- input_table[sid, ]$species
-        new_gene_path <- paste0(sid_out, "/genes.gtf.gz")
-        system(paste("cp",
-                     input_table[sid, ]$gtf_path,
-                     new_gene_path))
+
+        #Make local copy of gtf file and unzip
+        if (endsWith(input_table[sid, ]$gtf_path, ".gz")) {
+            new_gene_path <- paste0(sid_out, "/genes.gtf.gz")
+            system(paste0("cp ",
+                         input_table[sid, ]$gtf_path,
+                         " ",
+                         new_gene_path,
+                         "; gunzip ",
+                         new_gene_path,
+                         sid_out,
+                         "/genes.gtf"
+                         ))
+        } else {
+            system(paste0("cp ",
+                         input_table[sid, ]$gtf_path,
+                         " ",
+                         sid_out,
+                         "/genes.gtf"))
+        }
 
         #read in h5 object
         h5_object <- Read10X_h5(input_table[sid, ]$h5_path)
@@ -134,7 +148,7 @@ new_make_loom_files <- function(input_table,
         )
 
     use_sbatch_template(replace_tibble = replace_tbl,
-                        template = paste0("../../rrrSingleCellUtils/inst/make_loom_files_2.sh"),
+                        template = paste0(rrrscu, "make_loom_files_2.sh"),
                         submit = TRUE,
                         file_dir = paste0(sbatch_dir, "/jobs"))
 }
