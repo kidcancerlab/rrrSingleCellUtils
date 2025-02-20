@@ -189,6 +189,8 @@ write_off_md <- function(sobj,
                          substr(output_dir, 1, nchar(output_dir) - 1),
                          output_dir)
 
+    system(paste("mkdir -p", output_dir))
+
     #Make sure sample_id column exists
     if (is.null(id_col)) {
         stop(paste("No column with sample ID's provided.",
