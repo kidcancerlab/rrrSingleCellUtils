@@ -69,24 +69,27 @@ r_make_loom_files <- function(input_table,
         system(paste("mkdir -p", sid_out))
 
         #Make local copy of gtf file and unzip
-        if (endsWith(input_table[sid, ]$gtf_path, ".gz")) {
-            new_gene_path <- paste0(sid_out, "/genes.gtf.gz")
-            system(paste0("cp ",
-                         input_table[sid, ]$gtf_path,
-                         " ",
-                         new_gene_path,
-                         "; gunzip ",
-                         new_gene_path,
-                         " ", 
-                         sid_out,
-                         "/genes.gtf"
-                         ))
-        } else {
-            system(paste0("cp ",
-                         input_table[sid, ]$gtf_path,
-                         " ",
-                         sid_out,
-                         "/genes.gtf"))
+        new_gene_path <- paste0(sid_out, "/genes.gtf.gz")
+        if (!file.exists(new_gene_path) | 
+            !file.exists(paste0(sid_out, "/genes.gtf"))) {
+            if (endsWith(input_table[sid, ]$gtf_path, ".gz")) {
+                system(paste0("cp ",
+                             input_table[sid, ]$gtf_path,
+                             " ",
+                             new_gene_path,
+                             "; gunzip ",
+                             new_gene_path,
+                             " ", 
+                             sid_out,
+                             "/genes.gtf"
+                             ))
+            } else {
+                system(paste0("cp ",
+                             input_table[sid, ]$gtf_path,
+                             " ",
+                             sid_out,
+                             "/genes.gtf"))
+            }
         }
 
         #read in h5 object
