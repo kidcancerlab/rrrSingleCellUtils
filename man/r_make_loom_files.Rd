@@ -5,41 +5,27 @@
 \title{Wrapper to Make Loom Files in R}
 \usage{
 r_make_loom_files(
-  sobj,
-  sobj_name = "",
-  out_dir = "loom_output/",
-  id_col = NULL,
-  gtf_path,
-  bam_paths,
+  input_table,
+  out_dir = "loom_output/samples",
   cluster_account,
   slurm_base = paste0(getwd(), "/slurmOut"),
   sbatch_base = "sbatch_"
 )
 }
 \arguments{
-\item{sobj}{Seurat object you want to run velocity analysis}
-
-\item{sobj_name}{Optional, name of your seurat object for specifying output
-when the same sample has a loom created for multiple objects.}
+\item{input_table}{Dataframe or tibble with columns titled "sample_id",
+"h5_path", "bam_path", and "gtf_path"}
 
 \item{out_dir}{Folder to output loom files and sbatch output to. By default
-will create a directory in your working directory called loom_output}
-
-\item{id_col}{Name of metadata column marking what sample a given cell is
-from.}
-
-\item{bam_paths}{A named list or vector containing the bam files for each
-unique sample in id_col. Names should be the sample name and should match the
-unique values in sobj[[id_col]]}
+will create a directory in your working directory called loom_output/samples.
+Each sample_id found in input_table will have its own directory within
+out_dir}
 
 \item{cluster_account}{Your Franklin cluster user ID.}
 
 \item{slurm_base}{The directory to write slurm output files to.}
 
 \item{sbatch_base}{The prefix to use with the sbatch job file.}
-
-\item{species}{String communicating what species the cells are from.
-Value should be either "human", "mouse", or "mixed" in the case of a PDX.}
 }
 \value{
 A loom file for each unique ID present in id_col, output to loom_dir.
@@ -49,7 +35,8 @@ Wrapper to Make Loom Files in R
 }
 \details{
 This is a wrapper function around velocyto's "run" command. It will
-take your seurat object and generate loom files using only the cells present
-in your seurat object. The loom files can then be used to run velocity
-analysis using scVelo.
+take a table of sid's and other info and create loom files based on all cells
+that are in the h5 object. The loom files can then be used to run velocity
+analysis using scVelo. Slurm error and std output will be written to
+out_dir/sample_id/.
 }

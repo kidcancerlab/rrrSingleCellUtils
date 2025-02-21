@@ -20,8 +20,8 @@ write_off_md(
 \item{vars_to_keep}{Metadata columns you want saved off along with sample_id
 and UMAP and PCA embeddings}
 
-\item{handle_n_of_1}{boolean saying whether or not you want to handle the special
-case when a sample has only one observation}
+\item{handle_n_of_1}{boolean saying whether or not you want to handle the
+special case when a sample has only one observation}
 
 \item{sobj_id}{The specific seurat object ID for which you want metadata;
 required even if only one sample in sobj}
