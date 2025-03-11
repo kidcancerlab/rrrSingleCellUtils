@@ -37,8 +37,8 @@ merge_atac <- function(peak_beds,
 
     # filter out peaks that are too small or too large
     reduced_peaks <- reduced_peaks[
-        reduced_peaks@ranges[1:3]@width >= min_peak_width &
-        reduced_peaks@ranges[1:3]@width <= max_peak_width
+        reduced_peaks@ranges@width >= min_peak_width &
+        reduced_peaks@ranges@width <= max_peak_width
                                 ]
 
     # Function to get fragment files, count and make Seurat object
@@ -51,7 +51,9 @@ merge_atac <- function(peak_beds,
 
         obj <- Signac::CreateChromatinAssay(counts = counts,
                                             fragments = frags) %>%
-                    SeuratObject::CreateSeuratObject(assay = "ATAC")
+            SeuratObject::CreateSeuratObject(assay = "ATAC")
+
+        return(obj)
     }
 
     # Use apply to make the Seurat objects and then merge them
