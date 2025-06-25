@@ -18,7 +18,8 @@ find_ligands(
   d_plot = TRUE,
   lt_vis = TRUE,
   lr_vis = TRUE,
-  n_best = 20
+  n_best = 20,
+  show_plots = TRUE
 )
 }
 \arguments{
