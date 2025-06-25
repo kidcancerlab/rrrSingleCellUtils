@@ -42,6 +42,7 @@ Depends: R (>= 3.5.0), nichenetr
 Suggests:
     rmarkdown,
     knitr,
+    quarto,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 NeedsCompilation: no
