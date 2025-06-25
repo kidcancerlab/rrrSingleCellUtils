@@ -36,40 +36,46 @@ table(sobj$sample_name)
 DimPlot(sobj, label = TRUE)
 ```
 
-This is an object with cancer cells from five different samples: S0067, S0068, S0075, S0122, and S0246.
+This is an object with cancer cells from eight different samples: S0067, S0068, S0075, S0122, S0123, S0246, S0282, and S0291.
 
 # Make Loom Files
 
 The first step after the usual quality control steps is to make loom files for each of the sample ID's in our object. Loom files are a data format for holding large 'omics datasets efficiently. This will be created from the bam files in order to get an idea of the spliced and unspliced RNA fragments. We'll use the function `r_make_loom_files`.
 
-Before we start, we're going to make a list of our bam files. This will be passed to the function in order to generate loom files from the bams. Note that the entire bam won't be used, only the rows that match barcodes in our object.
+Input for this function will require the following:
+    `input_table`: a dataframe or tibble with columns titled "sample_id", "h5_path", "bam_path", and "gtf_path"
+    `out_dir`: a path to the folder in which to save our loom_file output too as well as the sbatch job output
+    `cluster_account`: your Franklin cluster user ID
 
-```{r make-bam-list}
+```{r make-input-table}
 #| eval=FALSE
-bams <- lapply(unique(sobj$sample_name), function(x) {
-    paste0("/home/gdrobertslab/lab/Counts_2/", x, "/possorted_genome_bam.bam")
-})
-#make names of bams the sample id's
-names(bams) <- unique(sobj$sample_name)
+make_loom_input <- sobj@meta.data %>%
+    select("sample_name") %>%
+    mutate(
+        sample_id = sample_name,
+        h5_path = paste0(
+            "/home/gdrobertslab/lab/Counts_2/",
+            sample_id,
+            "/filtered_feature_bc_matrix.h5"
+        ),
+        bam_path = paste0(
+            "/home/gdrobertslab/lab/Counts_2/",
+            sample_id,
+            "/possorted_genome_bam.bam"
+        ),
+        gtf_path = "/home/gdrobertslab/lab/GenRef/10x-mm10/genes/genes.gtf.gz"
+    ) %>%
+    unique() %>%
+    remove_rownames()
 ```
 
-It's important that the names of the entries in our bam list matches the Sample ID's.
-
-Some helpful info about the arguments:
-    loom_dir is the relative path to a folder you want your loom files to be output to
-    id_col is the name of the metadata column in which sample ID's can be found. In this case it is `sample_name`
-    gtf_path determines what genome to align the bam sequences to
-
-Additionally, this function will create a conda environment named r_rna_velo in the location of the user's rrrSingleCellUtils installation.
+This function will create a conda environment named r_rna_velo in the location of the user's rrrSingleCellUtils installation.
 
 ```{r make-loom-files}
 #| eval=FALSE
 start <- Sys.time()
-r_make_loom_files(sobj = sobj,
+r_make_loom_files(input_table = make_loom_input,
                   out_dir = "loom_files/",
-                  id_col = "sample_name",
-                  gtf_path = "/home/gdrobertslab/lab/GenRef/10x-mm10/genes/genes.gtf.gz",
-                  bam_paths = bams,
                   cluster_account = "gdrobertslab")
 end <- Sys.time()
 
