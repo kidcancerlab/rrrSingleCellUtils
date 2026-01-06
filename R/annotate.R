@@ -26,10 +26,10 @@ annotate_celltypes <- function(sobject,
                                label_type = "label.main",
                                ...) {
     if (species == "human") {
-        huim <- celldex::MonacoImmuneData()
+        huim <- suppressMessages(celldex::MonacoImmuneData())
         huim$label.main <- stringr::str_replace_all(huim$label.main, "_", " ")
 
-        hpca <- celldex::HumanPrimaryCellAtlasData()
+        hpca <- suppressMessages(celldex::HumanPrimaryCellAtlasData())
         hpca$label.main <-
             dplyr::case_match(
                 hpca$label.main,
@@ -44,7 +44,7 @@ annotate_celltypes <- function(sobject,
             ) %>%
             stringr::str_replace_all("_", " ")
 
-        encode_bp <- celldex::BlueprintEncodeData()
+        encode_bp <- suppressMessages(celldex::BlueprintEncodeData())
         encode_bp$label.main <-
             dplyr::case_match(
                 encode_bp$label.main,
@@ -67,8 +67,8 @@ annotate_celltypes <- function(sobject,
                        huim[[label_type]],
                        encode_bp[[label_type]])
     } else if (species == "mouse") {
-        mord <- celldex::MouseRNAseqData()
-        moim <- celldex::ImmGenData()
+        mord <- suppressMessages(celldex::MouseRNAseqData())
+        moim <- suppressMessages(celldex::ImmGenData())
         moim$label.main <-
             stringr::str_remove_all(moim$label.main,
                                     c("B cells, pro" = "B cells",
