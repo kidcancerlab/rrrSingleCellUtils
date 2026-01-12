@@ -618,6 +618,7 @@ plot_cc <- function(sobject, plot_type = "bar") {
 #' @inheritParams Seurat::RunUMAP
 #' @inheritParams Seurat::FindClusters
 #' @param sobject A Seurat object
+#' @param pca_npcs Number of principal components to use in RunPCA(). Passed to npcs argument
 #' @param run_umap_dims Number of PCA dimensions to use in RunUMAP()
 #'      and FindNeighbors()
 #' @param graph_name Name of graph to use for the clustering algorithm in FindClusters()
@@ -634,6 +635,7 @@ plot_cc <- function(sobject, plot_type = "bar") {
 #' }
 process_seurat <- function(sobject,
                            verbose = FALSE,
+                           pca_npcs = 50,
                            run_umap_dims = 1:30,
                            assay = "RNA",
                            resolution = 0.3,
@@ -652,6 +654,7 @@ process_seurat <- function(sobject,
         Seurat::ScaleData(verbose = verbose,
                           assay = assay) %>%
         Seurat::RunPCA(verbose = verbose,
+                       npcs = pca_npcs,
                        assay = assay)
 
     # Make sure run_umap_dims isn't more than we have in pca
