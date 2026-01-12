@@ -7,6 +7,7 @@
 process_seurat(
   sobject,
   verbose = FALSE,
+  pca_npcs = 50,
   run_umap_dims = 1:30,
   assay = "RNA",
   resolution = 0.3,
@@ -21,6 +22,8 @@ process_seurat(
 \item{sobject}{A Seurat object}
 
 \item{verbose}{Controls verbosity}
+
+\item{pca_npcs}{Number of principal components to use in RunPCA(). Passed to npcs argument}
 
 \item{run_umap_dims}{Number of PCA dimensions to use in RunUMAP()
 and FindNeighbors()}
