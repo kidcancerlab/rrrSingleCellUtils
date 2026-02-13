@@ -312,8 +312,6 @@ calc_frip <- function(sobject,
 #' Add nucleosome signal, TSS enrichment, and FRiP to a Seurat object
 #'
 #' @inheritParams annotate_atac
-#' @inheritParams add_nucleosome_signal
-#' @inheritParams tss_enrichment
 #' @inheritParams calc_frip
 #' @param nucl_cutoff Cutoff for nucleosome signal
 #' @param tss_cutoff Cutoff for TSS enrichment
