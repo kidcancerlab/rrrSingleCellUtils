@@ -1,20 +1,35 @@
 #' Merge multiple ATAC-seq samples into a single Seurat object
 #'
-#' FUNCTION_DESCRIPTION
+#' Reads peak BED files, reduces overlapping peaks, and creates a merged
+#' Seurat object with ATAC-seq data from multiple samples.
 #'
-#' @param peak_beds DESCRIPTION.
-#' @param min_peak_width DESCRIPTION.
-#' @param max_peak_width DESCRIPTION.
-#' @param frag_paths DESCRIPTION.
-#' @param cell_ids DESCRIPTION.
-#' @param n_regions_simul DESCRIPTION.
-#' @param threads Number of threads to use.
+#' @param peak_beds Character vector of paths to BED files containing peak
+#'     regions for each sample.
+#' @param min_peak_width Minimum width (in base pairs) for peaks to be
+#'     included in the analysis. Default is 20.
+#' @param max_peak_width Maximum width (in base pairs) for peaks to be
+#'     included in the analysis. Default is 10000.
+#' @param frag_paths Character vector of paths to fragment files (one per
+#'     sample).
+#' @param cell_ids Character vector of sample identifiers to prepend to cell
+#'     barcodes. Must be in the same order as frag_paths.
+#' @param n_regions_simul Number of regions to process simultaneously when
+#'     building the feature matrix. Default is 2000.
+#' @param threads Number of threads to use for parallel processing. Default
+#'     is 1.
 #'
 #' @export
 #'
-#' @return RETURN_DESCRIPTION
+#' @return A Seurat object with a merged ATAC assay containing data from all
+#'     samples.
 #' @examples
-#' # ADD_EXAMPLES_HERE
+#' \dontrun{
+#' merged_obj <- merge_atac(
+#'   peak_beds = c("sample1_peaks.bed", "sample2_peaks.bed"),
+#'   frag_paths = c("sample1_fragments.tsv.gz", "sample2_fragments.tsv.gz"),
+#'   cell_ids = c("sample1", "sample2")
+#' )
+#' }
 merge_atac <- function(peak_beds,
                        min_peak_width = 20,
                        max_peak_width = 10000,
@@ -72,16 +87,26 @@ merge_atac <- function(peak_beds,
 
 #' Add annotation to ATAC data in a Seurat object
 #'
-#' FUNCTION_DESCRIPTION
+#' Creates genomic annotations from a GTF file and adds them to the ATAC
+#' assay in a Seurat object. The function extracts transcript information,
+#' gene biotypes, and gene identifiers from the GTF file.
 #'
-#' @param sobject Seurat object to be processed
-#' @param gtf String of path to a gtf file.
+#' @param sobject Seurat object containing ATAC data to be annotated. The
+#'     default assay should be set to "ATAC" or "peaks" before calling this
+#'     function.
+#' @param gtf Character string specifying the path to a GTF file containing
+#'     genomic annotations.
 #'
 #' @export
 #'
-#' @return RETURN_DESCRIPTION
+#' @return A Seurat object with genomic annotations added to the ATAC assay.
 #' @examples
-#' # ADD_EXAMPLES_HERE
+#' \dontrun{
+#' atac_obj <- annotate_atac(
+#'   sobject = atac_seurat,
+#'   gtf = "path/to/genes.gtf"
+#' )
+#' }
 annotate_atac <- function(sobject,
                           gtf) {
     if (is.null(gtf)) {
@@ -135,16 +160,23 @@ annotate_atac <- function(sobject,
 
 #' Add nucleosome signal to ATAC data in a Seurat object
 #'
-#' FUNCTION_DESCRIPTION
+#' Calculates nucleosome signal for each cell using Signac and adds it as
+#' metadata. Also creates a categorical grouping variable based on the
+#' specified cutoff.
 #'
-#' @param sobject Seurat object to be processed
-#' @param cutoff DESCRIPTION.
+#' @param sobject Seurat object containing ATAC data to be processed.
+#' @param cutoff Numeric value for the nucleosome signal cutoff. Cells with
+#'     nucleosome signal above this value are grouped as "NS > cutoff" and
+#'     cells below are grouped as "NS < cutoff". Default is 4.
 #'
 #' @export
 #'
-#' @return RETURN_DESCRIPTION
+#' @return A Seurat object with nucleosome signal added as metadata in the
+#'     nucleosome_signal and nucleosome_group columns.
 #' @examples
-#' # ADD_EXAMPLES_HERE
+#' \dontrun{
+#' atac_obj <- add_nucleosome_signal(sobject = atac_seurat, cutoff = 4)
+#' }
 add_nucleosome_signal <- function(sobject,
                                   cutoff = 4) {
     sobject <- Signac::NucleosomeSignal(sobject)
@@ -156,16 +188,23 @@ add_nucleosome_signal <- function(sobject,
 
 #' Calculate TSS enrichment for a Seurat object
 #'
-#' FUNCTION_DESCRIPTION
+#' Calculates transcription start site (TSS) enrichment scores for each cell
+#' using Signac. Also creates a categorical variable indicating high or low
+#' TSS enrichment based on the specified cutoff.
 #'
-#' @param sobject Seurat object to be processed
-#' @param cutoff DESCRIPTION.
+#' @param sobject Seurat object containing ATAC data to be processed.
+#' @param cutoff Numeric value for the TSS enrichment cutoff. Cells with TSS
+#'     enrichment above this value are classified as "High" and cells below
+#'     are classified as "Low". Default is 2.
 #'
 #' @export
 #'
-#' @return RETURN_DESCRIPTION
+#' @return A Seurat object with TSS enrichment added as metadata in the
+#'     TSS.enrichment and high_tss columns.
 #' @examples
-#' # ADD_EXAMPLES_HERE
+#' \dontrun{
+#' atac_obj <- tss_enrichment(sobject = atac_seurat, cutoff = 2)
+#' }
 tss_enrichment <- function(sobject,
                            cutoff = 2) {
     sobject <- Signac::TSSEnrichment(sobject, fast = FALSE)
@@ -177,18 +216,33 @@ tss_enrichment <- function(sobject,
 
 #' Calculate FRiP for a Seurat object
 #'
-#' FUNCTION_DESCRIPTION
+#' Calculates the fraction of reads in peaks (FRiP) metric for each cell in
+#' an ATAC-seq Seurat object. This function counts fragments from the
+#' provided fragment files and calculates quality metrics including total
+#' fragments, mononucleosomal fragments, nucleosome-free fragments, and FRiP.
 #'
-#' @param sobject Seurat object to be processed
-#' @param frag_files Named list of fragment files. The names should be the
-#'    string to be prepended to the cell barcodes.
-#' @param verbose Should functions be verbose?
+#' @param sobject Seurat object containing ATAC data to be processed.
+#' @param frag_files Named list of paths to fragment files. The names should
+#'     correspond to sample identifiers that will be prepended to cell
+#'     barcodes (with an underscore separator). If providing a single
+#'     unnamed fragment file, cell names must follow standard CellRanger
+#'     format (e.g., "ATGC-1").
+#' @param verbose Logical indicating whether functions should produce
+#'     detailed output messages. Default is FALSE.
 #'
 #' @export
 #'
-#' @return RETURN_DESCRIPTION
+#' @return A Seurat object with FRiP and fragment count metadata added. If
+#'     there is a mismatch between cells in the object and fragment files, a
+#'     data frame of fragment counts is returned instead for inspection.
 #' @examples
-#' # ADD_EXAMPLES_HERE
+#' \dontrun{
+#' atac_obj <- calc_frip(
+#'   sobject = atac_seurat,
+#'   frag_files = list(sample1 = "path/to/fragments1.tsv.gz",
+#'                     sample2 = "path/to/fragments2.tsv.gz")
+#' )
+#' }
 calc_frip <- function(sobject,
                       frag_files,
                       verbose = FALSE) {
@@ -284,20 +338,34 @@ add_atac_metadata <- function(sobject,
 
 #' Process a Seurat object with ATAC data
 #'
-#' FUNCTION_DESCRIPTION
+#' Performs standard ATAC-seq processing workflow including TF-IDF
+#' normalization, feature selection, dimensionality reduction using singular
+#' value decomposition (SVD/LSI), clustering, and UMAP generation.
 #'
-#' @param sobject Seurat object to be processed
-#' @param assay Assay that has the ATAC data
-#' @param verbose Should functions be verbose?
-#' @param umap_dims PCA dimensions to use for UMAP
-#' @param resolution Resolution to be used in FindClusters
-#' @param reduction What reduction to be used to generate umap
+#' @param sobject Seurat object containing ATAC data to be processed.
+#' @param assay Name of the assay containing the ATAC data. Default is
+#'     "ATAC".
+#' @param verbose Logical indicating whether processing functions should
+#'     produce detailed output messages. Default is FALSE.
+#' @param umap_dims Integer vector specifying which LSI dimensions to use
+#'     for UMAP calculation. Default is 2:30 (dimensions 2 through 30).
+#' @param resolution Numeric value for clustering resolution passed to
+#'     FindClusters. Higher values result in more clusters. Default is 0.3.
+#' @param reduction Character string specifying which dimensionality
+#'     reduction to use for clustering and UMAP. Default is "lsi".
 #'
 #' @export
 #'
-#' @return A processed Seurat object
+#' @return A processed Seurat object with LSI reduction, UMAP coordinates
+#'     (stored as "umap_atac"), and cluster assignments. The original active
+#'     assay is restored after processing.
 #' @examples
-#' # ADD_EXAMPLES_HERE
+#' \dontrun{
+#' processed_atac <- process_seurat_atac(
+#'   sobject = atac_seurat,
+#'   resolution = 0.5
+#' )
+#' }
 process_seurat_atac <- function(sobject,
                                 assay = "ATAC",
                                 verbose = FALSE,
@@ -313,7 +381,9 @@ process_seurat_atac <- function(sobject,
         Signac::FindTopFeatures(min.cutoff = "q0", verbose = verbose) %>%
         Signac::RunSVD(verbose = verbose) %>%
         Seurat::FindNeighbors(reduction = reduction, verbose = verbose) %>%
-        Seurat::FindClusters(algorithm = 3, verbose = verbose, resolution = resolution) %>%
+        Seurat::FindClusters(algorithm = 3,
+                             verbose = verbose,
+                             resolution = resolution) %>%
         Seurat::RunUMAP(reduction = reduction,
                         dims = umap_dims,
                         verbose = verbose,
@@ -342,26 +412,45 @@ process_seurat_atac <- function(sobject,
 
 #' Merge GEX and ATAC data
 #'
-#' FUNCTION_DESCRIPTION
+#' Combines gene expression (GEX) and ATAC-seq data from separate Seurat
+#' objects into a single multimodal object. Performs joint dimensionality
+#' reduction and clustering using weighted nearest neighbor (WNN) analysis.
 #'
-#' @param gex_sobj Seurat object with GEX data to be processed
-#' @param atac_sobj Seurat object with ATAC data to be processed
-#' @param atac_assay_name Name of the assay in atac_sobj that has the ATAC data
-#' @param gex_pca_dims GEX PCA dimensions to use for UMAP
-#' @param atac_pca_dims ATAC PCA dimensions to use for UMAP
-#' @param verbose Should functions be verbose?
+#' @param gex_sobj Seurat object containing gene expression data. Should
+#'     have PCA reduction already computed.
+#' @param atac_sobj Seurat object containing ATAC-seq data. Should have LSI
+#'     reduction already computed.
+#' @param atac_assay_name Character string specifying the name of the ATAC
+#'     assay in atac_sobj. Default is "ATAC".
+#' @param gex_pca_dims Integer vector specifying which PCA dimensions to use
+#'     from the GEX data. Default uses all available PCA dimensions.
+#' @param atac_pca_dims Integer vector specifying which LSI dimensions to
+#'     use from the ATAC data. Default uses all available LSI dimensions.
+#' @param verbose Logical indicating whether processing functions should
+#'     produce detailed output messages. Default is FALSE.
 #'
 #' @export
 #'
-#' @return A processed Seurat object
+#' @return A Seurat object containing both RNA and ATAC assays with joint
+#'     UMAP coordinates and WNN-based cluster assignments. Only cells present
+#'     in both input objects are retained.
 #' @examples
-#' # ADD_EXAMPLES_HERE
+#' \dontrun{
+#' multimodal_obj <- merge_gex_atac(
+#'   gex_sobj = gex_seurat,
+#'   atac_sobj = atac_seurat,
+#'   gex_pca_dims = 1:30,
+#'   atac_pca_dims = 2:30
+#' )
+#' }
 merge_gex_atac <- function(gex_sobj,
                            atac_sobj,
                            atac_assay_name = "ATAC",
-                           gex_pca_dims = 1:dim(Seurat::Embeddings(gex_sobj))[2],
-                           atac_pca_dims = 1:dim(Seurat::Embeddings(atac_sobj,
-                                                                    reduction = "lsi"))[2],
+                           gex_pca_dims =
+                               1:dim(Seurat::Embeddings(gex_sobj))[2],
+                           atac_pca_dims =
+                               1:dim(Seurat::Embeddings(atac_sobj,
+                                                        reduction = "lsi"))[2],
                            verbose = FALSE) {
     # Make seurat object from GEX keeping only cells present in ATAC
     merged_data <-
@@ -385,9 +474,10 @@ merge_gex_atac <- function(gex_sobj,
     # Make joint UMAP
     merged_data <-
         merged_data %>%
-        Seurat::FindMultiModalNeighbors(reduction.list = list("pca", "lsi"),
-                                        dims.list = list(gex_pca_dims, atac_pca_dims),
-                                        verbose = verbose)
+        Seurat::FindMultiModalNeighbors(
+            reduction.list = list("pca", "lsi"),
+            dims.list = list(gex_pca_dims, atac_pca_dims),
+            verbose = verbose)
 
     # build a joint UMAP visualization
     merged_data <-

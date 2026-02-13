@@ -15,26 +15,41 @@ merge_atac(
 )
 }
 \arguments{
-\item{peak_beds}{DESCRIPTION.}
+\item{peak_beds}{Character vector of paths to BED files containing peak
+regions for each sample.}
 
-\item{min_peak_width}{DESCRIPTION.}
+\item{min_peak_width}{Minimum width (in base pairs) for peaks to be
+included in the analysis. Default is 20.}
 
-\item{max_peak_width}{DESCRIPTION.}
+\item{max_peak_width}{Maximum width (in base pairs) for peaks to be
+included in the analysis. Default is 10000.}
 
-\item{frag_paths}{DESCRIPTION.}
+\item{frag_paths}{Character vector of paths to fragment files (one per
+sample).}
 
-\item{cell_ids}{DESCRIPTION.}
+\item{cell_ids}{Character vector of sample identifiers to prepend to cell
+barcodes. Must be in the same order as frag_paths.}
 
-\item{n_regions_simul}{DESCRIPTION.}
+\item{n_regions_simul}{Number of regions to process simultaneously when
+building the feature matrix. Default is 2000.}
 
-\item{threads}{Number of threads to use.}
+\item{threads}{Number of threads to use for parallel processing. Default
+is 1.}
 }
 \value{
-RETURN_DESCRIPTION
+A Seurat object with a merged ATAC assay containing data from all
+    samples.
 }
 \description{
-FUNCTION_DESCRIPTION
+Reads peak BED files, reduces overlapping peaks, and creates a merged
+Seurat object with ATAC-seq data from multiple samples.
 }
 \examples{
-# ADD_EXAMPLES_HERE
+\dontrun{
+merged_obj <- merge_atac(
+  peak_beds = c("sample1_peaks.bed", "sample2_peaks.bed"),
+  frag_paths = c("sample1_fragments.tsv.gz", "sample2_fragments.tsv.gz"),
+  cell_ids = c("sample1", "sample2")
+)
+}
 }

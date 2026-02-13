@@ -7,19 +7,34 @@
 calc_frip(sobject, frag_files, verbose = FALSE)
 }
 \arguments{
-\item{sobject}{Seurat object to be processed}
+\item{sobject}{Seurat object containing ATAC data to be processed.}
 
-\item{frag_files}{Named list of fragment files. The names should be the
-string to be prepended to the cell barcodes.}
+\item{frag_files}{Named list of paths to fragment files. The names should
+correspond to sample identifiers that will be prepended to cell
+barcodes (with an underscore separator). If providing a single
+unnamed fragment file, cell names must follow standard CellRanger
+format (e.g., "ATGC-1").}
 
-\item{verbose}{Should functions be verbose?}
+\item{verbose}{Logical indicating whether functions should produce
+detailed output messages. Default is FALSE.}
 }
 \value{
-RETURN_DESCRIPTION
+A Seurat object with FRiP and fragment count metadata added. If
+    there is a mismatch between cells in the object and fragment files, a
+    data frame of fragment counts is returned instead for inspection.
 }
 \description{
-FUNCTION_DESCRIPTION
+Calculates the fraction of reads in peaks (FRiP) metric for each cell in
+an ATAC-seq Seurat object. This function counts fragments from the
+provided fragment files and calculates quality metrics including total
+fragments, mononucleosomal fragments, nucleosome-free fragments, and FRiP.
 }
 \examples{
-# ADD_EXAMPLES_HERE
+\dontrun{
+atac_obj <- calc_frip(
+  sobject = atac_seurat,
+  frag_files = list(sample1 = "path/to/fragments1.tsv.gz",
+                    sample2 = "path/to/fragments2.tsv.gz")
+)
+}
 }
