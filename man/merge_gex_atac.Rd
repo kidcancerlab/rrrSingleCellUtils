@@ -14,24 +14,41 @@ merge_gex_atac(
 )
 }
 \arguments{
-\item{gex_sobj}{Seurat object with GEX data to be processed}
+\item{gex_sobj}{Seurat object containing gene expression data. Should
+have PCA reduction already computed.}
 
-\item{atac_sobj}{Seurat object with ATAC data to be processed}
+\item{atac_sobj}{Seurat object containing ATAC-seq data. Should have LSI
+reduction already computed.}
 
-\item{atac_assay_name}{Name of the assay in atac_sobj that has the ATAC data}
+\item{atac_assay_name}{Character string specifying the name of the ATAC
+assay in atac_sobj. Default is "ATAC".}
 
-\item{gex_pca_dims}{GEX PCA dimensions to use for UMAP}
+\item{gex_pca_dims}{Integer vector specifying which PCA dimensions to use
+from the GEX data. Default uses all available PCA dimensions.}
 
-\item{atac_pca_dims}{ATAC PCA dimensions to use for UMAP}
+\item{atac_pca_dims}{Integer vector specifying which LSI dimensions to
+use from the ATAC data. Default uses all available LSI dimensions.}
 
-\item{verbose}{Should functions be verbose?}
+\item{verbose}{Logical indicating whether processing functions should
+produce detailed output messages. Default is FALSE.}
 }
 \value{
-A processed Seurat object
+A Seurat object containing both RNA and ATAC assays with joint
+    UMAP coordinates and WNN-based cluster assignments. Only cells present
+    in both input objects are retained.
 }
 \description{
-FUNCTION_DESCRIPTION
+Combines gene expression (GEX) and ATAC-seq data from separate Seurat
+objects into a single multimodal object. Performs joint dimensionality
+reduction and clustering using weighted nearest neighbor (WNN) analysis.
 }
 \examples{
-# ADD_EXAMPLES_HERE
+\dontrun{
+multimodal_obj <- merge_gex_atac(
+  gex_sobj = gex_seurat,
+  atac_sobj = atac_seurat,
+  gex_pca_dims = 1:30,
+  atac_pca_dims = 2:30
+)
+}
 }

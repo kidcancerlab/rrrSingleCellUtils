@@ -7,16 +7,23 @@
 tss_enrichment(sobject, cutoff = 2)
 }
 \arguments{
-\item{sobject}{Seurat object to be processed}
+\item{sobject}{Seurat object containing ATAC data to be processed.}
 
-\item{cutoff}{DESCRIPTION.}
+\item{cutoff}{Numeric value for the TSS enrichment cutoff. Cells with TSS
+enrichment above this value are classified as "High" and cells below
+are classified as "Low". Default is 2.}
 }
 \value{
-RETURN_DESCRIPTION
+A Seurat object with TSS enrichment added as metadata in the
+    TSS.enrichment and high_tss columns.
 }
 \description{
-FUNCTION_DESCRIPTION
+Calculates transcription start site (TSS) enrichment scores for each cell
+using Signac. Also creates a categorical variable indicating high or low
+TSS enrichment based on the specified cutoff.
 }
 \examples{
-# ADD_EXAMPLES_HERE
+\dontrun{
+atac_obj <- tss_enrichment(sobject = atac_seurat, cutoff = 2)
+}
 }

@@ -7,16 +7,23 @@
 add_nucleosome_signal(sobject, cutoff = 4)
 }
 \arguments{
-\item{sobject}{Seurat object to be processed}
+\item{sobject}{Seurat object containing ATAC data to be processed.}
 
-\item{cutoff}{DESCRIPTION.}
+\item{cutoff}{Numeric value for the nucleosome signal cutoff. Cells with
+nucleosome signal above this value are grouped as "NS > cutoff" and
+cells below are grouped as "NS < cutoff". Default is 4.}
 }
 \value{
-RETURN_DESCRIPTION
+A Seurat object with nucleosome signal added as metadata in the
+    nucleosome_signal and nucleosome_group columns.
 }
 \description{
-FUNCTION_DESCRIPTION
+Calculates nucleosome signal for each cell using Signac and adds it as
+metadata. Also creates a categorical grouping variable based on the
+specified cutoff.
 }
 \examples{
-# ADD_EXAMPLES_HERE
+\dontrun{
+atac_obj <- add_nucleosome_signal(sobject = atac_seurat, cutoff = 4)
+}
 }

@@ -14,24 +14,38 @@ process_seurat_atac(
 )
 }
 \arguments{
-\item{sobject}{Seurat object to be processed}
+\item{sobject}{Seurat object containing ATAC data to be processed.}
 
-\item{assay}{Assay that has the ATAC data}
+\item{assay}{Name of the assay containing the ATAC data. Default is
+"ATAC".}
 
-\item{verbose}{Should functions be verbose?}
+\item{verbose}{Logical indicating whether processing functions should
+produce detailed output messages. Default is FALSE.}
 
-\item{umap_dims}{PCA dimensions to use for UMAP}
+\item{umap_dims}{Integer vector specifying which LSI dimensions to use
+for UMAP calculation. Default is 2:30 (dimensions 2 through 30).}
 
-\item{resolution}{Resolution to be used in FindClusters}
+\item{resolution}{Numeric value for clustering resolution passed to
+FindClusters. Higher values result in more clusters. Default is 0.3.}
 
-\item{reduction}{What reduction to be used to generate umap}
+\item{reduction}{Character string specifying which dimensionality
+reduction to use for clustering and UMAP. Default is "lsi".}
 }
 \value{
-A processed Seurat object
+A processed Seurat object with LSI reduction, UMAP coordinates
+    (stored as "umap_atac"), and cluster assignments. The original active
+    assay is restored after processing.
 }
 \description{
-FUNCTION_DESCRIPTION
+Performs standard ATAC-seq processing workflow including TF-IDF
+normalization, feature selection, dimensionality reduction using singular
+value decomposition (SVD/LSI), clustering, and UMAP generation.
 }
 \examples{
-# ADD_EXAMPLES_HERE
+\dontrun{
+processed_atac <- process_seurat_atac(
+  sobject = atac_seurat,
+  resolution = 0.5
+)
+}
 }

@@ -7,16 +7,26 @@
 annotate_atac(sobject, gtf)
 }
 \arguments{
-\item{sobject}{Seurat object to be processed}
+\item{sobject}{Seurat object containing ATAC data to be annotated. The
+default assay should be set to "ATAC" or "peaks" before calling this
+function.}
 
-\item{gtf}{String of path to a gtf file.}
+\item{gtf}{Character string specifying the path to a GTF file containing
+genomic annotations.}
 }
 \value{
-RETURN_DESCRIPTION
+A Seurat object with genomic annotations added to the ATAC assay.
 }
 \description{
-FUNCTION_DESCRIPTION
+Creates genomic annotations from a GTF file and adds them to the ATAC
+assay in a Seurat object. The function extracts transcript information,
+gene biotypes, and gene identifiers from the GTF file.
 }
 \examples{
-# ADD_EXAMPLES_HERE
+\dontrun{
+atac_obj <- annotate_atac(
+  sobject = atac_seurat,
+  gtf = "path/to/genes.gtf"
+)
+}
 }
