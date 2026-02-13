@@ -192,7 +192,7 @@ add_nucleosome_signal <- function(sobject,
 #' using Signac. Also creates a categorical variable indicating high or low
 #' TSS enrichment based on the specified cutoff.
 #'
-#' @param sobject Seurat object containing ATAC data to be processed.
+#' @inheritParams add_nucleosome_signal
 #' @param cutoff Numeric value for the TSS enrichment cutoff. Cells with TSS
 #'     enrichment above this value are classified as "High" and cells below
 #'     are classified as "Low". Default is 2.
@@ -221,7 +221,7 @@ tss_enrichment <- function(sobject,
 #' provided fragment files and calculates quality metrics including total
 #' fragments, mononucleosomal fragments, nucleosome-free fragments, and FRiP.
 #'
-#' @param sobject Seurat object containing ATAC data to be processed.
+#' @inheritParams add_nucleosome_signal
 #' @param frag_files Named list of paths to fragment files. The names should
 #'     correspond to sample identifiers that will be prepended to cell
 #'     barcodes (with an underscore separator). If providing a single
@@ -311,12 +311,12 @@ calc_frip <- function(sobject,
 #'
 #' Add nucleosome signal, TSS enrichment, and FRiP to a Seurat object
 #'
-#' @param sobject Seurat object to be processed
-#' @param gtf String of path to a gtf file.
+#' @inheritParams annotate_atac
+#' @inheritParams add_nucleosome_signal
+#' @inheritParams tss_enrichment
+#' @inheritParams calc_frip
 #' @param nucl_cutoff Cutoff for nucleosome signal
 #' @param tss_cutoff Cutoff for TSS enrichment
-#' @param frag_files Named list of paths to fragment files.
-#' @param verbose Should functions be verbose?
 #'
 #' @export
 #'
@@ -342,7 +342,7 @@ add_atac_metadata <- function(sobject,
 #' normalization, feature selection, dimensionality reduction using singular
 #' value decomposition (SVD/LSI), clustering, and UMAP generation.
 #'
-#' @param sobject Seurat object containing ATAC data to be processed.
+#' @inheritParams add_nucleosome_signal
 #' @param assay Name of the assay containing the ATAC data. Default is
 #'     "ATAC".
 #' @param verbose Logical indicating whether processing functions should
@@ -426,8 +426,7 @@ process_seurat_atac <- function(sobject,
 #'     from the GEX data. Default uses all available PCA dimensions.
 #' @param atac_pca_dims Integer vector specifying which LSI dimensions to
 #'     use from the ATAC data. Default uses all available LSI dimensions.
-#' @param verbose Logical indicating whether processing functions should
-#'     produce detailed output messages. Default is FALSE.
+#' @inheritParams process_seurat_atac
 #'
 #' @export
 #'
