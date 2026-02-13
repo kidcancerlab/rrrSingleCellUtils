@@ -14,7 +14,13 @@ r_dim_plot(
 )
 }
 \arguments{
+\item{object}{Seurat object}
+
 \item{title}{Title to use for plot}
+
+\item{label}{Whether to label the clusters}
+
+\item{pt.size}{Adjust point size for plotting}
 
 \item{pt_alpha}{Transparency of points (should be between 0 and 1)}
 

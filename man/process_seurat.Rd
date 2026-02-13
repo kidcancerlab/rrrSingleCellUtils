@@ -21,10 +21,21 @@ process_seurat(
 \arguments{
 \item{sobject}{A Seurat object}
 
+\item{verbose}{Controls verbosity}
+
 \item{pca_npcs}{Number of principal components to use in RunPCA(). Passed to npcs argument}
 
 \item{run_umap_dims}{Number of PCA dimensions to use in RunUMAP()
 and FindNeighbors()}
+
+\item{assay}{Assay to pull data for when using \code{features}, or assay used to construct Graph
+if running UMAP on a Graph}
+
+\item{resolution}{Value of the resolution parameter, use a value above
+(below) 1.0 if you want to obtain a larger (smaller) number of communities.}
+
+\item{reduction}{Which dimensional reduction (PCA or ICA) to use for the
+UMAP input. Default is PCA}
 
 \item{graph_name}{Name of graph to use for the clustering algorithm in FindClusters()}
 
