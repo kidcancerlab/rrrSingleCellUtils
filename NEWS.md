@@ -1,3 +1,8 @@
+# rrrSingleCellUtils 0.20.0
+- Added option to include additional references to annotate_celltypes().
+- Fixed documentation for velocity analysis.
+- Fixed issue with timeout when downloading nichenetr reference data.
+
 # rrrSingleCellUtils 0.19.0
 - Updated process_seurat() to include an argument to specify the number of dimensions to use when running RunPCA().
 - Suppressed superfluous messages when running annotate_celltypes() from the celldex package.
