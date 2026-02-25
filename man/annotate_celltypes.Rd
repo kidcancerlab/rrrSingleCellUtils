@@ -11,6 +11,8 @@ annotate_celltypes(
   labels,
   aggr_ref = FALSE,
   label_type = "label.main",
+  add_ref,
+  add_labels,
   ...
 )
 }
@@ -30,6 +32,12 @@ prior to annotation, see trainSingleR.}
 
 \item{label_type}{Either "label.main", "label.fine" or "label.ont" if using
 species argument. Not needed otherwise}
+
+\item{add_ref}{Additional reference(s) to add to the existing reference. Must
+be a list of SingleCellExperiment objects or something SingleR can handle.}
+
+\item{add_labels}{Additional label(s) to add to the existing labels. Must be
+a list of vectors.}
 
 \item{...}{Other options passed to SingleR}
 }
