@@ -432,7 +432,10 @@ gen_lig_receptor_ref <- function(
   ) {
 
   message("Getting reference data for find_ligands(). This will download nearly
-        1Gb of data")
+        1Gb of data This function is setting options(timeout = 1000) to allow
+        for the download to complete without timing out.")
+
+  options(timeout = 1000)
 
   package_dir <- find.package("rrrSingleCellUtils")
 
