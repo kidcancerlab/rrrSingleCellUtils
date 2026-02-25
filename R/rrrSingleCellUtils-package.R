@@ -12,7 +12,9 @@
 #' @importFrom patchwork plot_annotation
 #' @importFrom qs qsave
 #' @importFrom scales alpha
+#' @importFrom stats na.omit
 #' @importFrom utils head
 #' @importFrom utils read.table
+#' @importFrom utils write.table
 ## usethis namespace: end
 NULL

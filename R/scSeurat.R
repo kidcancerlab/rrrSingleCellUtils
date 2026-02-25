@@ -458,7 +458,7 @@ kill_cc <- function(sobject,
                                       g2m.features = cc_genes$g2m_features,
                                       set.ident = TRUE)
 
-  if (method != "umap" & method != "tsne") {
+  if (method != "umap" && method != "tsne") {
     print("You need to set a method supported by this function")
   }
 
@@ -499,16 +499,16 @@ kill_cc <- function(sobject,
 
     if (show_plots) {
         print(Seurat::DimPlot(sobject,
-                            reduction = method,
-                            label = TRUE,
-                            pt.size = 1,
-                            group.by = "Phase") +
+                              reduction = method,
+                              label = TRUE,
+                              pt.size = 1,
+                              group.by = "Phase") +
                 theme_roberts())
 
         print(Seurat::DimPlot(sobject,
-                            reduction = method,
-                            label = TRUE,
-                            pt.size = 1) +
+                              reduction = method,
+                              label = TRUE,
+                              pt.size = 1) +
                 theme_roberts())
     }
 
@@ -540,13 +540,13 @@ get_cell_cycle_genes <- function(species = "human") {
             nichenetr::convert_human_to_mouse_symbols(
                 Seurat::cc.genes$s.genes
             ) %>%
-            na.omit() %>%
+            stats::na.omit() %>%
             as.vector()
         output$g2m_features <-
             nichenetr::convert_human_to_mouse_symbols(
                 Seurat::cc.genes$g2m.genes
             ) %>%
-            na.omit() %>%
+            stats::na.omit() %>%
             as.vector()
     } else {
         stop(

@@ -93,7 +93,7 @@ r_make_loom_files <- function(input_table,
         }
 
         #read in h5 object
-        h5_object <- Read10X_h5(input_table[sid, ]$h5_path)
+        h5_object <- Seurat::Read10X_h5(input_table[sid, ]$h5_path)
         #make sure only get gene expression data
         if (class(h5_object) == "list") {
             h5_object <- h5_object[["Gene Expression"]]
@@ -101,7 +101,7 @@ r_make_loom_files <- function(input_table,
 
         #make temporary directory with barcodes for current sample
         bcs <- colnames(h5_object)
-        write.table(bcs,
+        utils::write.table(bcs,
                     paste0(sid_out, "/tmp_bcs.tsv"),
                     row.names = FALSE,
                     col.names = FALSE,
