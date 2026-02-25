@@ -161,7 +161,7 @@ r_make_loom_files <- function(input_table,
 #' Save Off Metadata for Velocity Analysis
 #'
 #' @param sobj Seurat object; must have a column titled sample_id
-#' @param sobj_id The specific seurat object ID for which you want metadata;
+#' @param id_col The specific seurat object metadata column name;
 #' required even if only one sample in sobj
 #' @param output_dir The directory you wish to save your metadata to
 #' @param vars_to_keep Metadata columns you want saved off along with sample_id

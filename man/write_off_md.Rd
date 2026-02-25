@@ -15,6 +15,9 @@ write_off_md(
 \arguments{
 \item{sobj}{Seurat object; must have a column titled sample_id}
 
+\item{id_col}{The specific seurat object metadata column name;
+required even if only one sample in sobj}
+
 \item{output_dir}{The directory you wish to save your metadata to}
 
 \item{vars_to_keep}{Metadata columns you want saved off along with sample_id
@@ -22,9 +25,6 @@ and UMAP and PCA embeddings}
 
 \item{handle_n_of_1}{boolean saying whether or not you want to handle the
 special case when a sample has only one observation}
-
-\item{sobj_id}{The specific seurat object ID for which you want metadata;
-required even if only one sample in sobj}
 }
 \value{
 A csv for each sample ID containing the sample ID, the reductions,
