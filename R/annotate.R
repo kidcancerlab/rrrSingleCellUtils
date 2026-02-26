@@ -32,60 +32,12 @@ annotate_celltypes <- function(sobject,
                                add_labels,
                                ...) {
     if (species == "human") {
-        huim <- suppressMessages(celldex::MonacoImmuneData())
-        huim$label.main <- stringr::str_replace_all(huim$label.main, "_", " ")
-
-        hpca <- suppressMessages(celldex::HumanPrimaryCellAtlasData())
-        hpca$label.main <-
-            dplyr::case_match(
-                hpca$label.main,
-                .default = hpca$label.main,
-                "Astrocyte"         ~ "Astrocytes",
-                "B_cell"            ~ "B cells",
-                "DC"                ~ "Dendritic cells",
-                "NK_cell"           ~ "NK cells",
-                "Macrophage"        ~ "Macrophages",
-                "Monocyte"          ~ "Monocytes",
-                "T_cells"           ~ "T cells"
-            ) %>%
-            stringr::str_replace_all("_", " ")
-
-        encode_bp <- suppressMessages(celldex::BlueprintEncodeData())
-        encode_bp$label.main <-
-            dplyr::case_match(
-                encode_bp$label.main,
-                .default = encode_bp$label.main,
-                "B-cells"           ~ "B cells",
-                "CD4+ T-cells"      ~ "CD4+ T cells",
-                "CD8+ T-cells"      ~ "CD8+ T cells",
-                "DC"                ~ "Dendritic cells",
-                "Endothelial cells" ~ "Endothelial_cells",
-                "Epithelial cells"  ~ "Epithelial_cells",
-                "Macrophagess"      ~ "Macrophages",
-                "Smooth muscle"     ~ "Smooth_muscle_cells"
-            ) %>%
-            stringr::str_replace_all("_", " ")
-
-        ref <- list(hpca,
-                    huim,
-                    encode_bp)
-        labels <- list(hpca[[label_type]],
-                       huim[[label_type]],
-                       encode_bp[[label_type]])
+        ref_list <- make_human_celltype_ref_list(label_type)
     } else if (species == "mouse") {
-        mord <- suppressMessages(celldex::MouseRNAseqData())
-        moim <- suppressMessages(celldex::ImmGenData())
-        moim$label.main <-
-            stringr::str_remove_all(moim$label.main,
-                                    c("B cells, pro" = "B cells",
-                                      "DC" = "Dendritic cells"))
-        ref <- list(mord,
-                    moim)
-        labels <- list(mord[[label_type]],
-                       moim[[label_type]])
+        ref_list <- make_mouse_celltype_ref_list(label_type)
     }
 
-    if (missing(ref) || missing(labels)) {
+    if ((missing(ref) || missing(labels)) && species == "") {
         stop("Please provide either ref/labels or species argument(s)")
     }
 
@@ -94,20 +46,128 @@ annotate_celltypes <- function(sobject,
             stop("add_ref and add_labels must be lists")
         }
 
-        ref <- c(ref, add_ref)
-        labels <- c(labels, add_labels)
+        ref_list$counts <- c(ref_list$counts, add_ref)
+        ref_list$labels <- c(ref_list$labels, add_labels)
     }
 
     annotation <-
         SingleR::SingleR(test = Seurat::as.SingleCellExperiment(sobject),
-                         ref = ref,
-                         labels = labels,
+                         ref = ref_list$counts,
+                         labels = ref_list$labels,
                          aggr.ref = aggr_ref,
                          ...)
+
     sobject$cell_type <- annotation$labels
-    sobject$cell_scores <-
-        apply(X = annotation$scores,
-              MARGIN = 1,
-              function(x) max(x, na.rm = TRUE))
+
+    # SingleR version 2.10.0 changed the cell_scores output from a matrix to a
+    # DataFrame (not data.frame), so we need to check for both.
+    # If it is a DataFrame, it will have a sub-DataFrame for each reference, so
+    # we will take the max score across all references for each cell.
+    if (is.matrix(annotation$scores)) {
+        sobject$cell_scores <-
+            apply(X = annotation$scores,
+                  MARGIN = 1,
+                  function(x) max(x, na.rm = TRUE))
+    } else if (inherits(annotation$scores, "DFrame")) {
+        sobject$cell_scores <-
+            Reduce(cbind, annotation$scores) |>
+                as.data.frame() |>
+                dplyr::select(dplyr::starts_with("scores")) |>
+                apply(1, max)
+    }
+
     return(sobject)
+}
+
+
+##
+#' Create human cell type reference list for annotation
+#'
+#' Builds a list of reference objects and their labels for human cell type
+#' annotation using celldex references. Used internally by annotate_celltypes.
+#'
+#' @param label_type The label type to extract from each reference (e.g.,
+#'   "label.main").
+#' @return A list with two elements: 'counts' (list of reference objects) and
+#'   'labels' (list of label vectors).
+#' @noRd
+make_human_celltype_ref_list <- function(label_type) {
+    huim <- suppressMessages(celldex::MonacoImmuneData())
+    huim$label.main <- stringr::str_replace_all(huim$label.main, "_", " ")
+
+    hpca <- suppressMessages(celldex::HumanPrimaryCellAtlasData())
+    hpca$label.main <-
+        dplyr::case_match(
+            hpca$label.main,
+            .default = hpca$label.main,
+            "Astrocyte"         ~ "Astrocytes",
+            "B_cell"            ~ "B cells",
+            "DC"                ~ "Dendritic cells",
+            "NK_cell"           ~ "NK cells",
+            "Macrophage"        ~ "Macrophages",
+            "Monocyte"          ~ "Monocytes",
+            "T_cells"           ~ "T cells"
+        ) %>%
+            stringr::str_replace_all("_", " ")
+
+    encode_bp <- suppressMessages(celldex::BlueprintEncodeData())
+    encode_bp$label.main <-
+        dplyr::case_match(
+            encode_bp$label.main,
+            .default = encode_bp$label.main,
+            "B-cells"           ~ "B cells",
+            "CD4+ T-cells"      ~ "CD4+ T cells",
+            "CD8+ T-cells"      ~ "CD8+ T cells",
+            "DC"                ~ "Dendritic cells",
+            "Endothelial cells" ~ "Endothelial_cells",
+            "Epithelial cells"  ~ "Epithelial_cells",
+            "Macrophagess"      ~ "Macrophages",
+            "Smooth muscle"     ~ "Smooth_muscle_cells"
+        ) %>%
+        stringr::str_replace_all("_", " ")
+
+    ref_info <-
+        list(
+            counts = list(
+                hpca,
+                huim,
+                encode_bp
+            ),
+            labels = list(
+                hpca[[label_type]],
+                huim[[label_type]],
+                encode_bp[[label_type]]
+            )
+        )
+
+    return(ref_info)
+}
+
+##
+#' Create mouse cell type reference list for annotation
+#'
+#' Builds a list of reference objects and their labels for mouse cell type
+#' annotation using celldex references. Used internally by annotate_celltypes.
+#'
+#' @param label_type The label type to extract from each reference (e.g.,
+#'   "label.main").
+#' @return A list with two elements: 'counts' (list of reference objects) and
+#'   'labels' (list of label vectors).
+#' @noRd
+make_mouse_celltype_ref_list <- function(label_type) {
+    mord <- suppressMessages(celldex::MouseRNAseqData())
+    moim <- suppressMessages(celldex::ImmGenData())
+    moim$label.main <-
+        stringr::str_remove_all(
+            moim$label.main,
+            c("B cells, pro" = "B cells", "DC" = "Dendritic cells")
+        )
+
+    ref_info <-
+        list(
+            counts = list(mord, moim),
+            labels = list(mord[[label_type]], moim[[label_type]])
+        )
+
+    return(ref_info)
 }
