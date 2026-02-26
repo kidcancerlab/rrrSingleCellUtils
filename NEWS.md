@@ -1,3 +1,6 @@
+# rrrSingleCellUtils 0.21.0
+- Updated annotate_celltypes() internal code to deal with changes to SingleR output.
+
 # rrrSingleCellUtils 0.20.0
 - Added option to include additional references to annotate_celltypes().
 - Fixed documentation for velocity analysis.
