@@ -35,14 +35,14 @@ Imports:
     SeuratObject,
     celldex,
     SingleR,
-    qs,
     igraph
 Depends: R (>= 3.5.0), nichenetr
 Suggests:
     rmarkdown,
     knitr,
     quarto,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    qs
 Config/testthat/edition: 3
 NeedsCompilation: no
 Packaged: 2021-06-03 17:21:13 UTC; mvc002
