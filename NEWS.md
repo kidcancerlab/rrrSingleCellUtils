@@ -1,3 +1,7 @@
+# rrrSingleCellUtils 0.22.0
+- Removed un-needed qs dependency
+- Fixed bug in annotate_celltypes to allow for specification of ref and label
+
 # rrrSingleCellUtils 0.21.0
 - Updated annotate_celltypes() internal code to deal with changes to SingleR output.
 
