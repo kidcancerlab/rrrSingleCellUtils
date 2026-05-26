@@ -31,14 +31,18 @@ annotate_celltypes <- function(sobject,
                                add_ref,
                                add_labels,
                                ...) {
-    if (species == "human") {
-        ref_list <- make_human_celltype_ref_list(label_type)
-    } else if (species == "mouse") {
-        ref_list <- make_mouse_celltype_ref_list(label_type)
-    }
-
     if ((missing(ref) || missing(labels)) && species == "") {
         stop("Please provide either ref/labels or species argument(s)")
+    }
+
+    if (!missing(ref) && !missing(labels)) {
+        ref_list <- list(counts = ref, labels = labels)
+    }
+
+    if (species == "human" && missing(ref)) {
+        ref_list <- make_human_celltype_ref_list(label_type)
+    } else if (species == "mouse" && missing(ref)) {
+        ref_list <- make_mouse_celltype_ref_list(label_type)
     }
 
     if (!missing(add_ref) && !missing(add_labels)) {
