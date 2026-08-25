@@ -339,23 +339,32 @@ find_ligands <- function(sobject, gset, receiver, senders, gset_spec = "human",
 
   # If requested, create dot plots of the receptors and ligands
   if (d_plot == TRUE) {
-    dotplot_reciever <- Seurat::DotPlot(subset(sobject, idents = receiver),
-                                        features = rev(rownames(
-                                          vis_ligand_receptor_network)),
-                                        cols = c("gray95", "sienna3")) &
-      Seurat::RotatedAxis()
+    # This throws a warning about not scaling despite scale = FALSE due to only
+    # one feature
+    suppressWarnings({
+      dotplot_reciever <-
+        Seurat::DotPlot(subset(sobject, idents = receiver),
+                        features = rev(rownames(vis_ligand_receptor_network)),
+                        cols = c("gray95", "sienna3"),
+                        scale = FALSE) &
+        Seurat::RotatedAxis()
+    })
     if (show_plots) {
-        print(dotplot_reciever)
+      print(dotplot_reciever)
     }
-
-    dotplot_ligand <- Seurat::DotPlot(subset(sobject, idents = senders),
-                                      features = rev(colnames(
-                                        vis_ligand_receptor_network)),
-                                      cols = c("gray95", "sienna3")) &
-      Seurat::RotatedAxis() &
-      ggplot2::coord_flip()
+    # This throws a warning about not scaling despite scale = FALSE due to only
+    # one feature
+    suppressWarnings({
+      dotplot_ligand <-
+        Seurat::DotPlot(subset(sobject, idents = senders),
+                        features = rev(colnames(vis_ligand_receptor_network)),
+                        cols = c("gray95", "sienna3"),
+                        scale = FALSE) &
+        Seurat::RotatedAxis() &
+        ggplot2::coord_flip()
+    })
     if (show_plots) {
-        print(dotplot_ligand)
+      print(dotplot_ligand)
     }
   }
 
